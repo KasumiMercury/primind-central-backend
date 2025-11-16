@@ -6,7 +6,6 @@ option go_package = "gen/auth/v1;authv1";
 
 service AuthService {
   rpc Login(LoginRequest) returns (LoginResponse);
-  rpc HandleCallback(HandleCallbackRequest) returns (HandleCallbackResponse);
   rpc Logout(LogoutRequest) returns (LogoutResponse);
   rpc GetSession(GetSessionRequest) returns (GetSessionResponse);
   rpc GetUser(GetUserRequest) returns (GetUserResponse);
@@ -35,22 +34,12 @@ message Session {
 // Login and session management messages.
 message LoginRequest {
   OIDCProvider provider = 1;
-  string redirect_uri = 2;
-  string state = 3;
 }
 
 message LoginResponse {
   string auth_url = 1;
   string state = 2;
 }
-
-message HandleCallbackRequest {
-  string code = 1;
-  string state = 2;
-  OIDCProvider provider = 3;
-}
-
-message HandleCallbackResponse {}
 
 message LogoutRequest {}
 

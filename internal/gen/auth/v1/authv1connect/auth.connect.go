@@ -35,9 +35,6 @@ const (
 const (
 	// AuthServiceLoginProcedure is the fully-qualified name of the AuthService's Login RPC.
 	AuthServiceLoginProcedure = "/auth.v1.AuthService/Login"
-	// AuthServiceHandleCallbackProcedure is the fully-qualified name of the AuthService's
-	// HandleCallback RPC.
-	AuthServiceHandleCallbackProcedure = "/auth.v1.AuthService/HandleCallback"
 	// AuthServiceLogoutProcedure is the fully-qualified name of the AuthService's Logout RPC.
 	AuthServiceLogoutProcedure = "/auth.v1.AuthService/Logout"
 	// AuthServiceGetSessionProcedure is the fully-qualified name of the AuthService's GetSession RPC.
@@ -55,7 +52,6 @@ const (
 // AuthServiceClient is a client for the auth.v1.AuthService service.
 type AuthServiceClient interface {
 	Login(context.Context, *v1.LoginRequest) (*v1.LoginResponse, error)
-	HandleCallback(context.Context, *v1.HandleCallbackRequest) (*v1.HandleCallbackResponse, error)
 	Logout(context.Context, *v1.LogoutRequest) (*v1.LogoutResponse, error)
 	GetSession(context.Context, *v1.GetSessionRequest) (*v1.GetSessionResponse, error)
 	GetUser(context.Context, *v1.GetUserRequest) (*v1.GetUserResponse, error)
@@ -78,12 +74,6 @@ func NewAuthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			httpClient,
 			baseURL+AuthServiceLoginProcedure,
 			connect.WithSchema(authServiceMethods.ByName("Login")),
-			connect.WithClientOptions(opts...),
-		),
-		handleCallback: connect.NewClient[v1.HandleCallbackRequest, v1.HandleCallbackResponse](
-			httpClient,
-			baseURL+AuthServiceHandleCallbackProcedure,
-			connect.WithSchema(authServiceMethods.ByName("HandleCallback")),
 			connect.WithClientOptions(opts...),
 		),
 		logout: connect.NewClient[v1.LogoutRequest, v1.LogoutResponse](
@@ -122,7 +112,6 @@ func NewAuthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 // authServiceClient implements AuthServiceClient.
 type authServiceClient struct {
 	login             *connect.Client[v1.LoginRequest, v1.LoginResponse]
-	handleCallback    *connect.Client[v1.HandleCallbackRequest, v1.HandleCallbackResponse]
 	logout            *connect.Client[v1.LogoutRequest, v1.LogoutResponse]
 	getSession        *connect.Client[v1.GetSessionRequest, v1.GetSessionResponse]
 	getUser           *connect.Client[v1.GetUserRequest, v1.GetUserResponse]
@@ -133,15 +122,6 @@ type authServiceClient struct {
 // Login calls auth.v1.AuthService.Login.
 func (c *authServiceClient) Login(ctx context.Context, req *v1.LoginRequest) (*v1.LoginResponse, error) {
 	response, err := c.login.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
-// HandleCallback calls auth.v1.AuthService.HandleCallback.
-func (c *authServiceClient) HandleCallback(ctx context.Context, req *v1.HandleCallbackRequest) (*v1.HandleCallbackResponse, error) {
-	response, err := c.handleCallback.CallUnary(ctx, connect.NewRequest(req))
 	if response != nil {
 		return response.Msg, err
 	}
@@ -196,7 +176,6 @@ func (c *authServiceClient) GetCurrentUser(ctx context.Context, req *v1.GetCurre
 // AuthServiceHandler is an implementation of the auth.v1.AuthService service.
 type AuthServiceHandler interface {
 	Login(context.Context, *v1.LoginRequest) (*v1.LoginResponse, error)
-	HandleCallback(context.Context, *v1.HandleCallbackRequest) (*v1.HandleCallbackResponse, error)
 	Logout(context.Context, *v1.LogoutRequest) (*v1.LogoutResponse, error)
 	GetSession(context.Context, *v1.GetSessionRequest) (*v1.GetSessionResponse, error)
 	GetUser(context.Context, *v1.GetUserRequest) (*v1.GetUserResponse, error)
@@ -215,12 +194,6 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 		AuthServiceLoginProcedure,
 		svc.Login,
 		connect.WithSchema(authServiceMethods.ByName("Login")),
-		connect.WithHandlerOptions(opts...),
-	)
-	authServiceHandleCallbackHandler := connect.NewUnaryHandlerSimple(
-		AuthServiceHandleCallbackProcedure,
-		svc.HandleCallback,
-		connect.WithSchema(authServiceMethods.ByName("HandleCallback")),
 		connect.WithHandlerOptions(opts...),
 	)
 	authServiceLogoutHandler := connect.NewUnaryHandlerSimple(
@@ -257,8 +230,6 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 		switch r.URL.Path {
 		case AuthServiceLoginProcedure:
 			authServiceLoginHandler.ServeHTTP(w, r)
-		case AuthServiceHandleCallbackProcedure:
-			authServiceHandleCallbackHandler.ServeHTTP(w, r)
 		case AuthServiceLogoutProcedure:
 			authServiceLogoutHandler.ServeHTTP(w, r)
 		case AuthServiceGetSessionProcedure:
@@ -280,10 +251,6 @@ type UnimplementedAuthServiceHandler struct{}
 
 func (UnimplementedAuthServiceHandler) Login(context.Context, *v1.LoginRequest) (*v1.LoginResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.v1.AuthService.Login is not implemented"))
-}
-
-func (UnimplementedAuthServiceHandler) HandleCallback(context.Context, *v1.HandleCallbackRequest) (*v1.HandleCallbackResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.v1.AuthService.HandleCallback is not implemented"))
 }
 
 func (UnimplementedAuthServiceHandler) Logout(context.Context, *v1.LogoutRequest) (*v1.LogoutResponse, error) {
