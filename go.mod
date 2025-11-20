@@ -4,10 +4,12 @@ go 1.25.4
 
 require (
 	connectrpc.com/connect v1.19.1
+	golang.org/x/oauth2 v0.30.0
 	google.golang.org/protobuf v1.36.10
 )
 
 require (
+	cloud.google.com/go/compute/metadata v0.8.0 // indirect
 	dario.cat/mergo v1.0.2 // indirect
 	github.com/air-verse/air v1.63.0 // indirect
 	github.com/bep/godartsass/v2 v2.5.0 // indirect

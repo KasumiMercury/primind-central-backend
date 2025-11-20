@@ -4,8 +4,10 @@ import (
 	"log"
 	"net/http"
 
-	authsvc "github.com/KasumiMercury/primind-central-backend/internal/auth"
 	authconfig "github.com/KasumiMercury/primind-central-backend/internal/auth/config"
+	"github.com/KasumiMercury/primind-central-backend/internal/auth/controller/oidc"
+	"github.com/KasumiMercury/primind-central-backend/internal/auth/infra/repository"
+	authsvc "github.com/KasumiMercury/primind-central-backend/internal/auth/infra/service"
 	authv1connect "github.com/KasumiMercury/primind-central-backend/internal/gen/auth/v1/authv1connect"
 )
 
@@ -17,7 +19,9 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	authService := authsvc.NewService(authCfg)
+	paramsRepo := repository.NewInMemoryOIDCParamsRepository()
+	paramsCtrl := oidc.NewParamsUseCase(authCfg.OIDC, paramsRepo)
+	authService := authsvc.NewService(authCfg, paramsCtrl)
 
 	authPath, authHandler := authv1connect.NewAuthServiceHandler(authService)
 	mux.Handle(authPath, authHandler)

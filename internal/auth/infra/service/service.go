@@ -3,27 +3,55 @@ package auth
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	connect "connectrpc.com/connect"
 	"github.com/KasumiMercury/primind-central-backend/internal/auth/config"
+	oidccfg "github.com/KasumiMercury/primind-central-backend/internal/auth/config/oidc"
+	"github.com/KasumiMercury/primind-central-backend/internal/auth/controller/oidc"
+	oidcctrl "github.com/KasumiMercury/primind-central-backend/internal/auth/controller/oidc"
 	authv1 "github.com/KasumiMercury/primind-central-backend/internal/gen/auth/v1"
 	authv1connect "github.com/KasumiMercury/primind-central-backend/internal/gen/auth/v1/authv1connect"
 )
 
 type Service struct {
-	config *config.AuthConfig
+	config     *config.AuthConfig
+	oidcParams oidc.OIDCParamsGenerator
 }
 
 var _ authv1connect.AuthServiceHandler = (*Service)(nil)
 
-func NewService(cfg *config.AuthConfig) *Service {
+func NewService(cfg *config.AuthConfig, oidcParamsGenerator oidc.OIDCParamsGenerator) *Service {
 	return &Service{
-		config: cfg,
+		config:     cfg,
+		oidcParams: oidcParamsGenerator,
 	}
 }
 
 func (s *Service) OIDCParams(ctx context.Context, req *authv1.OIDCParamsRequest) (*authv1.OIDCParamsResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.OIDCParams not implemented"))
+	providerID, err := mapProvider(req.GetProvider())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	result, err := s.oidcParams.Generate(ctx, providerID)
+	if err != nil {
+		switch {
+		case errors.Is(err, oidcctrl.ErrOIDCNotConfigured):
+			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		case errors.Is(err, oidcctrl.ErrProviderUnsupported):
+			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		default:
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
+	}
+
+	return &authv1.OIDCParamsResponse{
+		AuthorizationUrl: result.AuthorizationURL,
+		ClientId:         result.ClientID,
+		RedirectUri:      result.RedirectURI,
+		Scope:            result.Scope,
+	}, nil
 }
 
 func (s *Service) OIDCLogin(ctx context.Context, req *authv1.OIDCLoginRequest) (*authv1.OIDCLoginResponse, error) {
@@ -48,4 +76,15 @@ func (s *Service) GetUserByUsername(ctx context.Context, req *authv1.GetUserByUs
 
 func (s *Service) GetCurrentUser(ctx context.Context, req *authv1.GetCurrentUserRequest) (*authv1.GetCurrentUserResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.GetCurrentUser not implemented"))
+}
+
+func mapProvider(provider authv1.OIDCProvider) (oidccfg.ProviderID, error) {
+	switch provider {
+	case authv1.OIDCProvider_OIDC_PROVIDER_GOOGLE:
+		return oidccfg.ProviderGoogle, nil
+	case authv1.OIDCProvider_OIDC_PROVIDER_UNSPECIFIED:
+		return "", fmt.Errorf("oidc provider is required")
+	default:
+		return "", fmt.Errorf("unsupported oidc provider: %s", provider.String())
+	}
 }
