@@ -7,6 +7,7 @@ import (
 	"time"
 
 	oidccfg "github.com/KasumiMercury/primind-central-backend/internal/auth/config/oidc"
+	sessionCfg "github.com/KasumiMercury/primind-central-backend/internal/auth/config/session"
 	"github.com/KasumiMercury/primind-central-backend/internal/auth/controller/oidc"
 	domainoidc "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/oidc"
 	domain "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/session"
@@ -15,11 +16,11 @@ import (
 )
 
 type LoginHandler struct {
-	providers       map[oidccfg.ProviderID]*RPProvider
-	paramsRepo      domainoidc.ParamsRepository
-	sessionRepo     domain.SessionRepository
-	jwtGenerator    *jwt.Generator
-	sessionDuration time.Duration
+	providers    map[oidccfg.ProviderID]*RPProvider
+	paramsRepo   domainoidc.ParamsRepository
+	sessionRepo  domain.SessionRepository
+	jwtGenerator *jwt.Generator
+	sessionCfg   *sessionCfg.Config
 }
 
 func NewLoginHandler(
@@ -27,14 +28,14 @@ func NewLoginHandler(
 	paramsRepo domainoidc.ParamsRepository,
 	sessionRepo domain.SessionRepository,
 	jwtGenerator *jwt.Generator,
-	sessionDuration time.Duration,
+	sessionCfg *sessionCfg.Config,
 ) *LoginHandler {
 	return &LoginHandler{
-		providers:       providers,
-		paramsRepo:      paramsRepo,
-		sessionRepo:     sessionRepo,
-		jwtGenerator:    jwtGenerator,
-		sessionDuration: sessionDuration,
+		providers:    providers,
+		paramsRepo:   paramsRepo,
+		sessionRepo:  sessionRepo,
+		jwtGenerator: jwtGenerator,
+		sessionCfg:   sessionCfg,
 	}
 }
 
@@ -74,7 +75,7 @@ func (h *LoginHandler) Login(ctx context.Context, req *oidc.LoginRequest) (*oidc
 	}
 
 	now := time.Now().UTC()
-	expiresAt := now.Add(h.sessionDuration)
+	expiresAt := now.Add(h.sessionCfg.Duration)
 
 	session := &domain.Session{
 		ID:        sessionToken,

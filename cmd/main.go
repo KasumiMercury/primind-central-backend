@@ -59,8 +59,8 @@ func initAuthService(ctx context.Context) (string, http.Handler, error) {
 
 	var loginHandler oidcctrl.OIDCLoginUseCase
 	if authCfg.Session != nil && authCfg.OIDC != nil {
-		jwtGenerator := jwt.NewGenerator(authCfg.Session.Secret, authCfg.Session.Duration)
-		loginHandler = infraoidc.NewLoginHandler(providers, paramsRepo, sessionRepo, jwtGenerator, authCfg.Session.Duration)
+		jwtGenerator := jwt.NewGenerator(authCfg.Session)
+		loginHandler = infraoidc.NewLoginHandler(providers, paramsRepo, sessionRepo, jwtGenerator, authCfg.Session)
 	}
 
 	authService := authsvc.NewService(authCfg, paramsGenerator, loginHandler)

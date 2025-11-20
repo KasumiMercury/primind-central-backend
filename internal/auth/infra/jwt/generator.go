@@ -5,17 +5,17 @@ import (
 
 	"github.com/go-jose/go-jose/v4"
 	"github.com/go-jose/go-jose/v4/jwt"
+
+	sessionCfg "github.com/KasumiMercury/primind-central-backend/internal/auth/config/session"
 )
 
 type Generator struct {
-	secret   []byte
-	duration time.Duration
+	sessionCfg *sessionCfg.Config
 }
 
-func NewGenerator(secret string, duration time.Duration) *Generator {
+func NewGenerator(cfg *sessionCfg.Config) *Generator {
 	return &Generator{
-		secret:   []byte(secret),
-		duration: duration,
+		sessionCfg: cfg,
 	}
 }
 
@@ -27,7 +27,7 @@ type Claims struct {
 
 func (g *Generator) Generate(sub, name string) (string, error) {
 	signer, err := jose.NewSigner(
-		jose.SigningKey{Algorithm: jose.HS256, Key: g.secret},
+		jose.SigningKey{Algorithm: jose.HS256, Key: g.sessionCfg.Secret},
 		(&jose.SignerOptions{}).WithType("JWT"),
 	)
 	if err != nil {
@@ -40,7 +40,7 @@ func (g *Generator) Generate(sub, name string) (string, error) {
 		Name: name,
 		Claims: jwt.Claims{
 			IssuedAt: jwt.NewNumericDate(now),
-			Expiry:   jwt.NewNumericDate(now.Add(g.duration)),
+			Expiry:   jwt.NewNumericDate(now.Add(g.sessionCfg.Duration)),
 		},
 	}
 
@@ -59,7 +59,7 @@ func (g *Generator) Verify(token string) (*Claims, error) {
 	}
 
 	claims := &Claims{}
-	if err := parsed.Claims(g.secret, claims); err != nil {
+	if err := parsed.Claims(g.sessionCfg.Secret, claims); err != nil {
 		return nil, err
 	}
 
