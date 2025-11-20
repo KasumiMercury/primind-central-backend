@@ -6,7 +6,9 @@ import (
 	"net/http"
 
 	authconfig "github.com/KasumiMercury/primind-central-backend/internal/auth/config"
+	oidccfg "github.com/KasumiMercury/primind-central-backend/internal/auth/config/oidc"
 	oidcctrl "github.com/KasumiMercury/primind-central-backend/internal/auth/controller/oidc"
+	"github.com/KasumiMercury/primind-central-backend/internal/auth/infra/jwt"
 	infraoidc "github.com/KasumiMercury/primind-central-backend/internal/auth/infra/oidc"
 	"github.com/KasumiMercury/primind-central-backend/internal/auth/infra/repository"
 	authsvc "github.com/KasumiMercury/primind-central-backend/internal/auth/infra/service"
@@ -24,15 +26,30 @@ func main() {
 	mux := http.NewServeMux()
 
 	paramsRepo := repository.NewInMemoryOIDCParamsRepository()
+	sessionRepo := repository.NewInMemorySessionRepository()
+
 	var paramsGenerator oidcctrl.OIDCParamsGenerator
+	var providers map[oidccfg.ProviderID]*infraoidc.RPProvider
 	if authCfg.OIDC != nil {
-		paramsGenerator, err = infraoidc.NewParamsGenerator(ctx, authCfg.OIDC, paramsRepo)
-		if err != nil {
-			log.Fatalf("failed to initialize OIDC params generator: %v", err)
+		providers = make(map[oidccfg.ProviderID]*infraoidc.RPProvider)
+		for providerID, providerCfg := range authCfg.OIDC.Providers {
+			rpProvider, err := infraoidc.NewRPProvider(ctx, providerCfg)
+			if err != nil {
+				log.Fatalf("failed to initialize OIDC provider %s: %v", providerID, err)
+			}
+			providers[providerID] = rpProvider
 		}
+
+		paramsGenerator = infraoidc.NewParamsGenerator(providers, paramsRepo)
 	}
 
-	authService := authsvc.NewService(authCfg, paramsGenerator)
+	var loginHandler oidcctrl.OIDCLoginUseCase
+	if authCfg.Session != nil && authCfg.OIDC != nil {
+		jwtGenerator := jwt.NewGenerator(authCfg.Session.Secret, authCfg.Session.Duration)
+		loginHandler = infraoidc.NewLoginHandler(providers, paramsRepo, sessionRepo, jwtGenerator, authCfg.Session.Duration)
+	}
+
+	authService := authsvc.NewService(authCfg, paramsGenerator, loginHandler)
 
 	authPath, authHandler := authv1connect.NewAuthServiceHandler(authService)
 	mux.Handle(authPath, authHandler)

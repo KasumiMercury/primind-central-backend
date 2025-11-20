@@ -18,26 +18,11 @@ type ParamsGenerator struct {
 	repo      domain.ParamsRepository
 }
 
-// NewParamsGenerator creates a new params generator with initialized OIDC providers.
-func NewParamsGenerator(ctx context.Context, cfg *oidccfg.Config, repo domain.ParamsRepository) (*ParamsGenerator, error) {
-	if cfg == nil || len(cfg.Providers) == 0 {
-		return nil, oidc.ErrOIDCNotConfigured
-	}
-
-	providers := make(map[oidccfg.ProviderID]*RPProvider)
-
-	for providerID, providerCfg := range cfg.Providers {
-		rpProvider, err := NewRPProvider(ctx, providerCfg)
-		if err != nil {
-			return nil, fmt.Errorf("initialize provider %s: %w", providerID, err)
-		}
-		providers[providerID] = rpProvider
-	}
-
+func NewParamsGenerator(providers map[oidccfg.ProviderID]*RPProvider, repo domain.ParamsRepository) *ParamsGenerator {
 	return &ParamsGenerator{
 		providers: providers,
 		repo:      repo,
-	}, nil
+	}
 }
 
 // Generate creates OIDC authorization parameters for the specified provider.

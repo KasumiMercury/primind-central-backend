@@ -4,6 +4,7 @@ go 1.25.4
 
 require (
 	connectrpc.com/connect v1.19.1
+	github.com/go-jose/go-jose/v4 v4.1.1
 	github.com/zitadel/oidc/v3 v3.45.0
 	google.golang.org/protobuf v1.36.10
 )
@@ -16,7 +17,6 @@ require (
 	github.com/creack/pty v1.1.24 // indirect
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
-	github.com/go-jose/go-jose/v4 v4.1.1 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect

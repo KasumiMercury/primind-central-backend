@@ -17,14 +17,16 @@ import (
 type Service struct {
 	config     *config.AuthConfig
 	oidcParams oidc.OIDCParamsGenerator
+	oidcLogin  oidc.OIDCLoginUseCase
 }
 
 var _ authv1connect.AuthServiceHandler = (*Service)(nil)
 
-func NewService(cfg *config.AuthConfig, oidcParamsGenerator oidc.OIDCParamsGenerator) *Service {
+func NewService(cfg *config.AuthConfig, oidcParamsGenerator oidc.OIDCParamsGenerator, oidcLoginUseCase oidc.OIDCLoginUseCase) *Service {
 	return &Service{
 		config:     cfg,
 		oidcParams: oidcParamsGenerator,
+		oidcLogin:  oidcLoginUseCase,
 	}
 }
 
@@ -59,7 +61,47 @@ func (s *Service) OIDCParams(ctx context.Context, req *authv1.OIDCParamsRequest)
 }
 
 func (s *Service) OIDCLogin(ctx context.Context, req *authv1.OIDCLoginRequest) (*authv1.OIDCLoginResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.OIDCLogin not implemented"))
+	if s.oidcLogin == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, oidcctrl.ErrOIDCNotConfigured)
+	}
+
+	providerID, err := mapProvider(req.GetProvider())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	loginReq := &oidcctrl.LoginRequest{
+		Provider: providerID,
+		Code:     req.GetCode(),
+		State:    req.GetState(),
+	}
+
+	result, err := s.oidcLogin.Login(ctx, loginReq)
+	if err != nil {
+		switch {
+		case errors.Is(err, oidcctrl.ErrOIDCNotConfigured):
+			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		case errors.Is(err, oidcctrl.ErrProviderUnsupported):
+			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		case errors.Is(err, oidcctrl.ErrInvalidCode):
+			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		case errors.Is(err, oidcctrl.ErrInvalidState):
+			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		case errors.Is(err, oidcctrl.ErrInvalidNonce):
+			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		default:
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
+	}
+
+	return &authv1.OIDCLoginResponse{
+		Session: &authv1.Session{
+			SessionId: result.SessionID,
+			UserId:    result.UserID,
+			CreatedAt: result.CreatedAt,
+			ExpiresAt: result.ExpiresAt,
+		},
+	}, nil
 }
 
 func (s *Service) Logout(ctx context.Context, req *authv1.LogoutRequest) (*authv1.LogoutResponse, error) {

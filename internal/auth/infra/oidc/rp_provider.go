@@ -9,6 +9,7 @@ import (
 	oidccfg "github.com/KasumiMercury/primind-central-backend/internal/auth/config/oidc"
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
 	httphelper "github.com/zitadel/oidc/v3/pkg/http"
+	"github.com/zitadel/oidc/v3/pkg/oidc"
 )
 
 // RPProvider wraps zitadel/oidc RelyingParty
@@ -80,4 +81,8 @@ func (p *RPProvider) RedirectURI() string {
 
 func (p *RPProvider) Scopes() []string {
 	return p.scopes
+}
+
+func (p *RPProvider) ExchangeToken(ctx context.Context, code string) (*oidc.Tokens[*oidc.IDTokenClaims], error) {
+	return rp.CodeExchange[*oidc.IDTokenClaims](ctx, code, p.rp)
 }
