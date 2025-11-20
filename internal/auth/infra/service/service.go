@@ -29,6 +29,10 @@ func NewService(cfg *config.AuthConfig, oidcParamsGenerator oidc.OIDCParamsGener
 }
 
 func (s *Service) OIDCParams(ctx context.Context, req *authv1.OIDCParamsRequest) (*authv1.OIDCParamsResponse, error) {
+	if s.oidcParams == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, oidcctrl.ErrOIDCNotConfigured)
+	}
+
 	providerID, err := mapProvider(req.GetProvider())
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)

@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"net/url"
 	"slices"
-
-	"golang.org/x/oauth2"
 )
 
 // ProviderID identifies a supported OIDC provider.
@@ -19,7 +17,6 @@ const (
 type ProviderConfig interface {
 	ProviderID() ProviderID
 	Core() CoreConfig
-	OAuth2Endpoint() oauth2.Endpoint
 	Validate() error
 }
 
@@ -102,29 +99,9 @@ func (c *Config) Validate() error {
 		if err := provider.Core().Validate(); err != nil {
 			return fmt.Errorf("%s: %w", id, err)
 		}
-		if err := validateEndpoint(provider.OAuth2Endpoint()); err != nil {
-			return fmt.Errorf("%s: %w", id, err)
-		}
 		if err := provider.Validate(); err != nil {
 			return fmt.Errorf("%s: %w", id, err)
 		}
-	}
-
-	return nil
-}
-
-func validateEndpoint(endpoint oauth2.Endpoint) error {
-	if endpoint.AuthURL == "" {
-		return fmt.Errorf("oauth2 authorization endpoint is required")
-	}
-
-	authURL, err := url.Parse(endpoint.AuthURL)
-	if err != nil {
-		return fmt.Errorf("invalid oauth2 authorization endpoint: %w", err)
-	}
-
-	if authURL.Scheme != "https" {
-		return fmt.Errorf("oauth2 authorization endpoint must use https, got: %s", authURL.Scheme)
 	}
 
 	return nil
