@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -17,13 +18,26 @@ import (
 
 func main() {
 	ctx := context.Background()
+	mux := http.NewServeMux()
 
+	authPath, authHandler, err := initAuthService(ctx)
+	if err != nil {
+		log.Fatalf("failed to initialize auth service: %v", err)
+	}
+	mux.Handle(authPath, authHandler)
+
+	addr := ":8080"
+	log.Printf("starting Connect API server on %s\n", addr)
+	if err := http.ListenAndServe(addr, mux); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func initAuthService(ctx context.Context) (string, http.Handler, error) {
 	authCfg, err := authconfig.Load()
 	if err != nil {
-		log.Fatalf("failed to load auth config: %v", err)
+		return "", nil, err
 	}
-
-	mux := http.NewServeMux()
 
 	paramsRepo := repository.NewInMemoryOIDCParamsRepository()
 	sessionRepo := repository.NewInMemorySessionRepository()
@@ -35,7 +49,7 @@ func main() {
 		for providerID, providerCfg := range authCfg.OIDC.Providers {
 			rpProvider, err := infraoidc.NewRPProvider(ctx, providerCfg)
 			if err != nil {
-				log.Fatalf("failed to initialize OIDC provider %s: %v", providerID, err)
+				return "", nil, fmt.Errorf("failed to initialize OIDC provider %s: %w", providerID, err)
 			}
 			providers[providerID] = rpProvider
 		}
@@ -52,11 +66,5 @@ func main() {
 	authService := authsvc.NewService(authCfg, paramsGenerator, loginHandler)
 
 	authPath, authHandler := authv1connect.NewAuthServiceHandler(authService)
-	mux.Handle(authPath, authHandler)
-
-	addr := ":8080"
-	log.Printf("starting Connect API server on %s\n", addr)
-	if err := http.ListenAndServe(addr, mux); err != nil {
-		log.Fatal(err)
-	}
+	return authPath, authHandler, nil
 }
