@@ -5,17 +5,21 @@ import (
 	"errors"
 
 	connect "connectrpc.com/connect"
+	"github.com/KasumiMercury/primind-central-backend/internal/auth/config"
 	authv1 "github.com/KasumiMercury/primind-central-backend/internal/gen/auth/v1"
 	authv1connect "github.com/KasumiMercury/primind-central-backend/internal/gen/auth/v1/authv1connect"
 )
 
 type Service struct {
+	config *config.AuthConfig
 }
 
 var _ authv1connect.AuthServiceHandler = (*Service)(nil)
 
-func NewService() *Service {
-	return &Service{}
+func NewService(cfg *config.AuthConfig) *Service {
+	return &Service{
+		config: cfg,
+	}
 }
 
 func (s *Service) OIDCParams(ctx context.Context, req *authv1.OIDCParamsRequest) (*authv1.OIDCParamsResponse, error) {
