@@ -63,7 +63,7 @@ func initAuthService(ctx context.Context) (string, http.Handler, error) {
 		loginHandler = infraoidc.NewLoginHandler(providers, paramsRepo, sessionRepo, jwtGenerator, authCfg.Session)
 	}
 
-	authService := authsvc.NewService(authCfg, paramsGenerator, loginHandler)
+	authService := authsvc.NewService(paramsGenerator, loginHandler)
 
 	authPath, authHandler := authv1connect.NewAuthServiceHandler(authService)
 	return authPath, authHandler, nil

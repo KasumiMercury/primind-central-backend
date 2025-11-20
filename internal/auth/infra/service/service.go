@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	connect "connectrpc.com/connect"
-	"github.com/KasumiMercury/primind-central-backend/internal/auth/config"
 	oidccfg "github.com/KasumiMercury/primind-central-backend/internal/auth/config/oidc"
 	"github.com/KasumiMercury/primind-central-backend/internal/auth/controller/oidc"
 	oidcctrl "github.com/KasumiMercury/primind-central-backend/internal/auth/controller/oidc"
@@ -15,16 +14,14 @@ import (
 )
 
 type Service struct {
-	config     *config.AuthConfig
 	oidcParams oidc.OIDCParamsGenerator
 	oidcLogin  oidc.OIDCLoginUseCase
 }
 
 var _ authv1connect.AuthServiceHandler = (*Service)(nil)
 
-func NewService(cfg *config.AuthConfig, oidcParamsGenerator oidc.OIDCParamsGenerator, oidcLoginUseCase oidc.OIDCLoginUseCase) *Service {
+func NewService(oidcParamsGenerator oidc.OIDCParamsGenerator, oidcLoginUseCase oidc.OIDCLoginUseCase) *Service {
 	return &Service{
-		config:     cfg,
 		oidcParams: oidcParamsGenerator,
 		oidcLogin:  oidcLoginUseCase,
 	}
