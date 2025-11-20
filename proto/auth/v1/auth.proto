@@ -37,6 +37,7 @@ message OIDCParamsResponse {
 message OIDCLoginRequest {
   OIDCProvider provider = 1;
   string code = 2;
+  string state = 3;
 }
 
 message OIDCLoginResponse {

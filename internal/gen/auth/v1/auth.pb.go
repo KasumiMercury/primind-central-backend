@@ -186,6 +186,7 @@ type OIDCLoginRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Provider      OIDCProvider           `protobuf:"varint,1,opt,name=provider,proto3,enum=auth.v1.OIDCProvider" json:"provider,omitempty"`
 	Code          string                 `protobuf:"bytes,2,opt,name=code,proto3" json:"code,omitempty"`
+	State         string                 `protobuf:"bytes,3,opt,name=state,proto3" json:"state,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -230,6 +231,13 @@ func (x *OIDCLoginRequest) GetProvider() OIDCProvider {
 func (x *OIDCLoginRequest) GetCode() string {
 	if x != nil {
 		return x.Code
+	}
+	return ""
+}
+
+func (x *OIDCLoginRequest) GetState() string {
+	if x != nil {
+		return x.State
 	}
 	return ""
 }
@@ -833,10 +841,11 @@ const file_auth_v1_auth_proto_rawDesc = "" +
 	"\x11authorization_url\x18\x01 \x01(\tR\x10authorizationUrl\x12\x1b\n" +
 	"\tclient_id\x18\x02 \x01(\tR\bclientId\x12!\n" +
 	"\fredirect_uri\x18\x03 \x01(\tR\vredirectUri\x12\x14\n" +
-	"\x05scope\x18\x04 \x01(\tR\x05scope\"Y\n" +
+	"\x05scope\x18\x04 \x01(\tR\x05scope\"o\n" +
 	"\x10OIDCLoginRequest\x121\n" +
 	"\bprovider\x18\x01 \x01(\x0e2\x15.auth.v1.OIDCProviderR\bprovider\x12\x12\n" +
-	"\x04code\x18\x02 \x01(\tR\x04code\"?\n" +
+	"\x04code\x18\x02 \x01(\tR\x04code\x12\x14\n" +
+	"\x05state\x18\x03 \x01(\tR\x05state\"?\n" +
 	"\x11OIDCLoginResponse\x12*\n" +
 	"\asession\x18\x01 \x01(\v2\x10.auth.v1.SessionR\asession\"\x7f\n" +
 	"\aSession\x12\x1d\n" +
