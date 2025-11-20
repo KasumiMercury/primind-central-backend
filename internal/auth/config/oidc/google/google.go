@@ -7,6 +7,8 @@ import (
 	"strings"
 
 	"github.com/KasumiMercury/primind-central-backend/internal/auth/config/oidc"
+	"golang.org/x/oauth2"
+	oauth2google "golang.org/x/oauth2/google"
 )
 
 const (
@@ -70,6 +72,10 @@ func (c *Config) Core() oidc.CoreConfig {
 		Scopes:       c.Scopes,
 		IssuerURL:    c.IssuerURL,
 	}
+}
+
+func (c *Config) OAuth2Endpoint() oauth2.Endpoint {
+	return oauth2google.Endpoint
 }
 
 func (c *Config) Validate() error {
