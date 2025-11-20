@@ -18,12 +18,12 @@ func NewService() *Service {
 	return &Service{}
 }
 
-func (s *Service) Login(ctx context.Context, req *authv1.LoginRequest) (*authv1.LoginResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.Login not implemented"))
+func (s *Service) OIDCParams(ctx context.Context, req *authv1.OIDCParamsRequest) (*authv1.OIDCParamsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.OIDCParams not implemented"))
 }
 
-func (s *Service) HandleCallback(ctx context.Context, req *authv1.HandleCallbackRequest) (*authv1.HandleCallbackResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.HandleCallback not implemented"))
+func (s *Service) OIDCLogin(ctx context.Context, req *authv1.OIDCLoginRequest) (*authv1.OIDCLoginResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.OIDCLogin not implemented"))
 }
 
 func (s *Service) Logout(ctx context.Context, req *authv1.LogoutRequest) (*authv1.LogoutResponse, error) {
