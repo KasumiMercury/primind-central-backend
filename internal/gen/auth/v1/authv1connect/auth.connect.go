@@ -33,8 +33,10 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// AuthServiceLoginProcedure is the fully-qualified name of the AuthService's Login RPC.
-	AuthServiceLoginProcedure = "/auth.v1.AuthService/Login"
+	// AuthServiceOIDCParamsProcedure is the fully-qualified name of the AuthService's OIDCParams RPC.
+	AuthServiceOIDCParamsProcedure = "/auth.v1.AuthService/OIDCParams"
+	// AuthServiceOIDCLoginProcedure is the fully-qualified name of the AuthService's OIDCLogin RPC.
+	AuthServiceOIDCLoginProcedure = "/auth.v1.AuthService/OIDCLogin"
 	// AuthServiceLogoutProcedure is the fully-qualified name of the AuthService's Logout RPC.
 	AuthServiceLogoutProcedure = "/auth.v1.AuthService/Logout"
 	// AuthServiceGetSessionProcedure is the fully-qualified name of the AuthService's GetSession RPC.
@@ -51,7 +53,8 @@ const (
 
 // AuthServiceClient is a client for the auth.v1.AuthService service.
 type AuthServiceClient interface {
-	Login(context.Context, *v1.LoginRequest) (*v1.LoginResponse, error)
+	OIDCParams(context.Context, *v1.OIDCParamsRequest) (*v1.OIDCParamsResponse, error)
+	OIDCLogin(context.Context, *v1.OIDCLoginRequest) (*v1.OIDCLoginResponse, error)
 	Logout(context.Context, *v1.LogoutRequest) (*v1.LogoutResponse, error)
 	GetSession(context.Context, *v1.GetSessionRequest) (*v1.GetSessionResponse, error)
 	GetUser(context.Context, *v1.GetUserRequest) (*v1.GetUserResponse, error)
@@ -70,10 +73,16 @@ func NewAuthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 	baseURL = strings.TrimRight(baseURL, "/")
 	authServiceMethods := v1.File_auth_v1_auth_proto.Services().ByName("AuthService").Methods()
 	return &authServiceClient{
-		login: connect.NewClient[v1.LoginRequest, v1.LoginResponse](
+		oIDCParams: connect.NewClient[v1.OIDCParamsRequest, v1.OIDCParamsResponse](
 			httpClient,
-			baseURL+AuthServiceLoginProcedure,
-			connect.WithSchema(authServiceMethods.ByName("Login")),
+			baseURL+AuthServiceOIDCParamsProcedure,
+			connect.WithSchema(authServiceMethods.ByName("OIDCParams")),
+			connect.WithClientOptions(opts...),
+		),
+		oIDCLogin: connect.NewClient[v1.OIDCLoginRequest, v1.OIDCLoginResponse](
+			httpClient,
+			baseURL+AuthServiceOIDCLoginProcedure,
+			connect.WithSchema(authServiceMethods.ByName("OIDCLogin")),
 			connect.WithClientOptions(opts...),
 		),
 		logout: connect.NewClient[v1.LogoutRequest, v1.LogoutResponse](
@@ -111,7 +120,8 @@ func NewAuthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 
 // authServiceClient implements AuthServiceClient.
 type authServiceClient struct {
-	login             *connect.Client[v1.LoginRequest, v1.LoginResponse]
+	oIDCParams        *connect.Client[v1.OIDCParamsRequest, v1.OIDCParamsResponse]
+	oIDCLogin         *connect.Client[v1.OIDCLoginRequest, v1.OIDCLoginResponse]
 	logout            *connect.Client[v1.LogoutRequest, v1.LogoutResponse]
 	getSession        *connect.Client[v1.GetSessionRequest, v1.GetSessionResponse]
 	getUser           *connect.Client[v1.GetUserRequest, v1.GetUserResponse]
@@ -119,9 +129,18 @@ type authServiceClient struct {
 	getCurrentUser    *connect.Client[v1.GetCurrentUserRequest, v1.GetCurrentUserResponse]
 }
 
-// Login calls auth.v1.AuthService.Login.
-func (c *authServiceClient) Login(ctx context.Context, req *v1.LoginRequest) (*v1.LoginResponse, error) {
-	response, err := c.login.CallUnary(ctx, connect.NewRequest(req))
+// OIDCParams calls auth.v1.AuthService.OIDCParams.
+func (c *authServiceClient) OIDCParams(ctx context.Context, req *v1.OIDCParamsRequest) (*v1.OIDCParamsResponse, error) {
+	response, err := c.oIDCParams.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// OIDCLogin calls auth.v1.AuthService.OIDCLogin.
+func (c *authServiceClient) OIDCLogin(ctx context.Context, req *v1.OIDCLoginRequest) (*v1.OIDCLoginResponse, error) {
+	response, err := c.oIDCLogin.CallUnary(ctx, connect.NewRequest(req))
 	if response != nil {
 		return response.Msg, err
 	}
@@ -175,7 +194,8 @@ func (c *authServiceClient) GetCurrentUser(ctx context.Context, req *v1.GetCurre
 
 // AuthServiceHandler is an implementation of the auth.v1.AuthService service.
 type AuthServiceHandler interface {
-	Login(context.Context, *v1.LoginRequest) (*v1.LoginResponse, error)
+	OIDCParams(context.Context, *v1.OIDCParamsRequest) (*v1.OIDCParamsResponse, error)
+	OIDCLogin(context.Context, *v1.OIDCLoginRequest) (*v1.OIDCLoginResponse, error)
 	Logout(context.Context, *v1.LogoutRequest) (*v1.LogoutResponse, error)
 	GetSession(context.Context, *v1.GetSessionRequest) (*v1.GetSessionResponse, error)
 	GetUser(context.Context, *v1.GetUserRequest) (*v1.GetUserResponse, error)
@@ -190,10 +210,16 @@ type AuthServiceHandler interface {
 // and JSON codecs. They also support gzip compression.
 func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
 	authServiceMethods := v1.File_auth_v1_auth_proto.Services().ByName("AuthService").Methods()
-	authServiceLoginHandler := connect.NewUnaryHandlerSimple(
-		AuthServiceLoginProcedure,
-		svc.Login,
-		connect.WithSchema(authServiceMethods.ByName("Login")),
+	authServiceOIDCParamsHandler := connect.NewUnaryHandlerSimple(
+		AuthServiceOIDCParamsProcedure,
+		svc.OIDCParams,
+		connect.WithSchema(authServiceMethods.ByName("OIDCParams")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceOIDCLoginHandler := connect.NewUnaryHandlerSimple(
+		AuthServiceOIDCLoginProcedure,
+		svc.OIDCLogin,
+		connect.WithSchema(authServiceMethods.ByName("OIDCLogin")),
 		connect.WithHandlerOptions(opts...),
 	)
 	authServiceLogoutHandler := connect.NewUnaryHandlerSimple(
@@ -228,8 +254,10 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 	)
 	return "/auth.v1.AuthService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case AuthServiceLoginProcedure:
-			authServiceLoginHandler.ServeHTTP(w, r)
+		case AuthServiceOIDCParamsProcedure:
+			authServiceOIDCParamsHandler.ServeHTTP(w, r)
+		case AuthServiceOIDCLoginProcedure:
+			authServiceOIDCLoginHandler.ServeHTTP(w, r)
 		case AuthServiceLogoutProcedure:
 			authServiceLogoutHandler.ServeHTTP(w, r)
 		case AuthServiceGetSessionProcedure:
@@ -249,8 +277,12 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 // UnimplementedAuthServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedAuthServiceHandler struct{}
 
-func (UnimplementedAuthServiceHandler) Login(context.Context, *v1.LoginRequest) (*v1.LoginResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.v1.AuthService.Login is not implemented"))
+func (UnimplementedAuthServiceHandler) OIDCParams(context.Context, *v1.OIDCParamsRequest) (*v1.OIDCParamsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.v1.AuthService.OIDCParams is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) OIDCLogin(context.Context, *v1.OIDCLoginRequest) (*v1.OIDCLoginResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.v1.AuthService.OIDCLogin is not implemented"))
 }
 
 func (UnimplementedAuthServiceHandler) Logout(context.Context, *v1.LogoutRequest) (*v1.LogoutResponse, error) {

@@ -5,7 +5,8 @@ package auth.v1;
 option go_package = "gen/auth/v1;authv1";
 
 service AuthService {
-  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc OIDCParams(OIDCParamsRequest) returns (OIDCParamsResponse);
+  rpc OIDCLogin(OIDCLoginRequest) returns (OIDCLoginResponse);
   rpc Logout(LogoutRequest) returns (LogoutResponse);
   rpc GetSession(GetSessionRequest) returns (GetSessionResponse);
   rpc GetUser(GetUserRequest) returns (GetUserResponse);
@@ -22,6 +23,26 @@ enum OIDCProvider {
   OIDC_PROVIDER_GOOGLE = 1;
 }
 
+message OIDCParamsRequest {
+  OIDCProvider provider = 1;
+}
+
+message OIDCParamsResponse {
+  string authorization_url = 1;
+  string client_id = 2;
+  string redirect_uri = 3;
+  string scope = 4;
+}
+
+message OIDCLoginRequest {
+  OIDCProvider provider = 1;
+  string code = 2;
+}
+
+message OIDCLoginResponse {
+  Session session = 1;
+}
+
 // Session represents an authenticated user session.
 message Session {
   // Unique session identifier managed by the auth module.
@@ -29,16 +50,6 @@ message Session {
   string user_id = 2;
   int64 created_at = 3;
   int64 expires_at = 4;
-}
-
-// Login and session management messages.
-message LoginRequest {
-  OIDCProvider provider = 1;
-}
-
-message LoginResponse {
-  string auth_url = 1;
-  string state = 2;
 }
 
 message LogoutRequest {}
