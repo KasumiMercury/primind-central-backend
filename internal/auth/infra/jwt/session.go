@@ -29,18 +29,18 @@ func (g *SessionJWTGenerator) Generate(session *domain.Session) (string, error) 
 		return "", err
 	}
 
-	now := session.CreatedAt
+	now := session.CreatedAt()
 	if now.IsZero() {
 		now = time.Now()
 	}
 
-	expiresAt := session.ExpiresAt
+	expiresAt := session.ExpiresAt()
 	if expiresAt.IsZero() {
 		expiresAt = now.Add(g.sessionCfg.Duration)
 	}
 
 	claims := jwt.Claims{
-		Subject:  session.UserID,
+		Subject:  session.UserID(),
 		IssuedAt: jwt.NewNumericDate(now),
 		Expiry:   jwt.NewNumericDate(expiresAt),
 	}

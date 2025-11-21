@@ -102,10 +102,13 @@ func (h *loginHandler) Login(ctx context.Context, req *LoginRequest) (*LoginResu
 	now := time.Now().UTC()
 	expiresAt := now.Add(h.sessionCfg.Duration)
 
-	session := &domain.Session{
-		UserID:    idToken.Subject,
-		CreatedAt: now,
-		ExpiresAt: expiresAt,
+	session, err := domain.NewSession(idToken.Subject, now, expiresAt)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := h.sessionRepo.SaveSession(ctx, session); err != nil {
+		return nil, err
 	}
 
 	sessionToken, err := h.jwtGenerator.Generate(session)
@@ -113,16 +116,10 @@ func (h *loginHandler) Login(ctx context.Context, req *LoginRequest) (*LoginResu
 		return nil, err
 	}
 
-	session.ID = sessionToken
-
-	if err := h.sessionRepo.SaveSession(ctx, session); err != nil {
-		return nil, err
-	}
-
 	return &LoginResult{
-		SessionID: session.ID,
-		UserID:    session.UserID,
-		CreatedAt: session.CreatedAt.Unix(),
-		ExpiresAt: session.ExpiresAt.Unix(),
+		SessionID: sessionToken,
+		UserID:    session.UserID(),
+		CreatedAt: session.CreatedAt().Unix(),
+		ExpiresAt: session.ExpiresAt().Unix(),
 	}, nil
 }

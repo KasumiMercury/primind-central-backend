@@ -12,12 +12,12 @@ var ErrSessionNotFound = errors.New("session not found")
 
 type inMemorySessionRepository struct {
 	mu          sync.Mutex
-	bySessionID map[string]domain.Session
+	bySessionID map[string]*domain.Session
 }
 
 func NewInMemorySessionRepository() domain.SessionRepository {
 	return &inMemorySessionRepository{
-		bySessionID: make(map[string]domain.Session),
+		bySessionID: make(map[string]*domain.Session),
 	}
 }
 
@@ -25,7 +25,11 @@ func (r *inMemorySessionRepository) SaveSession(_ context.Context, session *doma
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	r.bySessionID[session.ID] = *session
+	if session.ID() == "" {
+		return domain.ErrSessionIDEmpty
+	}
+
+	r.bySessionID[session.ID()] = session
 	return nil
 }
 
@@ -38,5 +42,5 @@ func (r *inMemorySessionRepository) GetSession(_ context.Context, sessionID stri
 		return nil, ErrSessionNotFound
 	}
 
-	return &session, nil
+	return session, nil
 }
