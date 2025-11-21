@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/KasumiMercury/primind-central-backend/internal/auth/config/oidc"
@@ -13,6 +14,11 @@ type AuthConfig struct {
 	Session *sessioncfg.Config
 	OIDC    *oidc.Config
 }
+
+var (
+	ErrSessionConfigMissing = errors.New("session config missing")
+	ErrOIDCConfigInvalid    = errors.New("oidc config invalid")
+)
 
 func Load() (*AuthConfig, error) {
 	sessionConfig, err := sessioncfg.Load()
@@ -41,15 +47,15 @@ func Load() (*AuthConfig, error) {
 
 func (c *AuthConfig) Validate() error {
 	if c.Session == nil {
-		return fmt.Errorf("session config: missing")
+		return ErrSessionConfigMissing
 	}
 	if err := c.Session.Validate(); err != nil {
-		return fmt.Errorf("session config: %w", err)
+		return fmt.Errorf("%w: %w", ErrSessionConfigMissing, err)
 	}
 
 	if c.OIDC != nil {
 		if err := c.OIDC.Validate(); err != nil {
-			return fmt.Errorf("oidc config: %w", err)
+			return fmt.Errorf("%w: %w", ErrOIDCConfigInvalid, err)
 		}
 	}
 

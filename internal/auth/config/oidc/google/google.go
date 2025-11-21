@@ -1,6 +1,7 @@
 package google
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -16,6 +17,12 @@ const (
 	redirectURIEnv  = "OIDC_GOOGLE_REDIRECT_URI"
 	scopesEnv       = "OIDC_GOOGLE_SCOPES"
 	issuerURLEnv    = "OIDC_GOOGLE_ISSUER_URL"
+)
+
+var (
+	ErrGoogleClientSecretMissing = errors.New("google oidc client secret missing")
+	ErrGoogleRedirectURIMissing  = errors.New("google oidc redirect uri missing")
+	ErrGoogleIssuerInvalid       = errors.New("issuer URL host should contain 'google.com'")
 )
 
 func init() {
@@ -80,7 +87,7 @@ func (c *Config) Validate() error {
 	}
 
 	if !strings.Contains(parsedIssuer.Host, "google.com") {
-		return fmt.Errorf("issuer URL host should contain 'google.com', got: %s", parsedIssuer.Host)
+		return fmt.Errorf("%w, got: %s", ErrGoogleIssuerInvalid, parsedIssuer.Host)
 	}
 
 	return nil
@@ -96,7 +103,14 @@ func getEnv(key, defaultVal string) string {
 func getEnvRequired(key string) (string, error) {
 	val := os.Getenv(key)
 	if val == "" {
-		return "", fmt.Errorf("required environment variable %s not set", key)
+		switch key {
+		case clientSecretEnv:
+			return "", fmt.Errorf("%w: %s", ErrGoogleClientSecretMissing, key)
+		case redirectURIEnv:
+			return "", fmt.Errorf("%w: %s", ErrGoogleRedirectURIMissing, key)
+		default:
+			return "", fmt.Errorf("required environment variable %s not set", key)
+		}
 	}
 	return val, nil
 }

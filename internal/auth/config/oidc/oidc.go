@@ -1,6 +1,7 @@
 package oidc
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
 	"slices"
@@ -24,17 +25,29 @@ type CoreConfig struct {
 	IssuerURL    string
 }
 
+var (
+	ErrClientIDMissing        = errors.New("client ID is required")
+	ErrClientSecretMissing    = errors.New("client secret is required")
+	ErrRedirectURIMissing     = errors.New("redirect URI is required")
+	ErrRedirectSchemeInvalid  = errors.New("redirect URI scheme must be http or https")
+	ErrRedirectSchemeMissing  = errors.New("redirect URI must include scheme (http:// or https://)")
+	ErrScopesMissing          = errors.New("at least one scope is required")
+	ErrScopeOpenIDRequired    = errors.New("'openid' scope is required for OIDC")
+	ErrIssuerURLMissing       = errors.New("issuer URL is required")
+	ErrIssuerURLSchemeInvalid = errors.New("issuer URL must use https")
+)
+
 func (c CoreConfig) Validate() error {
 	if c.ClientID == "" {
-		return fmt.Errorf("client ID is required")
+		return ErrClientIDMissing
 	}
 
 	if c.ClientSecret == "" {
-		return fmt.Errorf("client secret is required")
+		return ErrClientSecretMissing
 	}
 
 	if c.RedirectURI == "" {
-		return fmt.Errorf("redirect URI is required")
+		return ErrRedirectURIMissing
 	}
 
 	parsedURL, err := url.Parse(c.RedirectURI)
@@ -43,23 +56,23 @@ func (c CoreConfig) Validate() error {
 	}
 
 	if parsedURL.Scheme == "" {
-		return fmt.Errorf("redirect URI must include scheme (http:// or https://)")
+		return ErrRedirectSchemeMissing
 	}
 
 	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
-		return fmt.Errorf("redirect URI scheme must be http or https, got: %s", parsedURL.Scheme)
+		return fmt.Errorf("%w, got: %s", ErrRedirectSchemeInvalid, parsedURL.Scheme)
 	}
 
 	if len(c.Scopes) == 0 {
-		return fmt.Errorf("at least one scope is required")
+		return ErrScopesMissing
 	}
 
 	if !slices.Contains(c.Scopes, "openid") {
-		return fmt.Errorf("'openid' scope is required for OIDC")
+		return ErrScopeOpenIDRequired
 	}
 
 	if c.IssuerURL == "" {
-		return fmt.Errorf("issuer URL is required")
+		return ErrIssuerURLMissing
 	}
 
 	parsedIssuer, err := url.Parse(c.IssuerURL)
@@ -68,7 +81,7 @@ func (c CoreConfig) Validate() error {
 	}
 
 	if parsedIssuer.Scheme != "https" {
-		return fmt.Errorf("issuer URL must use https, got: %s", parsedIssuer.Scheme)
+		return fmt.Errorf("%w, got: %s", ErrIssuerURLSchemeInvalid, parsedIssuer.Scheme)
 	}
 
 	return nil
@@ -79,23 +92,31 @@ type Config struct {
 	Providers map[domainoidc.ProviderID]ProviderConfig
 }
 
+var (
+	ErrNoOIDCProviders      = errors.New("no oidc providers configured")
+	ErrProviderConfigNil    = errors.New("provider config missing")
+	ErrProviderIDMismatch   = errors.New("provider identifier mismatch")
+	ErrProviderCoreInvalid  = errors.New("provider core config invalid")
+	ErrProviderValidateFail = errors.New("provider validation failed")
+)
+
 func (c *Config) Validate() error {
 	if len(c.Providers) == 0 {
-		return fmt.Errorf("no oidc providers configured")
+		return ErrNoOIDCProviders
 	}
 
 	for id, provider := range c.Providers {
 		if provider == nil {
-			return fmt.Errorf("%s: provider config missing", id)
+			return fmt.Errorf("%s: %w", id, ErrProviderConfigNil)
 		}
 		if provider.ProviderID() != id {
-			return fmt.Errorf("%s: provider identifier mismatch", id)
+			return fmt.Errorf("%s: %w", id, ErrProviderIDMismatch)
 		}
 		if err := provider.Core().Validate(); err != nil {
-			return fmt.Errorf("%s: %w", id, err)
+			return fmt.Errorf("%s: %w: %w", id, ErrProviderCoreInvalid, err)
 		}
 		if err := provider.Validate(); err != nil {
-			return fmt.Errorf("%s: %w", id, err)
+			return fmt.Errorf("%s: %w: %w", id, ErrProviderValidateFail, err)
 		}
 	}
 

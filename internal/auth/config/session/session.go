@@ -1,6 +1,7 @@
 package session
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -11,6 +12,11 @@ const (
 	sessionDurationEnv = "SESSION_DURATION"
 
 	defaultSessionDuration = 24 * time.Hour
+)
+
+var (
+	ErrSessionSecretMissing   = errors.New("session secret is required")
+	ErrSessionDurationInvalid = errors.New("session duration must be positive")
 )
 
 // Config contains session management settings.
@@ -33,11 +39,11 @@ func Load() (*Config, error) {
 
 func (c *Config) Validate() error {
 	if c.Secret == "" {
-		return fmt.Errorf("session secret is required")
+		return ErrSessionSecretMissing
 	}
 
 	if c.Duration <= 0 {
-		return fmt.Errorf("session duration must be positive, got: %v", c.Duration)
+		return fmt.Errorf("%w, got: %v", ErrSessionDurationInvalid, c.Duration)
 	}
 
 	return nil
@@ -46,7 +52,7 @@ func (c *Config) Validate() error {
 func getEnvRequired(key string) (string, error) {
 	val := os.Getenv(key)
 	if val == "" {
-		return "", fmt.Errorf("required environment variable %s not set", key)
+		return "", fmt.Errorf("%w: %s", ErrSessionSecretMissing, key)
 	}
 	return val, nil
 }
