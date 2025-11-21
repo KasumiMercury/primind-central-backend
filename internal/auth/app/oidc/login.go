@@ -5,7 +5,6 @@ import (
 	"errors"
 	"time"
 
-	oidccfg "github.com/KasumiMercury/primind-central-backend/internal/auth/config/oidc"
 	sessionCfg "github.com/KasumiMercury/primind-central-backend/internal/auth/config/session"
 	domainoidc "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/oidc"
 	domain "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/session"
@@ -37,7 +36,7 @@ type OIDCProviderWithLogin interface {
 }
 
 type LoginRequest struct {
-	Provider oidccfg.ProviderID
+	Provider domainoidc.ProviderID
 	Code     string
 	State    string
 }
@@ -50,7 +49,7 @@ type LoginResult struct {
 }
 
 type loginHandler struct {
-	providers    map[oidccfg.ProviderID]OIDCProviderWithLogin
+	providers    map[domainoidc.ProviderID]OIDCProviderWithLogin
 	paramsRepo   domainoidc.ParamsRepository
 	sessionRepo  domain.SessionRepository
 	jwtGenerator SessionTokenGenerator
@@ -58,7 +57,7 @@ type loginHandler struct {
 }
 
 func NewLoginHandler(
-	providers map[oidccfg.ProviderID]OIDCProviderWithLogin,
+	providers map[domainoidc.ProviderID]OIDCProviderWithLogin,
 	paramsRepo domainoidc.ParamsRepository,
 	sessionRepo domain.SessionRepository,
 	jwtGenerator SessionTokenGenerator,

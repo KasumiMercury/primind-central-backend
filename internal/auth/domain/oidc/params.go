@@ -2,12 +2,16 @@ package oidc
 
 import (
 	"time"
+)
 
-	oidccfg "github.com/KasumiMercury/primind-central-backend/internal/auth/config/oidc"
+type ProviderID string
+
+const (
+	ProviderGoogle ProviderID = "google"
 )
 
 type Params struct {
-	Provider  oidccfg.ProviderID
+	Provider  ProviderID
 	State     string
 	Nonce     string
 	CreatedAt time.Time

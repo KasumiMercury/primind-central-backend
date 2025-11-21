@@ -8,6 +8,7 @@ import (
 
 	appoidc "github.com/KasumiMercury/primind-central-backend/internal/auth/app/oidc"
 	oidccfg "github.com/KasumiMercury/primind-central-backend/internal/auth/config/oidc"
+	domainoidc "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/oidc"
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
 	httphelper "github.com/zitadel/oidc/v3/pkg/http"
 	"github.com/zitadel/oidc/v3/pkg/oidc"
@@ -16,7 +17,7 @@ import (
 // RPProvider wraps zitadel/oidc RelyingParty
 type RPProvider struct {
 	rp          rp.RelyingParty
-	providerID  oidccfg.ProviderID
+	providerID  domainoidc.ProviderID
 	redirectURI string
 	scopes      []string
 }
@@ -68,7 +69,7 @@ func (p *RPProvider) BuildAuthorizationURL(state, nonce string) string {
 	return baseURL
 }
 
-func (p *RPProvider) ProviderID() oidccfg.ProviderID {
+func (p *RPProvider) ProviderID() domainoidc.ProviderID {
 	return p.providerID
 }
 

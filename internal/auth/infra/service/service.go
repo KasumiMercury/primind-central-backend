@@ -7,7 +7,7 @@ import (
 
 	connect "connectrpc.com/connect"
 	appoidc "github.com/KasumiMercury/primind-central-backend/internal/auth/app/oidc"
-	oidccfg "github.com/KasumiMercury/primind-central-backend/internal/auth/config/oidc"
+	domainoidc "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/oidc"
 	authv1 "github.com/KasumiMercury/primind-central-backend/internal/gen/auth/v1"
 	authv1connect "github.com/KasumiMercury/primind-central-backend/internal/gen/auth/v1/authv1connect"
 )
@@ -120,10 +120,10 @@ func (s *Service) GetCurrentUser(ctx context.Context, req *authv1.GetCurrentUser
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.GetCurrentUser not implemented"))
 }
 
-func mapProvider(provider authv1.OIDCProvider) (oidccfg.ProviderID, error) {
+func mapProvider(provider authv1.OIDCProvider) (domainoidc.ProviderID, error) {
 	switch provider {
 	case authv1.OIDCProvider_OIDC_PROVIDER_GOOGLE:
-		return oidccfg.ProviderGoogle, nil
+		return domainoidc.ProviderGoogle, nil
 	case authv1.OIDCProvider_OIDC_PROVIDER_UNSPECIFIED:
 		return "", fmt.Errorf("oidc provider is required")
 	default:

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/KasumiMercury/primind-central-backend/internal/auth/config/oidc"
+	domainoidc "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/oidc"
 )
 
 const (
@@ -18,7 +19,7 @@ const (
 )
 
 func init() {
-	oidc.RegisterProvider(oidc.ProviderGoogle, loadConfig)
+	oidc.RegisterProvider(domainoidc.ProviderGoogle, loadConfig)
 }
 
 type Config struct {
@@ -58,8 +59,8 @@ func loadConfig() (oidc.ProviderConfig, bool, error) {
 	return cfg, true, nil
 }
 
-func (c *Config) ProviderID() oidc.ProviderID {
-	return oidc.ProviderGoogle
+func (c *Config) ProviderID() domainoidc.ProviderID {
+	return domainoidc.ProviderGoogle
 }
 
 func (c *Config) Core() oidc.CoreConfig {

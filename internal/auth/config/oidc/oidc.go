@@ -4,18 +4,13 @@ import (
 	"fmt"
 	"net/url"
 	"slices"
-)
 
-// ProviderID identifies a supported OIDC provider.
-type ProviderID string
-
-const (
-	ProviderGoogle ProviderID = "google"
+	domainoidc "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/oidc"
 )
 
 // ProviderConfig defines what every provider must supply.
 type ProviderConfig interface {
-	ProviderID() ProviderID
+	ProviderID() domainoidc.ProviderID
 	Core() CoreConfig
 	Validate() error
 }
@@ -81,7 +76,7 @@ func (c CoreConfig) Validate() error {
 
 // Config holds configured providers keyed by their identifier.
 type Config struct {
-	Providers map[ProviderID]ProviderConfig
+	Providers map[domainoidc.ProviderID]ProviderConfig
 }
 
 func (c *Config) Validate() error {
@@ -110,10 +105,10 @@ func (c *Config) Validate() error {
 // ProviderLoader builds a provider configuration.
 type ProviderLoader func() (ProviderConfig, bool, error)
 
-var loaders = map[ProviderID]ProviderLoader{}
+var loaders = map[domainoidc.ProviderID]ProviderLoader{}
 
 // RegisterProvider registers a loader for a provider identifier.
-func RegisterProvider(id ProviderID, loader ProviderLoader) {
+func RegisterProvider(id domainoidc.ProviderID, loader ProviderLoader) {
 	if loader == nil {
 		panic("oidc: loader cannot be nil")
 	}
@@ -128,7 +123,7 @@ func Load() (*Config, error) {
 		return nil, nil
 	}
 
-	providers := make(map[ProviderID]ProviderConfig)
+	providers := make(map[domainoidc.ProviderID]ProviderConfig)
 	for id, loader := range loaders {
 		cfg, ok, err := loader()
 		if err != nil {

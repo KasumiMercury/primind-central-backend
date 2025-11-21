@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	oidccfg "github.com/KasumiMercury/primind-central-backend/internal/auth/config/oidc"
 	domain "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/oidc"
 )
 
@@ -18,11 +17,11 @@ var (
 )
 
 type OIDCParamsGenerator interface {
-	Generate(ctx context.Context, provider oidccfg.ProviderID) (*ParamsResult, error)
+	Generate(ctx context.Context, provider domain.ProviderID) (*ParamsResult, error)
 }
 
 type OIDCProvider interface {
-	ProviderID() oidccfg.ProviderID
+	ProviderID() domain.ProviderID
 	BuildAuthorizationURL(state, nonce string) string
 	ClientID() string
 	RedirectURI() string
@@ -37,12 +36,12 @@ type ParamsResult struct {
 }
 
 type paramsGenerator struct {
-	providers map[oidccfg.ProviderID]OIDCProvider
+	providers map[domain.ProviderID]OIDCProvider
 	repo      domain.ParamsRepository
 }
 
 func NewParamsGenerator(
-	providers map[oidccfg.ProviderID]OIDCProvider,
+	providers map[domain.ProviderID]OIDCProvider,
 	repo domain.ParamsRepository,
 ) OIDCParamsGenerator {
 	return &paramsGenerator{
@@ -51,7 +50,7 @@ func NewParamsGenerator(
 	}
 }
 
-func (g *paramsGenerator) Generate(ctx context.Context, provider oidccfg.ProviderID) (*ParamsResult, error) {
+func (g *paramsGenerator) Generate(ctx context.Context, provider domain.ProviderID) (*ParamsResult, error) {
 	rpProvider, ok := g.providers[provider]
 	if !ok {
 		return nil, ErrProviderUnsupported

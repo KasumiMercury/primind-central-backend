@@ -7,7 +7,7 @@ import (
 
 	appoidc "github.com/KasumiMercury/primind-central-backend/internal/auth/app/oidc"
 	authconfig "github.com/KasumiMercury/primind-central-backend/internal/auth/config"
-	oidccfg "github.com/KasumiMercury/primind-central-backend/internal/auth/config/oidc"
+	domainoidc "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/oidc"
 	sessionjwt "github.com/KasumiMercury/primind-central-backend/internal/auth/infra/jwt"
 	infraoidc "github.com/KasumiMercury/primind-central-backend/internal/auth/infra/oidc"
 	"github.com/KasumiMercury/primind-central-backend/internal/auth/infra/repository"
@@ -27,9 +27,9 @@ func NewHTTPHandler(ctx context.Context) (string, http.Handler, error) {
 	sessionRepo := repository.NewInMemorySessionRepository()
 
 	var paramsGenerator appoidc.OIDCParamsGenerator
-	var providers map[oidccfg.ProviderID]*infraoidc.RPProvider
+	var providers map[domainoidc.ProviderID]*infraoidc.RPProvider
 	if authCfg.OIDC != nil {
-		providers = make(map[oidccfg.ProviderID]*infraoidc.RPProvider)
+		providers = make(map[domainoidc.ProviderID]*infraoidc.RPProvider)
 		for providerID, providerCfg := range authCfg.OIDC.Providers {
 			rpProvider, err := infraoidc.NewRPProvider(ctx, providerCfg)
 			if err != nil {
@@ -38,7 +38,7 @@ func NewHTTPHandler(ctx context.Context) (string, http.Handler, error) {
 			providers[providerID] = rpProvider
 		}
 
-		appProviders := make(map[oidccfg.ProviderID]appoidc.OIDCProvider)
+		appProviders := make(map[domainoidc.ProviderID]appoidc.OIDCProvider)
 		for id, p := range providers {
 			appProviders[id] = p
 		}
@@ -49,7 +49,7 @@ func NewHTTPHandler(ctx context.Context) (string, http.Handler, error) {
 	var loginHandler appoidc.OIDCLoginUseCase
 	if authCfg.Session != nil && authCfg.OIDC != nil {
 		jwtGenerator := sessionjwt.NewSessionJWTGenerator(authCfg.Session)
-		appProviders := make(map[oidccfg.ProviderID]appoidc.OIDCProviderWithLogin)
+		appProviders := make(map[domainoidc.ProviderID]appoidc.OIDCProviderWithLogin)
 		for id, p := range providers {
 			appProviders[id] = p
 		}
@@ -62,4 +62,3 @@ func NewHTTPHandler(ctx context.Context) (string, http.Handler, error) {
 	authPath, authHandler := authv1connect.NewAuthServiceHandler(authService)
 	return authPath, authHandler, nil
 }
-
