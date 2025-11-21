@@ -40,8 +40,8 @@ func (g *SessionJWTGenerator) Generate(session *domain.Session) (string, error) 
 	}
 
 	claims := jwt.Claims{
-		Subject:  session.UserID(),
 		ID:       session.ID().String(),
+		Subject:  session.UserID(),
 		IssuedAt: jwt.NewNumericDate(now),
 		Expiry:   jwt.NewNumericDate(expiresAt),
 	}
