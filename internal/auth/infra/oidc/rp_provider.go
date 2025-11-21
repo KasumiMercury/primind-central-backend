@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"strings"
 
+	appoidc "github.com/KasumiMercury/primind-central-backend/internal/auth/app/oidc"
 	oidccfg "github.com/KasumiMercury/primind-central-backend/internal/auth/config/oidc"
 	"github.com/zitadel/oidc/v3/pkg/client/rp"
 	httphelper "github.com/zitadel/oidc/v3/pkg/http"
@@ -83,6 +84,15 @@ func (p *RPProvider) Scopes() []string {
 	return p.scopes
 }
 
-func (p *RPProvider) ExchangeToken(ctx context.Context, code string) (*oidc.Tokens[*oidc.IDTokenClaims], error) {
-	return rp.CodeExchange[*oidc.IDTokenClaims](ctx, code, p.rp)
+func (p *RPProvider) ExchangeToken(ctx context.Context, code string) (*appoidc.IDToken, error) {
+	tokens, err := rp.CodeExchange[*oidc.IDTokenClaims](ctx, code, p.rp)
+	if err != nil {
+		return nil, err
+	}
+
+	return &appoidc.IDToken{
+		Subject: tokens.IDTokenClaims.Subject,
+		Name:    tokens.IDTokenClaims.Name,
+		Nonce:   tokens.IDTokenClaims.Nonce,
+	}, nil
 }

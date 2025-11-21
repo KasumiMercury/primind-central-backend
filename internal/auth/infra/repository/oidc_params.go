@@ -2,13 +2,10 @@ package repository
 
 import (
 	"context"
-	"errors"
 	"sync"
 
 	domain "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/oidc"
 )
-
-var ErrParamsNotFound = errors.New("params not found")
 
 type inMemoryOIDCParamsRepository struct {
 	mu      sync.Mutex
@@ -35,7 +32,7 @@ func (r *inMemoryOIDCParamsRepository) GetParamsByState(_ context.Context, state
 
 	params, ok := r.byState[state]
 	if !ok {
-		return nil, ErrParamsNotFound
+		return nil, domain.ErrParamsNotFound
 	}
 
 	return &params, nil

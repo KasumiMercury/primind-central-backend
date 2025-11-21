@@ -4,42 +4,67 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
-	"fmt"
+	"errors"
 	"strings"
 	"time"
 
 	oidccfg "github.com/KasumiMercury/primind-central-backend/internal/auth/config/oidc"
-	"github.com/KasumiMercury/primind-central-backend/internal/auth/controller/oidc"
 	domain "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/oidc"
 )
 
-type ParamsGenerator struct {
-	providers map[oidccfg.ProviderID]*RPProvider
+var (
+	ErrOIDCNotConfigured   = errors.New("oidc providers are not configured")
+	ErrProviderUnsupported = errors.New("oidc provider is not configured")
+)
+
+type OIDCParamsGenerator interface {
+	Generate(ctx context.Context, provider oidccfg.ProviderID) (*ParamsResult, error)
+}
+
+type OIDCProvider interface {
+	ProviderID() oidccfg.ProviderID
+	BuildAuthorizationURL(state, nonce string) string
+	ClientID() string
+	RedirectURI() string
+	Scopes() []string
+}
+
+type ParamsResult struct {
+	AuthorizationURL string
+	ClientID         string
+	RedirectURI      string
+	Scope            string
+}
+
+type paramsGenerator struct {
+	providers map[oidccfg.ProviderID]OIDCProvider
 	repo      domain.ParamsRepository
 }
 
-func NewParamsGenerator(providers map[oidccfg.ProviderID]*RPProvider, repo domain.ParamsRepository) *ParamsGenerator {
-	return &ParamsGenerator{
+func NewParamsGenerator(
+	providers map[oidccfg.ProviderID]OIDCProvider,
+	repo domain.ParamsRepository,
+) OIDCParamsGenerator {
+	return &paramsGenerator{
 		providers: providers,
 		repo:      repo,
 	}
 }
 
-// Generate creates OIDC authorization parameters for the specified provider.
-func (g *ParamsGenerator) Generate(ctx context.Context, provider oidccfg.ProviderID) (*oidc.ParamsResult, error) {
+func (g *paramsGenerator) Generate(ctx context.Context, provider oidccfg.ProviderID) (*ParamsResult, error) {
 	rpProvider, ok := g.providers[provider]
 	if !ok {
-		return nil, fmt.Errorf("%w: %s", oidc.ErrProviderUnsupported, provider)
+		return nil, ErrProviderUnsupported
 	}
 
 	state, err := randomToken()
 	if err != nil {
-		return nil, fmt.Errorf("generate state: %w", err)
+		return nil, err
 	}
 
 	nonce, err := randomToken()
 	if err != nil {
-		return nil, fmt.Errorf("generate nonce: %w", err)
+		return nil, err
 	}
 
 	authURL := rpProvider.BuildAuthorizationURL(state, nonce)
@@ -52,10 +77,10 @@ func (g *ParamsGenerator) Generate(ctx context.Context, provider oidccfg.Provide
 	}
 
 	if err := g.repo.SaveParams(ctx, params); err != nil {
-		return nil, fmt.Errorf("persist oidc params: %w", err)
+		return nil, err
 	}
 
-	return &oidc.ParamsResult{
+	return &ParamsResult{
 		AuthorizationURL: authURL,
 		ClientID:         rpProvider.ClientID(),
 		RedirectURI:      rpProvider.RedirectURI(),

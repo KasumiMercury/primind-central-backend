@@ -6,9 +6,9 @@ import (
 	"log"
 	"net/http"
 
+	appoidc "github.com/KasumiMercury/primind-central-backend/internal/auth/app/oidc"
 	authconfig "github.com/KasumiMercury/primind-central-backend/internal/auth/config"
 	oidccfg "github.com/KasumiMercury/primind-central-backend/internal/auth/config/oidc"
-	oidcctrl "github.com/KasumiMercury/primind-central-backend/internal/auth/controller/oidc"
 	"github.com/KasumiMercury/primind-central-backend/internal/auth/infra/jwt"
 	infraoidc "github.com/KasumiMercury/primind-central-backend/internal/auth/infra/oidc"
 	"github.com/KasumiMercury/primind-central-backend/internal/auth/infra/repository"
@@ -42,7 +42,7 @@ func initAuthService(ctx context.Context) (string, http.Handler, error) {
 	paramsRepo := repository.NewInMemoryOIDCParamsRepository()
 	sessionRepo := repository.NewInMemorySessionRepository()
 
-	var paramsGenerator oidcctrl.OIDCParamsGenerator
+	var paramsGenerator appoidc.OIDCParamsGenerator
 	var providers map[oidccfg.ProviderID]*infraoidc.RPProvider
 	if authCfg.OIDC != nil {
 		providers = make(map[oidccfg.ProviderID]*infraoidc.RPProvider)
@@ -54,13 +54,23 @@ func initAuthService(ctx context.Context) (string, http.Handler, error) {
 			providers[providerID] = rpProvider
 		}
 
-		paramsGenerator = infraoidc.NewParamsGenerator(providers, paramsRepo)
+		appProviders := make(map[oidccfg.ProviderID]appoidc.OIDCProvider)
+		for id, p := range providers {
+			appProviders[id] = p
+		}
+
+		paramsGenerator = appoidc.NewParamsGenerator(appProviders, paramsRepo)
 	}
 
-	var loginHandler oidcctrl.OIDCLoginUseCase
+	var loginHandler appoidc.OIDCLoginUseCase
 	if authCfg.Session != nil && authCfg.OIDC != nil {
 		jwtGenerator := jwt.NewGenerator(authCfg.Session)
-		loginHandler = infraoidc.NewLoginHandler(providers, paramsRepo, sessionRepo, jwtGenerator, authCfg.Session)
+		appProviders := make(map[oidccfg.ProviderID]appoidc.OIDCProviderWithLogin)
+		for id, p := range providers {
+			appProviders[id] = p
+		}
+
+		loginHandler = appoidc.NewLoginHandler(appProviders, paramsRepo, sessionRepo, jwtGenerator, authCfg.Session)
 	}
 
 	authService := authsvc.NewService(paramsGenerator, loginHandler)

@@ -1,6 +1,11 @@
 package oidc
 
-import "context"
+import (
+	"context"
+	"errors"
+)
+
+var ErrParamsNotFound = errors.New("params not found")
 
 type ParamsRepository interface {
 	SaveParams(ctx context.Context, params Params) error

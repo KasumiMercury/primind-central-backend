@@ -6,21 +6,20 @@ import (
 	"fmt"
 
 	connect "connectrpc.com/connect"
+	appoidc "github.com/KasumiMercury/primind-central-backend/internal/auth/app/oidc"
 	oidccfg "github.com/KasumiMercury/primind-central-backend/internal/auth/config/oidc"
-	"github.com/KasumiMercury/primind-central-backend/internal/auth/controller/oidc"
-	oidcctrl "github.com/KasumiMercury/primind-central-backend/internal/auth/controller/oidc"
 	authv1 "github.com/KasumiMercury/primind-central-backend/internal/gen/auth/v1"
 	authv1connect "github.com/KasumiMercury/primind-central-backend/internal/gen/auth/v1/authv1connect"
 )
 
 type Service struct {
-	oidcParams oidc.OIDCParamsGenerator
-	oidcLogin  oidc.OIDCLoginUseCase
+	oidcParams appoidc.OIDCParamsGenerator
+	oidcLogin  appoidc.OIDCLoginUseCase
 }
 
 var _ authv1connect.AuthServiceHandler = (*Service)(nil)
 
-func NewService(oidcParamsGenerator oidc.OIDCParamsGenerator, oidcLoginUseCase oidc.OIDCLoginUseCase) *Service {
+func NewService(oidcParamsGenerator appoidc.OIDCParamsGenerator, oidcLoginUseCase appoidc.OIDCLoginUseCase) *Service {
 	return &Service{
 		oidcParams: oidcParamsGenerator,
 		oidcLogin:  oidcLoginUseCase,
@@ -29,7 +28,7 @@ func NewService(oidcParamsGenerator oidc.OIDCParamsGenerator, oidcLoginUseCase o
 
 func (s *Service) OIDCParams(ctx context.Context, req *authv1.OIDCParamsRequest) (*authv1.OIDCParamsResponse, error) {
 	if s.oidcParams == nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, oidcctrl.ErrOIDCNotConfigured)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, appoidc.ErrOIDCNotConfigured)
 	}
 
 	providerID, err := mapProvider(req.GetProvider())
@@ -40,9 +39,9 @@ func (s *Service) OIDCParams(ctx context.Context, req *authv1.OIDCParamsRequest)
 	result, err := s.oidcParams.Generate(ctx, providerID)
 	if err != nil {
 		switch {
-		case errors.Is(err, oidcctrl.ErrOIDCNotConfigured):
+		case errors.Is(err, appoidc.ErrOIDCNotConfigured):
 			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
-		case errors.Is(err, oidcctrl.ErrProviderUnsupported):
+		case errors.Is(err, appoidc.ErrProviderUnsupported):
 			return nil, connect.NewError(connect.CodeInvalidArgument, err)
 		default:
 			return nil, connect.NewError(connect.CodeInternal, err)
@@ -59,7 +58,7 @@ func (s *Service) OIDCParams(ctx context.Context, req *authv1.OIDCParamsRequest)
 
 func (s *Service) OIDCLogin(ctx context.Context, req *authv1.OIDCLoginRequest) (*authv1.OIDCLoginResponse, error) {
 	if s.oidcLogin == nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, oidcctrl.ErrOIDCNotConfigured)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, appoidc.ErrOIDCNotConfigured)
 	}
 
 	providerID, err := mapProvider(req.GetProvider())
@@ -67,7 +66,7 @@ func (s *Service) OIDCLogin(ctx context.Context, req *authv1.OIDCLoginRequest) (
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	loginReq := &oidcctrl.LoginRequest{
+	loginReq := &appoidc.LoginRequest{
 		Provider: providerID,
 		Code:     req.GetCode(),
 		State:    req.GetState(),
@@ -76,15 +75,15 @@ func (s *Service) OIDCLogin(ctx context.Context, req *authv1.OIDCLoginRequest) (
 	result, err := s.oidcLogin.Login(ctx, loginReq)
 	if err != nil {
 		switch {
-		case errors.Is(err, oidcctrl.ErrOIDCNotConfigured):
+		case errors.Is(err, appoidc.ErrOIDCNotConfigured):
 			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
-		case errors.Is(err, oidcctrl.ErrProviderUnsupported):
+		case errors.Is(err, appoidc.ErrProviderUnsupported):
 			return nil, connect.NewError(connect.CodeInvalidArgument, err)
-		case errors.Is(err, oidcctrl.ErrInvalidCode):
+		case errors.Is(err, appoidc.ErrInvalidCode):
 			return nil, connect.NewError(connect.CodeInvalidArgument, err)
-		case errors.Is(err, oidcctrl.ErrInvalidState):
+		case errors.Is(err, appoidc.ErrInvalidState):
 			return nil, connect.NewError(connect.CodeInvalidArgument, err)
-		case errors.Is(err, oidcctrl.ErrInvalidNonce):
+		case errors.Is(err, appoidc.ErrInvalidNonce):
 			return nil, connect.NewError(connect.CodeInvalidArgument, err)
 		default:
 			return nil, connect.NewError(connect.CodeInternal, err)
