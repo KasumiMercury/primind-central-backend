@@ -42,10 +42,7 @@ type LoginRequest struct {
 }
 
 type LoginResult struct {
-	SessionID string
-	UserID    string
-	CreatedAt int64
-	ExpiresAt int64
+	SessionToken string
 }
 
 type loginHandler struct {
@@ -111,14 +108,12 @@ func (h *loginHandler) Login(ctx context.Context, req *LoginRequest) (*LoginResu
 		return nil, err
 	}
 
-	if _, err := h.jwtGenerator.Generate(session); err != nil {
+	sessionToken, err := h.jwtGenerator.Generate(session)
+	if err != nil {
 		return nil, err
 	}
 
 	return &LoginResult{
-		SessionID: session.ID().String(),
-		UserID:    session.UserID(),
-		CreatedAt: session.CreatedAt().Unix(),
-		ExpiresAt: session.ExpiresAt().Unix(),
+		SessionToken: sessionToken,
 	}, nil
 }

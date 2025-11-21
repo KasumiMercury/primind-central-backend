@@ -91,21 +91,12 @@ func (s *Service) OIDCLogin(ctx context.Context, req *authv1.OIDCLoginRequest) (
 	}
 
 	return &authv1.OIDCLoginResponse{
-		Session: &authv1.Session{
-			SessionId: result.SessionID,
-			UserId:    result.UserID,
-			CreatedAt: result.CreatedAt,
-			ExpiresAt: result.ExpiresAt,
-		},
+		SessionToken: result.SessionToken,
 	}, nil
 }
 
 func (s *Service) Logout(ctx context.Context, req *authv1.LogoutRequest) (*authv1.LogoutResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.Logout not implemented"))
-}
-
-func (s *Service) GetSession(ctx context.Context, req *authv1.GetSessionRequest) (*authv1.GetSessionResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.GetSession not implemented"))
 }
 
 func (s *Service) GetUser(ctx context.Context, req *authv1.GetUserRequest) (*authv1.GetUserResponse, error) {
