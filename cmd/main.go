@@ -9,7 +9,7 @@ import (
 	appoidc "github.com/KasumiMercury/primind-central-backend/internal/auth/app/oidc"
 	authconfig "github.com/KasumiMercury/primind-central-backend/internal/auth/config"
 	oidccfg "github.com/KasumiMercury/primind-central-backend/internal/auth/config/oidc"
-	"github.com/KasumiMercury/primind-central-backend/internal/auth/infra/jwt"
+	sessionjwt "github.com/KasumiMercury/primind-central-backend/internal/auth/infra/jwt"
 	infraoidc "github.com/KasumiMercury/primind-central-backend/internal/auth/infra/oidc"
 	"github.com/KasumiMercury/primind-central-backend/internal/auth/infra/repository"
 	authsvc "github.com/KasumiMercury/primind-central-backend/internal/auth/infra/service"
@@ -64,7 +64,7 @@ func initAuthService(ctx context.Context) (string, http.Handler, error) {
 
 	var loginHandler appoidc.OIDCLoginUseCase
 	if authCfg.Session != nil && authCfg.OIDC != nil {
-		jwtGenerator := jwt.NewGenerator(authCfg.Session)
+		jwtGenerator := sessionjwt.NewSessionJWTGenerator(authCfg.Session)
 		appProviders := make(map[oidccfg.ProviderID]appoidc.OIDCProviderWithLogin)
 		for id, p := range providers {
 			appProviders[id] = p

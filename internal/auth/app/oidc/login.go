@@ -22,7 +22,7 @@ type OIDCLoginUseCase interface {
 }
 
 type SessionTokenGenerator interface {
-	Generate(sub, name string) (string, error)
+	Generate(session *domain.Session) (string, error)
 }
 
 type IDToken struct {
@@ -100,20 +100,21 @@ func (h *loginHandler) Login(ctx context.Context, req *LoginRequest) (*LoginResu
 		return nil, ErrInvalidNonce
 	}
 
-	sessionToken, err := h.jwtGenerator.Generate(idToken.Subject, idToken.Name)
-	if err != nil {
-		return nil, err
-	}
-
 	now := time.Now().UTC()
 	expiresAt := now.Add(h.sessionCfg.Duration)
 
 	session := &domain.Session{
-		ID:        sessionToken,
 		UserID:    idToken.Subject,
 		CreatedAt: now,
 		ExpiresAt: expiresAt,
 	}
+
+	sessionToken, err := h.jwtGenerator.Generate(session)
+	if err != nil {
+		return nil, err
+	}
+
+	session.ID = sessionToken
 
 	if err := h.sessionRepo.SaveSession(ctx, session); err != nil {
 		return nil, err
