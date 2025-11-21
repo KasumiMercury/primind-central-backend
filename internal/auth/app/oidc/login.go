@@ -111,13 +111,12 @@ func (h *loginHandler) Login(ctx context.Context, req *LoginRequest) (*LoginResu
 		return nil, err
 	}
 
-	sessionToken, err := h.jwtGenerator.Generate(session)
-	if err != nil {
+	if _, err := h.jwtGenerator.Generate(session); err != nil {
 		return nil, err
 	}
 
 	return &LoginResult{
-		SessionID: sessionToken,
+		SessionID: session.ID().String(),
 		UserID:    session.UserID(),
 		CreatedAt: session.CreatedAt().Unix(),
 		ExpiresAt: session.ExpiresAt().Unix(),

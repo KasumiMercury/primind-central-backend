@@ -5,6 +5,7 @@ go 1.25.4
 require (
 	connectrpc.com/connect v1.19.1
 	github.com/go-jose/go-jose/v4 v4.1.1
+	github.com/google/uuid v1.6.0
 	github.com/zitadel/oidc/v3 v3.45.0
 	google.golang.org/protobuf v1.36.10
 )

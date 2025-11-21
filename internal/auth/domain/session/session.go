@@ -1,10 +1,11 @@
 package domain
 
 import (
-	"crypto/rand"
-	"encoding/base64"
 	"errors"
+	"fmt"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 var (
@@ -14,28 +15,57 @@ var (
 	ErrSessionIDEmpty     = errors.New("session ID must be specified")
 )
 
+type ID string
+
+func NewID() (ID, error) {
+	return ID(uuid.NewString()), nil
+}
+
+func ParseID(id string) (ID, error) {
+	candidate := ID(id)
+	return candidate, candidate.validate()
+}
+
+func (id ID) String() string {
+	return string(id)
+}
+
+func (id ID) Validate() error {
+	return id.validate()
+}
+
+func (id ID) validate() error {
+	if id == "" {
+		return ErrSessionIDEmpty
+	}
+	if _, err := uuid.Parse(string(id)); err != nil {
+		return fmt.Errorf("invalid session ID: %w", err)
+	}
+	return nil
+}
+
 type Session struct {
-	id        string
+	id        ID
 	userID    string
 	createdAt time.Time
 	expiresAt time.Time
 }
 
 func NewSession(userID string, createdAt, expiresAt time.Time) (*Session, error) {
-	id, err := randomToken()
+	id, err := NewID()
 	if err != nil {
 		return nil, err
 	}
 	return newSession(id, userID, createdAt, expiresAt)
 }
 
-func NewSessionWithID(id, userID string, createdAt, expiresAt time.Time) (*Session, error) {
+func NewSessionWithID(id ID, userID string, createdAt, expiresAt time.Time) (*Session, error) {
 	return newSession(id, userID, createdAt, expiresAt)
 }
 
-func newSession(id, userID string, createdAt, expiresAt time.Time) (*Session, error) {
-	if id == "" {
-		return nil, ErrSessionIDEmpty
+func newSession(id ID, userID string, createdAt, expiresAt time.Time) (*Session, error) {
+	if err := id.validate(); err != nil {
+		return nil, err
 	}
 	if userID == "" {
 		return nil, ErrUserIDEmpty
@@ -58,7 +88,7 @@ func newSession(id, userID string, createdAt, expiresAt time.Time) (*Session, er
 	}, nil
 }
 
-func (s *Session) ID() string {
+func (s *Session) ID() ID {
 	return s.id
 }
 
@@ -72,12 +102,4 @@ func (s *Session) CreatedAt() time.Time {
 
 func (s *Session) ExpiresAt() time.Time {
 	return s.expiresAt
-}
-
-func randomToken() (string, error) {
-	buf := make([]byte, 32)
-	if _, err := rand.Read(buf); err != nil {
-		return "", err
-	}
-	return base64.RawURLEncoding.EncodeToString(buf), nil
 }
