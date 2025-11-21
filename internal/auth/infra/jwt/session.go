@@ -1,4 +1,4 @@
-package sessionjwt
+package jwt
 
 import (
 	"time"
