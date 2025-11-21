@@ -9,20 +9,20 @@ import (
 
 type inMemoryOIDCParamsRepository struct {
 	mu      sync.Mutex
-	byState map[string]domain.Params
+	byState map[string]*domain.Params
 }
 
 func NewInMemoryOIDCParamsRepository() domain.ParamsRepository {
 	return &inMemoryOIDCParamsRepository{
-		byState: make(map[string]domain.Params),
+		byState: make(map[string]*domain.Params),
 	}
 }
 
-func (r *inMemoryOIDCParamsRepository) SaveParams(_ context.Context, params domain.Params) error {
+func (r *inMemoryOIDCParamsRepository) SaveParams(_ context.Context, params *domain.Params) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	r.byState[params.State] = params
+	r.byState[params.State()] = params
 	return nil
 }
 
@@ -35,5 +35,5 @@ func (r *inMemoryOIDCParamsRepository) GetParamsByState(_ context.Context, state
 		return nil, domain.ErrParamsNotFound
 	}
 
-	return &params, nil
+	return params, nil
 }

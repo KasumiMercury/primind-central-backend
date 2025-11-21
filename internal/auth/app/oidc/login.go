@@ -86,7 +86,7 @@ func (h *loginHandler) Login(ctx context.Context, req *LoginRequest) (*LoginResu
 		return nil, err
 	}
 
-	if storedParams.Provider != req.Provider {
+	if storedParams.Provider() != req.Provider {
 		return nil, ErrInvalidState
 	}
 
@@ -95,7 +95,7 @@ func (h *loginHandler) Login(ctx context.Context, req *LoginRequest) (*LoginResu
 		return nil, ErrInvalidCode
 	}
 
-	if idToken.Nonce != storedParams.Nonce {
+	if idToken.Nonce != storedParams.Nonce() {
 		return nil, ErrInvalidNonce
 	}
 

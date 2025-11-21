@@ -68,11 +68,9 @@ func (g *paramsGenerator) Generate(ctx context.Context, provider domain.Provider
 
 	authURL := rpProvider.BuildAuthorizationURL(state, nonce)
 
-	params := domain.Params{
-		Provider:  provider,
-		State:     state,
-		Nonce:     nonce,
-		CreatedAt: time.Now().UTC(),
+	params, err := domain.NewParams(provider, state, nonce, time.Now().UTC())
+	if err != nil {
+		return nil, err
 	}
 
 	if err := g.repo.SaveParams(ctx, params); err != nil {
