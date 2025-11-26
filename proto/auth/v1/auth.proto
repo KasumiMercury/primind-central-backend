@@ -8,9 +8,6 @@ service AuthService {
   rpc OIDCParams(OIDCParamsRequest) returns (OIDCParamsResponse);
   rpc OIDCLogin(OIDCLoginRequest) returns (OIDCLoginResponse);
   rpc Logout(LogoutRequest) returns (LogoutResponse);
-  rpc GetUser(GetUserRequest) returns (GetUserResponse);
-  rpc GetUserByUsername(GetUserByUsernameRequest) returns (GetUserByUsernameResponse);
-  rpc GetCurrentUser(GetCurrentUserRequest) returns (GetCurrentUserResponse);
 }
 
 // OIDCProvider represents an external OpenID Connect identity provider.
@@ -56,38 +53,4 @@ message LogoutRequest {}
 
 message LogoutResponse {
   bool success = 1;
-}
-
-// User profile and lookup messages.
-message User {
-  // Service-internal user ID.
-  string user_id = 1;
-  // Unique username/handle used inside the service.
-  string username = 2;
-  // Display name shown in the UI.
-  string display_name = 3;
-}
-
-message GetUserRequest {
-  // Service-internal user ID.
-  string user_id = 1;
-}
-
-message GetUserResponse {
-  User user = 1;
-}
-
-message GetUserByUsernameRequest {
-  // Unique username/handle used inside the service.
-  string username = 1;
-}
-
-message GetUserByUsernameResponse {
-  User user = 1;
-}
-
-message GetCurrentUserRequest {}
-
-message GetCurrentUserResponse {
-  User user = 1;
 }
