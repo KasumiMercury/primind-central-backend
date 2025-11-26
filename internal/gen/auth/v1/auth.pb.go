@@ -237,8 +237,6 @@ func (x *OIDCLoginRequest) GetState() string {
 type OIDCLoginResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	SessionToken  string                 `protobuf:"bytes,1,opt,name=session_token,json=sessionToken,proto3" json:"session_token,omitempty"`
-	TokenType     string                 `protobuf:"bytes,2,opt,name=token_type,json=tokenType,proto3" json:"token_type,omitempty"`
-	ExpiresIn     int64                  `protobuf:"varint,3,opt,name=expires_in,json=expiresIn,proto3" json:"expires_in,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -278,20 +276,6 @@ func (x *OIDCLoginResponse) GetSessionToken() string {
 		return x.SessionToken
 	}
 	return ""
-}
-
-func (x *OIDCLoginResponse) GetTokenType() string {
-	if x != nil {
-		return x.TokenType
-	}
-	return ""
-}
-
-func (x *OIDCLoginResponse) GetExpiresIn() int64 {
-	if x != nil {
-		return x.ExpiresIn
-	}
-	return 0
 }
 
 type LogoutRequest struct {
@@ -388,13 +372,9 @@ const file_auth_v1_auth_proto_rawDesc = "" +
 	"\x10OIDCLoginRequest\x121\n" +
 	"\bprovider\x18\x01 \x01(\x0e2\x15.auth.v1.OIDCProviderR\bprovider\x12\x12\n" +
 	"\x04code\x18\x02 \x01(\tR\x04code\x12\x14\n" +
-	"\x05state\x18\x03 \x01(\tR\x05state\"v\n" +
+	"\x05state\x18\x03 \x01(\tR\x05state\"8\n" +
 	"\x11OIDCLoginResponse\x12#\n" +
-	"\rsession_token\x18\x01 \x01(\tR\fsessionToken\x12\x1d\n" +
-	"\n" +
-	"token_type\x18\x02 \x01(\tR\ttokenType\x12\x1d\n" +
-	"\n" +
-	"expires_in\x18\x03 \x01(\x03R\texpiresIn\"\x0f\n" +
+	"\rsession_token\x18\x01 \x01(\tR\fsessionToken\"\x0f\n" +
 	"\rLogoutRequest\"*\n" +
 	"\x0eLogoutResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess*G\n" +

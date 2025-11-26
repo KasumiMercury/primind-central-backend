@@ -37,8 +37,6 @@ message OIDCLoginRequest {
 
 message OIDCLoginResponse {
   string session_token = 1;
-  string token_type = 2;
-  int64 expires_in = 3;
 }
 
 message LogoutRequest {}
