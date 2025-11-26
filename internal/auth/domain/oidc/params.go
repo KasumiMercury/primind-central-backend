@@ -9,12 +9,15 @@ type ProviderID string
 
 const (
 	ProviderGoogle ProviderID = "google"
+
+	ParamsExpirationDuration = 10 * time.Minute
 )
 
 var (
 	ErrProviderInvalid = errors.New("provider must be specified")
 	ErrStateEmpty      = errors.New("state must be specified")
 	ErrNonceEmpty      = errors.New("nonce must be specified")
+	ErrParamsExpired   = errors.New("authentication parameters have expired")
 )
 
 type Params struct {
@@ -60,4 +63,12 @@ func (p *Params) Nonce() string {
 
 func (p *Params) CreatedAt() time.Time {
 	return p.createdAt
+}
+
+func (p *Params) ExpiresAt() time.Time {
+	return p.createdAt.Add(ParamsExpirationDuration)
+}
+
+func (p *Params) IsExpired(now time.Time) bool {
+	return now.After(p.ExpiresAt())
 }

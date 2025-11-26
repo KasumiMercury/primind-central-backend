@@ -115,3 +115,61 @@ func TestNewParamsErrors(t *testing.T) {
 		})
 	}
 }
+
+func TestParamsExpiresAt(t *testing.T) {
+	t.Parallel()
+
+	createdAt := time.Date(2025, time.January, 2, 15, 4, 5, 0, time.UTC)
+	params, err := NewParams(ProviderGoogle, "state-123", "nonce-abc", createdAt)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	want := createdAt.Add(ParamsExpirationDuration)
+	if !params.ExpiresAt().Equal(want) {
+		t.Errorf("ExpiresAt() = %s, want %s", params.ExpiresAt(), want)
+	}
+}
+
+func TestParamsIsExpired(t *testing.T) {
+	t.Parallel()
+
+	createdAt := time.Date(2025, time.January, 2, 15, 0, 0, 0, time.UTC)
+	params, err := NewParams(ProviderGoogle, "state-123", "nonce-abc", createdAt)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	tests := []struct {
+		name        string
+		checkTime   time.Time
+		wantExpired bool
+	}{
+		{
+			name:        "before expiration",
+			checkTime:   createdAt.Add(5 * time.Minute),
+			wantExpired: false,
+		},
+		{
+			name:        "exactly at expiration",
+			checkTime:   createdAt.Add(ParamsExpirationDuration),
+			wantExpired: false,
+		},
+		{
+			name:        "after expiration",
+			checkTime:   createdAt.Add(ParamsExpirationDuration + time.Millisecond),
+			wantExpired: true,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := params.IsExpired(tt.checkTime); got != tt.wantExpired {
+				t.Errorf("IsExpired(%s) = %v, want %v", tt.checkTime, got, tt.wantExpired)
+			}
+		})
+	}
+}

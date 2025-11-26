@@ -81,6 +81,8 @@ func (s *Service) OIDCLogin(ctx context.Context, req *authv1.OIDCLoginRequest) (
 			return nil, connect.NewError(connect.CodeInvalidArgument, err)
 		case errors.Is(err, appoidc.ErrInvalidState):
 			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		case errors.Is(err, domainoidc.ErrParamsExpired):
+			return nil, connect.NewError(connect.CodeInvalidArgument, err)
 		case errors.Is(err, appoidc.ErrInvalidNonce):
 			return nil, connect.NewError(connect.CodeInvalidArgument, err)
 		default:

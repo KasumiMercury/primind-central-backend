@@ -83,6 +83,10 @@ func (h *loginHandler) Login(ctx context.Context, req *LoginRequest) (*LoginResu
 		return nil, err
 	}
 
+	if storedParams.IsExpired(time.Now().UTC()) {
+		return nil, domainoidc.ErrParamsExpired
+	}
+
 	if storedParams.Provider() != req.Provider {
 		return nil, ErrInvalidState
 	}
