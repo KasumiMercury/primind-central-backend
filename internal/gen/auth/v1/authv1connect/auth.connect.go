@@ -39,14 +39,6 @@ const (
 	AuthServiceOIDCLoginProcedure = "/auth.v1.AuthService/OIDCLogin"
 	// AuthServiceLogoutProcedure is the fully-qualified name of the AuthService's Logout RPC.
 	AuthServiceLogoutProcedure = "/auth.v1.AuthService/Logout"
-	// AuthServiceGetUserProcedure is the fully-qualified name of the AuthService's GetUser RPC.
-	AuthServiceGetUserProcedure = "/auth.v1.AuthService/GetUser"
-	// AuthServiceGetUserByUsernameProcedure is the fully-qualified name of the AuthService's
-	// GetUserByUsername RPC.
-	AuthServiceGetUserByUsernameProcedure = "/auth.v1.AuthService/GetUserByUsername"
-	// AuthServiceGetCurrentUserProcedure is the fully-qualified name of the AuthService's
-	// GetCurrentUser RPC.
-	AuthServiceGetCurrentUserProcedure = "/auth.v1.AuthService/GetCurrentUser"
 )
 
 // AuthServiceClient is a client for the auth.v1.AuthService service.
@@ -54,9 +46,6 @@ type AuthServiceClient interface {
 	OIDCParams(context.Context, *v1.OIDCParamsRequest) (*v1.OIDCParamsResponse, error)
 	OIDCLogin(context.Context, *v1.OIDCLoginRequest) (*v1.OIDCLoginResponse, error)
 	Logout(context.Context, *v1.LogoutRequest) (*v1.LogoutResponse, error)
-	GetUser(context.Context, *v1.GetUserRequest) (*v1.GetUserResponse, error)
-	GetUserByUsername(context.Context, *v1.GetUserByUsernameRequest) (*v1.GetUserByUsernameResponse, error)
-	GetCurrentUser(context.Context, *v1.GetCurrentUserRequest) (*v1.GetCurrentUserResponse, error)
 }
 
 // NewAuthServiceClient constructs a client for the auth.v1.AuthService service. By default, it uses
@@ -88,35 +77,14 @@ func NewAuthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(authServiceMethods.ByName("Logout")),
 			connect.WithClientOptions(opts...),
 		),
-		getUser: connect.NewClient[v1.GetUserRequest, v1.GetUserResponse](
-			httpClient,
-			baseURL+AuthServiceGetUserProcedure,
-			connect.WithSchema(authServiceMethods.ByName("GetUser")),
-			connect.WithClientOptions(opts...),
-		),
-		getUserByUsername: connect.NewClient[v1.GetUserByUsernameRequest, v1.GetUserByUsernameResponse](
-			httpClient,
-			baseURL+AuthServiceGetUserByUsernameProcedure,
-			connect.WithSchema(authServiceMethods.ByName("GetUserByUsername")),
-			connect.WithClientOptions(opts...),
-		),
-		getCurrentUser: connect.NewClient[v1.GetCurrentUserRequest, v1.GetCurrentUserResponse](
-			httpClient,
-			baseURL+AuthServiceGetCurrentUserProcedure,
-			connect.WithSchema(authServiceMethods.ByName("GetCurrentUser")),
-			connect.WithClientOptions(opts...),
-		),
 	}
 }
 
 // authServiceClient implements AuthServiceClient.
 type authServiceClient struct {
-	oIDCParams        *connect.Client[v1.OIDCParamsRequest, v1.OIDCParamsResponse]
-	oIDCLogin         *connect.Client[v1.OIDCLoginRequest, v1.OIDCLoginResponse]
-	logout            *connect.Client[v1.LogoutRequest, v1.LogoutResponse]
-	getUser           *connect.Client[v1.GetUserRequest, v1.GetUserResponse]
-	getUserByUsername *connect.Client[v1.GetUserByUsernameRequest, v1.GetUserByUsernameResponse]
-	getCurrentUser    *connect.Client[v1.GetCurrentUserRequest, v1.GetCurrentUserResponse]
+	oIDCParams *connect.Client[v1.OIDCParamsRequest, v1.OIDCParamsResponse]
+	oIDCLogin  *connect.Client[v1.OIDCLoginRequest, v1.OIDCLoginResponse]
+	logout     *connect.Client[v1.LogoutRequest, v1.LogoutResponse]
 }
 
 // OIDCParams calls auth.v1.AuthService.OIDCParams.
@@ -146,41 +114,11 @@ func (c *authServiceClient) Logout(ctx context.Context, req *v1.LogoutRequest) (
 	return nil, err
 }
 
-// GetUser calls auth.v1.AuthService.GetUser.
-func (c *authServiceClient) GetUser(ctx context.Context, req *v1.GetUserRequest) (*v1.GetUserResponse, error) {
-	response, err := c.getUser.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
-// GetUserByUsername calls auth.v1.AuthService.GetUserByUsername.
-func (c *authServiceClient) GetUserByUsername(ctx context.Context, req *v1.GetUserByUsernameRequest) (*v1.GetUserByUsernameResponse, error) {
-	response, err := c.getUserByUsername.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
-// GetCurrentUser calls auth.v1.AuthService.GetCurrentUser.
-func (c *authServiceClient) GetCurrentUser(ctx context.Context, req *v1.GetCurrentUserRequest) (*v1.GetCurrentUserResponse, error) {
-	response, err := c.getCurrentUser.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
 // AuthServiceHandler is an implementation of the auth.v1.AuthService service.
 type AuthServiceHandler interface {
 	OIDCParams(context.Context, *v1.OIDCParamsRequest) (*v1.OIDCParamsResponse, error)
 	OIDCLogin(context.Context, *v1.OIDCLoginRequest) (*v1.OIDCLoginResponse, error)
 	Logout(context.Context, *v1.LogoutRequest) (*v1.LogoutResponse, error)
-	GetUser(context.Context, *v1.GetUserRequest) (*v1.GetUserResponse, error)
-	GetUserByUsername(context.Context, *v1.GetUserByUsernameRequest) (*v1.GetUserByUsernameResponse, error)
-	GetCurrentUser(context.Context, *v1.GetCurrentUserRequest) (*v1.GetCurrentUserResponse, error)
 }
 
 // NewAuthServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -208,24 +146,6 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(authServiceMethods.ByName("Logout")),
 		connect.WithHandlerOptions(opts...),
 	)
-	authServiceGetUserHandler := connect.NewUnaryHandlerSimple(
-		AuthServiceGetUserProcedure,
-		svc.GetUser,
-		connect.WithSchema(authServiceMethods.ByName("GetUser")),
-		connect.WithHandlerOptions(opts...),
-	)
-	authServiceGetUserByUsernameHandler := connect.NewUnaryHandlerSimple(
-		AuthServiceGetUserByUsernameProcedure,
-		svc.GetUserByUsername,
-		connect.WithSchema(authServiceMethods.ByName("GetUserByUsername")),
-		connect.WithHandlerOptions(opts...),
-	)
-	authServiceGetCurrentUserHandler := connect.NewUnaryHandlerSimple(
-		AuthServiceGetCurrentUserProcedure,
-		svc.GetCurrentUser,
-		connect.WithSchema(authServiceMethods.ByName("GetCurrentUser")),
-		connect.WithHandlerOptions(opts...),
-	)
 	return "/auth.v1.AuthService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AuthServiceOIDCParamsProcedure:
@@ -234,12 +154,6 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 			authServiceOIDCLoginHandler.ServeHTTP(w, r)
 		case AuthServiceLogoutProcedure:
 			authServiceLogoutHandler.ServeHTTP(w, r)
-		case AuthServiceGetUserProcedure:
-			authServiceGetUserHandler.ServeHTTP(w, r)
-		case AuthServiceGetUserByUsernameProcedure:
-			authServiceGetUserByUsernameHandler.ServeHTTP(w, r)
-		case AuthServiceGetCurrentUserProcedure:
-			authServiceGetCurrentUserHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -259,16 +173,4 @@ func (UnimplementedAuthServiceHandler) OIDCLogin(context.Context, *v1.OIDCLoginR
 
 func (UnimplementedAuthServiceHandler) Logout(context.Context, *v1.LogoutRequest) (*v1.LogoutResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.v1.AuthService.Logout is not implemented"))
-}
-
-func (UnimplementedAuthServiceHandler) GetUser(context.Context, *v1.GetUserRequest) (*v1.GetUserResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.v1.AuthService.GetUser is not implemented"))
-}
-
-func (UnimplementedAuthServiceHandler) GetUserByUsername(context.Context, *v1.GetUserByUsernameRequest) (*v1.GetUserByUsernameResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.v1.AuthService.GetUserByUsername is not implemented"))
-}
-
-func (UnimplementedAuthServiceHandler) GetCurrentUser(context.Context, *v1.GetCurrentUserRequest) (*v1.GetCurrentUserResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.v1.AuthService.GetCurrentUser is not implemented"))
 }
