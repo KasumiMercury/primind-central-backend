@@ -50,9 +50,7 @@ func (s *Service) OIDCParams(ctx context.Context, req *authv1.OIDCParamsRequest)
 
 	return &authv1.OIDCParamsResponse{
 		AuthorizationUrl: result.AuthorizationURL,
-		ClientId:         result.ClientID,
-		RedirectUri:      result.RedirectURI,
-		Scope:            result.Scope,
+		State:            result.State,
 	}, nil
 }
 
@@ -97,18 +95,6 @@ func (s *Service) OIDCLogin(ctx context.Context, req *authv1.OIDCLoginRequest) (
 
 func (s *Service) Logout(ctx context.Context, req *authv1.LogoutRequest) (*authv1.LogoutResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.Logout not implemented"))
-}
-
-func (s *Service) GetUser(ctx context.Context, req *authv1.GetUserRequest) (*authv1.GetUserResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.GetUser not implemented"))
-}
-
-func (s *Service) GetUserByUsername(ctx context.Context, req *authv1.GetUserByUsernameRequest) (*authv1.GetUserByUsernameResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.GetUserByUsername not implemented"))
-}
-
-func (s *Service) GetCurrentUser(ctx context.Context, req *authv1.GetCurrentUserRequest) (*authv1.GetCurrentUserResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.GetCurrentUser not implemented"))
 }
 
 func mapProvider(provider authv1.OIDCProvider) (domainoidc.ProviderID, error) {

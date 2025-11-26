@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
-	"strings"
 	"time"
 
 	domain "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/oidc"
@@ -30,9 +29,7 @@ type OIDCProvider interface {
 
 type ParamsResult struct {
 	AuthorizationURL string
-	ClientID         string
-	RedirectURI      string
-	Scope            string
+	State            string
 }
 
 type paramsGenerator struct {
@@ -79,9 +76,7 @@ func (g *paramsGenerator) Generate(ctx context.Context, provider domain.Provider
 
 	return &ParamsResult{
 		AuthorizationURL: authURL,
-		ClientID:         rpProvider.ClientID(),
-		RedirectURI:      rpProvider.RedirectURI(),
-		Scope:            strings.Join(rpProvider.Scopes(), " "),
+		State:            state,
 	}, nil
 }
 
