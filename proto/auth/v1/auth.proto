@@ -21,13 +21,12 @@ enum OIDCProvider {
 
 message OIDCParamsRequest {
   OIDCProvider provider = 1;
+  string client_id = 2;
 }
 
 message OIDCParamsResponse {
   string authorization_url = 1;
-  string client_id = 2;
-  string redirect_uri = 3;
-  string scope = 4;
+  string state = 2;
 }
 
 message OIDCLoginRequest {
@@ -38,15 +37,8 @@ message OIDCLoginRequest {
 
 message OIDCLoginResponse {
   string session_token = 1;
-}
-
-// Session represents an authenticated user session.
-message Session {
-  // Unique session identifier managed by the auth module.
-  string session_id = 1;
-  string user_id = 2;
-  int64 created_at = 3;
-  int64 expires_at = 4;
+  string token_type = 2;
+  int64 expires_in = 3;
 }
 
 message LogoutRequest {}
