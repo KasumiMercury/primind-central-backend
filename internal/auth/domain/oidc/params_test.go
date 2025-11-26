@@ -96,11 +96,11 @@ func TestNewParamsErrors(t *testing.T) {
 			wantErrIs:    ErrStateEmpty,
 		},
 		{
-			name:      "missing nonce",
-			provider:  ProviderGoogle,
-			state:     "state-123",
+			name:         "missing nonce",
+			provider:     ProviderGoogle,
+			state:        "state-123",
 			codeVerifier: "verifier-xyz",
-			wantErrIs: ErrNonceEmpty,
+			wantErrIs:    ErrNonceEmpty,
 		},
 		{
 			name:      "missing code verifier",
