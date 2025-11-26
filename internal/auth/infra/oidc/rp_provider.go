@@ -47,26 +47,38 @@ func NewRPProvider(ctx context.Context, providerCfg oidccfg.ProviderConfig) (*RP
 	}, nil
 }
 
-func (p *RPProvider) BuildAuthorizationURL(state, nonce string) string {
+func (p *RPProvider) BuildAuthorizationURL(state, nonce, codeChallenge string) string {
 	baseURL := rp.AuthURL(state, p.rp)
 
-	if nonce != "" {
-		parsedURL, err := url.Parse(baseURL)
-		if err != nil {
-			separator := "&"
-			if !strings.Contains(baseURL, "?") {
-				separator = "?"
-			}
-			return baseURL + separator + "nonce=" + url.QueryEscape(nonce)
+	parsedURL, err := url.Parse(baseURL)
+	if err != nil {
+		// Fallback to string concatenation if URL parsing fails
+		separator := "&"
+		if !strings.Contains(baseURL, "?") {
+			separator = "?"
 		}
-
-		query := parsedURL.Query()
-		query.Set("nonce", nonce)
-		parsedURL.RawQuery = query.Encode()
-		return parsedURL.String()
+		result := baseURL
+		if nonce != "" {
+			result += separator + "nonce=" + url.QueryEscape(nonce)
+			separator = "&"
+		}
+		if codeChallenge != "" {
+			result += separator + "code_challenge=" + url.QueryEscape(codeChallenge)
+			result += "&code_challenge_method=S256"
+		}
+		return result
 	}
 
-	return baseURL
+	query := parsedURL.Query()
+	if nonce != "" {
+		query.Set("nonce", nonce)
+	}
+	if codeChallenge != "" {
+		query.Set("code_challenge", codeChallenge)
+		query.Set("code_challenge_method", "S256")
+	}
+	parsedURL.RawQuery = query.Encode()
+	return parsedURL.String()
 }
 
 func (p *RPProvider) ProviderID() domainoidc.ProviderID {
@@ -85,8 +97,13 @@ func (p *RPProvider) Scopes() []string {
 	return p.scopes
 }
 
-func (p *RPProvider) ExchangeToken(ctx context.Context, code string) (*appoidc.IDToken, error) {
-	tokens, err := rp.CodeExchange[*oidc.IDTokenClaims](ctx, code, p.rp)
+func (p *RPProvider) ExchangeToken(ctx context.Context, code, codeVerifier string) (*appoidc.IDToken, error) {
+	tokens, err := rp.CodeExchange[*oidc.IDTokenClaims](
+		ctx,
+		code,
+		p.rp,
+		rp.WithCodeVerifier(codeVerifier),
+	)
 	if err != nil {
 		return nil, err
 	}

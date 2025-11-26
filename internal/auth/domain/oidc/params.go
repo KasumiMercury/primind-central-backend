@@ -14,20 +14,22 @@ const (
 )
 
 var (
-	ErrProviderInvalid = errors.New("provider must be specified")
-	ErrStateEmpty      = errors.New("state must be specified")
-	ErrNonceEmpty      = errors.New("nonce must be specified")
-	ErrParamsExpired   = errors.New("authentication parameters have expired")
+	ErrProviderInvalid   = errors.New("provider must be specified")
+	ErrStateEmpty        = errors.New("state must be specified")
+	ErrNonceEmpty        = errors.New("nonce must be specified")
+	ErrCodeVerifierEmpty = errors.New("code verifier must be specified")
+	ErrParamsExpired     = errors.New("authentication parameters have expired")
 )
 
 type Params struct {
-	provider  ProviderID
-	state     string
-	nonce     string
-	createdAt time.Time
+	provider     ProviderID
+	state        string
+	nonce        string
+	codeVerifier string
+	createdAt    time.Time
 }
 
-func NewParams(provider ProviderID, state, nonce string, createdAt time.Time) (*Params, error) {
+func NewParams(provider ProviderID, state, nonce, codeVerifier string, createdAt time.Time) (*Params, error) {
 	if provider == "" {
 		return nil, ErrProviderInvalid
 	}
@@ -37,15 +39,19 @@ func NewParams(provider ProviderID, state, nonce string, createdAt time.Time) (*
 	if nonce == "" {
 		return nil, ErrNonceEmpty
 	}
+	if codeVerifier == "" {
+		return nil, ErrCodeVerifierEmpty
+	}
 	if createdAt.IsZero() {
 		createdAt = time.Now().UTC()
 	}
 
 	return &Params{
-		provider:  provider,
-		state:     state,
-		nonce:     nonce,
-		createdAt: createdAt,
+		provider:     provider,
+		state:        state,
+		nonce:        nonce,
+		codeVerifier: codeVerifier,
+		createdAt:    createdAt,
 	}, nil
 }
 
@@ -59,6 +65,10 @@ func (p *Params) State() string {
 
 func (p *Params) Nonce() string {
 	return p.nonce
+}
+
+func (p *Params) CodeVerifier() string {
+	return p.codeVerifier
 }
 
 func (p *Params) CreatedAt() time.Time {

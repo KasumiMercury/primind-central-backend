@@ -32,7 +32,7 @@ type IDToken struct {
 
 type OIDCProviderWithLogin interface {
 	OIDCProvider
-	ExchangeToken(ctx context.Context, code string) (*IDToken, error)
+	ExchangeToken(ctx context.Context, code, codeVerifier string) (*IDToken, error)
 }
 
 type LoginRequest struct {
@@ -91,7 +91,9 @@ func (h *loginHandler) Login(ctx context.Context, req *LoginRequest) (*LoginResu
 		return nil, ErrInvalidState
 	}
 
-	idToken, err := rpProvider.ExchangeToken(ctx, req.Code)
+	codeVerifier := storedParams.CodeVerifier()
+
+	idToken, err := rpProvider.ExchangeToken(ctx, req.Code, codeVerifier)
 	if err != nil {
 		return nil, ErrInvalidCode
 	}

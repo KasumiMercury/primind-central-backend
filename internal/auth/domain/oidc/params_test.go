@@ -36,7 +36,7 @@ func TestNewParamsSuccess(t *testing.T) {
 				before = time.Now().UTC()
 			}
 
-			params, err := NewParams(ProviderGoogle, "state-123", "nonce-abc", tt.createdAt)
+			params, err := NewParams(ProviderGoogle, "state-123", "nonce-abc", "verifier-xyz", tt.createdAt)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -49,6 +49,9 @@ func TestNewParamsSuccess(t *testing.T) {
 			}
 			if params.Nonce() != "nonce-abc" {
 				t.Fatalf("Nonce() = %s, want %s", params.Nonce(), "nonce-abc")
+			}
+			if params.CodeVerifier() != "verifier-xyz" {
+				t.Fatalf("CodeVerifier() = %s, want %s", params.CodeVerifier(), "verifier-xyz")
 			}
 
 			if tt.expectAuto {
@@ -70,30 +73,41 @@ func TestNewParamsErrors(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name      string
-		provider  ProviderID
-		state     string
-		nonce     string
-		createdAt time.Time
-		wantErrIs error
+		name         string
+		provider     ProviderID
+		state        string
+		nonce        string
+		codeVerifier string
+		createdAt    time.Time
+		wantErrIs    error
 	}{
 		{
-			name:      "missing provider",
-			state:     "state-123",
-			nonce:     "nonce-abc",
-			wantErrIs: ErrProviderInvalid,
+			name:         "missing provider",
+			state:        "state-123",
+			nonce:        "nonce-abc",
+			codeVerifier: "verifier-xyz",
+			wantErrIs:    ErrProviderInvalid,
 		},
 		{
-			name:      "missing state",
-			provider:  ProviderGoogle,
-			nonce:     "nonce-abc",
-			wantErrIs: ErrStateEmpty,
+			name:         "missing state",
+			provider:     ProviderGoogle,
+			nonce:        "nonce-abc",
+			codeVerifier: "verifier-xyz",
+			wantErrIs:    ErrStateEmpty,
 		},
 		{
 			name:      "missing nonce",
 			provider:  ProviderGoogle,
 			state:     "state-123",
+			codeVerifier: "verifier-xyz",
 			wantErrIs: ErrNonceEmpty,
+		},
+		{
+			name:      "missing code verifier",
+			provider:  ProviderGoogle,
+			state:     "state-123",
+			nonce:     "nonce-abc",
+			wantErrIs: ErrCodeVerifierEmpty,
 		},
 	}
 
@@ -102,7 +116,7 @@ func TestNewParamsErrors(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			params, err := NewParams(tt.provider, tt.state, tt.nonce, tt.createdAt)
+			params, err := NewParams(tt.provider, tt.state, tt.nonce, tt.codeVerifier, tt.createdAt)
 			if err == nil {
 				t.Fatalf("expected error but got nil")
 			}
@@ -120,7 +134,7 @@ func TestParamsExpiresAt(t *testing.T) {
 	t.Parallel()
 
 	createdAt := time.Date(2025, time.January, 2, 15, 4, 5, 0, time.UTC)
-	params, err := NewParams(ProviderGoogle, "state-123", "nonce-abc", createdAt)
+	params, err := NewParams(ProviderGoogle, "state-123", "nonce-abc", "verifier-xyz", createdAt)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -135,7 +149,7 @@ func TestParamsIsExpired(t *testing.T) {
 	t.Parallel()
 
 	createdAt := time.Date(2025, time.January, 2, 15, 0, 0, 0, time.UTC)
-	params, err := NewParams(ProviderGoogle, "state-123", "nonce-abc", createdAt)
+	params, err := NewParams(ProviderGoogle, "state-123", "nonce-abc", "verifier-xyz", createdAt)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

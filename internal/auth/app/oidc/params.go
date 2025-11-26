@@ -3,6 +3,7 @@ package oidc
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
 	"errors"
 	"time"
@@ -21,7 +22,7 @@ type OIDCParamsGenerator interface {
 
 type OIDCProvider interface {
 	ProviderID() domain.ProviderID
-	BuildAuthorizationURL(state, nonce string) string
+	BuildAuthorizationURL(state, nonce, codeChallenge string) string
 	ClientID() string
 	RedirectURI() string
 	Scopes() []string
@@ -63,9 +64,16 @@ func (g *paramsGenerator) Generate(ctx context.Context, provider domain.Provider
 		return nil, err
 	}
 
-	authURL := rpProvider.BuildAuthorizationURL(state, nonce)
+	codeVerifier, err := randomToken()
+	if err != nil {
+		return nil, err
+	}
 
-	params, err := domain.NewParams(provider, state, nonce, time.Now().UTC())
+	codeChallenge := generateCodeChallenge(codeVerifier)
+
+	authURL := rpProvider.BuildAuthorizationURL(state, nonce, codeChallenge)
+
+	params, err := domain.NewParams(provider, state, nonce, codeVerifier, time.Now().UTC())
 	if err != nil {
 		return nil, err
 	}
@@ -87,4 +95,9 @@ func randomToken() (string, error) {
 	}
 
 	return base64.RawURLEncoding.EncodeToString(buf), nil
+}
+
+func generateCodeChallenge(verifier string) string {
+	hash := sha256.Sum256([]byte(verifier))
+	return base64.RawURLEncoding.EncodeToString(hash[:])
 }
