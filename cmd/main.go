@@ -1,24 +1,34 @@
 package main
 
 import (
-	"log"
+	"context"
+	"log/slog"
 	"net/http"
+	"os"
 
-	authsvc "github.com/KasumiMercury/primind-central-backend/internal/auth"
-	authv1connect "github.com/KasumiMercury/primind-central-backend/internal/gen/auth/v1/authv1connect"
+	authmodule "github.com/KasumiMercury/primind-central-backend/internal/auth"
 )
 
 func main() {
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}))
+	slog.SetDefault(logger)
+
+	ctx := context.Background()
 	mux := http.NewServeMux()
 
-	authService := authsvc.NewService()
-
-	authPath, authHandler := authv1connect.NewAuthServiceHandler(authService)
+	authPath, authHandler, err := authmodule.NewHTTPHandler(ctx)
+	if err != nil {
+		logger.Error("failed to initialize auth service", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
 	mux.Handle(authPath, authHandler)
 
 	addr := ":8080"
-	log.Printf("starting Connect API server on %s\n", addr)
+	logger.Info("starting Connect API server", slog.String("address", addr))
 	if err := http.ListenAndServe(addr, mux); err != nil {
-		log.Fatal(err)
+		logger.Error("connect api server exited", slog.String("error", err.Error()))
+		os.Exit(1)
 	}
 }
