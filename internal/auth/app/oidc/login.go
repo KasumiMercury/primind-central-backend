@@ -3,6 +3,7 @@ package oidc
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	sessionCfg "github.com/KasumiMercury/primind-central-backend/internal/auth/config/session"
@@ -32,7 +33,7 @@ type IDToken struct {
 
 type OIDCProviderWithLogin interface {
 	OIDCProvider
-	ExchangeToken(ctx context.Context, code, codeVerifier string) (*IDToken, error)
+	ExchangeToken(ctx context.Context, code, codeVerifier, nonce string) (*IDToken, error)
 }
 
 type LoginRequest struct {
@@ -93,9 +94,9 @@ func (h *loginHandler) Login(ctx context.Context, req *LoginRequest) (*LoginResu
 
 	codeVerifier := storedParams.CodeVerifier()
 
-	idToken, err := rpProvider.ExchangeToken(ctx, req.Code, codeVerifier)
+	idToken, err := rpProvider.ExchangeToken(ctx, req.Code, codeVerifier, storedParams.Nonce())
 	if err != nil {
-		return nil, ErrInvalidCode
+		return nil, fmt.Errorf("%w: %v", ErrInvalidCode, err)
 	}
 
 	if idToken.Nonce != storedParams.Nonce() {

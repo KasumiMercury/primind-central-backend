@@ -9,38 +9,43 @@ import (
 	appoidc "github.com/KasumiMercury/primind-central-backend/internal/auth/app/oidc"
 	oidccfg "github.com/KasumiMercury/primind-central-backend/internal/auth/config/oidc"
 	domainoidc "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/oidc"
-	"github.com/zitadel/oidc/v3/pkg/client/rp"
-	httphelper "github.com/zitadel/oidc/v3/pkg/http"
-	"github.com/zitadel/oidc/v3/pkg/oidc"
+	"github.com/coreos/go-oidc/v3/oidc"
+	"golang.org/x/oauth2"
 )
 
-// RPProvider wraps zitadel/oidc RelyingParty
+// RPProvider wraps go-oidc and oauth2 helpers for a single provider.
 type RPProvider struct {
-	rp          rp.RelyingParty
+	oauthConfig *oauth2.Config
+	verifier    *oidc.IDTokenVerifier
 	providerID  domainoidc.ProviderID
 	redirectURI string
 	scopes      []string
 }
 
-// NewRPProvider creates a new RelyingParty for the given provider configuration.
+// NewRPProvider creates a new relying party backed by go-oidc.
 func NewRPProvider(ctx context.Context, providerCfg oidccfg.ProviderConfig) (*RPProvider, error) {
 	core := providerCfg.Core()
 
-	relyingParty, err := rp.NewRelyingPartyOIDC(
-		ctx,
-		core.IssuerURL,
-		core.ClientID,
-		core.ClientSecret,
-		core.RedirectURI,
-		core.Scopes,
-		rp.WithHTTPClient(httphelper.DefaultHTTPClient),
-	)
+	oidcProvider, err := oidc.NewProvider(ctx, core.IssuerURL)
 	if err != nil {
-		return nil, fmt.Errorf("create relying party for %s: %w", providerCfg.ProviderID(), err)
+		return nil, fmt.Errorf("discover oidc provider %s: %w", providerCfg.ProviderID(), err)
+	}
+
+	verifier := oidcProvider.Verifier(&oidc.Config{
+		ClientID: core.ClientID,
+	})
+
+	oauthConfig := &oauth2.Config{
+		ClientID:     core.ClientID,
+		ClientSecret: core.ClientSecret,
+		Endpoint:     oidcProvider.Endpoint(),
+		RedirectURL:  core.RedirectURI,
+		Scopes:       core.Scopes,
 	}
 
 	return &RPProvider{
-		rp:          relyingParty,
+		oauthConfig: oauthConfig,
+		verifier:    verifier,
 		providerID:  providerCfg.ProviderID(),
 		redirectURI: core.RedirectURI,
 		scopes:      core.Scopes,
@@ -48,21 +53,30 @@ func NewRPProvider(ctx context.Context, providerCfg oidccfg.ProviderConfig) (*RP
 }
 
 func (p *RPProvider) BuildAuthorizationURL(state, nonce, codeChallenge string) string {
-	baseURL := rp.AuthURL(state, p.rp)
+	opts := []oauth2.AuthCodeOption{
+		oauth2.SetAuthURLParam("nonce", nonce),
+	}
+	if codeChallenge != "" {
+		opts = append(opts,
+			oauth2.SetAuthURLParam("code_challenge", codeChallenge),
+			oauth2.SetAuthURLParam("code_challenge_method", "S256"),
+		)
+	}
+	baseURL := p.oauthConfig.AuthCodeURL(state, opts...)
 
+	// Safety: add nonce/code_challenge if the provider stripped it.
 	parsedURL, err := url.Parse(baseURL)
 	if err != nil {
-		// Fallback to string concatenation if URL parsing fails
 		separator := "&"
 		if !strings.Contains(baseURL, "?") {
 			separator = "?"
 		}
 		result := baseURL
-		if nonce != "" {
+		if nonce != "" && !strings.Contains(baseURL, "nonce=") {
 			result += separator + "nonce=" + url.QueryEscape(nonce)
 			separator = "&"
 		}
-		if codeChallenge != "" {
+		if codeChallenge != "" && !strings.Contains(baseURL, "code_challenge=") {
 			result += separator + "code_challenge=" + url.QueryEscape(codeChallenge)
 			result += "&code_challenge_method=S256"
 		}
@@ -70,10 +84,10 @@ func (p *RPProvider) BuildAuthorizationURL(state, nonce, codeChallenge string) s
 	}
 
 	query := parsedURL.Query()
-	if nonce != "" {
+	if nonce != "" && query.Get("nonce") == "" {
 		query.Set("nonce", nonce)
 	}
-	if codeChallenge != "" {
+	if codeChallenge != "" && query.Get("code_challenge") == "" {
 		query.Set("code_challenge", codeChallenge)
 		query.Set("code_challenge_method", "S256")
 	}
@@ -86,7 +100,7 @@ func (p *RPProvider) ProviderID() domainoidc.ProviderID {
 }
 
 func (p *RPProvider) ClientID() string {
-	return p.rp.OAuthConfig().ClientID
+	return p.oauthConfig.ClientID
 }
 
 func (p *RPProvider) RedirectURI() string {
@@ -97,20 +111,41 @@ func (p *RPProvider) Scopes() []string {
 	return p.scopes
 }
 
-func (p *RPProvider) ExchangeToken(ctx context.Context, code, codeVerifier string) (*appoidc.IDToken, error) {
-	tokens, err := rp.CodeExchange[*oidc.IDTokenClaims](
+func (p *RPProvider) ExchangeToken(ctx context.Context, code, codeVerifier, nonce string) (*appoidc.IDToken, error) {
+	token, err := p.oauthConfig.Exchange(
 		ctx,
 		code,
-		p.rp,
-		rp.WithCodeVerifier(codeVerifier),
+		oauth2.SetAuthURLParam("code_verifier", codeVerifier),
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("token exchange failed: %w", err)
+	}
+
+	rawIDToken, ok := token.Extra("id_token").(string)
+	if !ok || rawIDToken == "" {
+		return nil, fmt.Errorf("token exchange failed: id_token missing")
+	}
+
+	idToken, err := p.verifier.Verify(ctx, rawIDToken)
+	if err != nil {
+		return nil, fmt.Errorf("id_token verification failed: %w", err)
+	}
+
+	if nonce != "" && idToken.Nonce != nonce {
+		return nil, fmt.Errorf("nonce mismatch")
+	}
+
+	var claims struct {
+		Sub  string `json:"sub"`
+		Name string `json:"name"`
+	}
+	if err := idToken.Claims(&claims); err != nil {
+		return nil, fmt.Errorf("decode id_token claims: %w", err)
 	}
 
 	return &appoidc.IDToken{
-		Subject: tokens.IDTokenClaims.Subject,
-		Name:    tokens.IDTokenClaims.Name,
-		Nonce:   tokens.IDTokenClaims.Nonce,
+		Subject: claims.Sub,
+		Name:    claims.Name,
+		Nonce:   idToken.Nonce,
 	}, nil
 }
