@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"errors"
+	"log/slog"
 	"time"
 
 	domain "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/oidc"
@@ -36,6 +37,7 @@ type ParamsResult struct {
 type paramsGenerator struct {
 	providers map[domain.ProviderID]OIDCProvider
 	repo      domain.ParamsRepository
+	logger    *slog.Logger
 }
 
 func NewParamsGenerator(
@@ -45,27 +47,34 @@ func NewParamsGenerator(
 	return &paramsGenerator{
 		providers: providers,
 		repo:      repo,
+		logger:    slog.Default().WithGroup("auth").WithGroup("oidc").WithGroup("params"),
 	}
 }
 
 func (g *paramsGenerator) Generate(ctx context.Context, provider domain.ProviderID) (*ParamsResult, error) {
 	rpProvider, ok := g.providers[provider]
 	if !ok {
+		g.logger.Warn("oidc params requested for unsupported provider", slog.String("provider", string(provider)))
 		return nil, ErrProviderUnsupported
 	}
 
+	g.logger.Debug("generating oidc authorization params", slog.String("provider", string(provider)))
+
 	state, err := randomToken()
 	if err != nil {
+		g.logger.Error("failed to generate state token", slog.String("error", err.Error()))
 		return nil, err
 	}
 
 	nonce, err := randomToken()
 	if err != nil {
+		g.logger.Error("failed to generate nonce token", slog.String("error", err.Error()))
 		return nil, err
 	}
 
 	codeVerifier, err := randomToken()
 	if err != nil {
+		g.logger.Error("failed to generate code verifier", slog.String("error", err.Error()))
 		return nil, err
 	}
 
@@ -75,12 +84,16 @@ func (g *paramsGenerator) Generate(ctx context.Context, provider domain.Provider
 
 	params, err := domain.NewParams(provider, state, nonce, codeVerifier, time.Now().UTC())
 	if err != nil {
+		g.logger.Error("failed to build params model", slog.String("error", err.Error()))
 		return nil, err
 	}
 
 	if err := g.repo.SaveParams(ctx, params); err != nil {
+		g.logger.Error("failed to persist oidc params", slog.String("error", err.Error()))
 		return nil, err
 	}
+
+	g.logger.Debug("generated oidc authorization params", slog.String("provider", string(provider)))
 
 	return &ParamsResult{
 		AuthorizationURL: authURL,
