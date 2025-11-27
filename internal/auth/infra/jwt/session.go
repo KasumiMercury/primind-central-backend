@@ -1,10 +1,12 @@
 package jwt
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/go-jose/go-jose/v4"
 	"github.com/go-jose/go-jose/v4/jwt"
+	"golang.org/x/crypto/sha3"
 
 	sessionCfg "github.com/KasumiMercury/primind-central-backend/internal/auth/config/session"
 	domain "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/session"
@@ -21,12 +23,13 @@ func NewSessionJWTGenerator(cfg *sessionCfg.Config) *SessionJWTGenerator {
 }
 
 func (g *SessionJWTGenerator) Generate(session *domain.Session) (string, error) {
+	key := deriveHMACKey(g.sessionCfg.Secret)
+
 	signer, err := jose.NewSigner(
-		jose.SigningKey{Algorithm: jose.HS256, Key: g.sessionCfg.Secret},
-		(&jose.SignerOptions{}).WithType("JWT"),
+		jose.SigningKey{Algorithm: jose.HS256, Key: key}, nil,
 	)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to create JWT signer: %w", err)
 	}
 
 	now := session.CreatedAt()
@@ -55,13 +58,15 @@ func (g *SessionJWTGenerator) Generate(session *domain.Session) (string, error) 
 }
 
 func (g *SessionJWTGenerator) Verify(token string) (*jwt.Claims, error) {
+	key := deriveHMACKey(g.sessionCfg.Secret)
+
 	parsed, err := jwt.ParseSigned(token, []jose.SignatureAlgorithm{jose.HS256})
 	if err != nil {
 		return nil, err
 	}
 
 	claims := &jwt.Claims{}
-	if err := parsed.Claims(g.sessionCfg.Secret, claims); err != nil {
+	if err := parsed.Claims(key, claims); err != nil {
 		return nil, err
 	}
 
@@ -70,4 +75,9 @@ func (g *SessionJWTGenerator) Verify(token string) (*jwt.Claims, error) {
 	}
 
 	return claims, nil
+}
+
+func deriveHMACKey(secret string) []byte {
+	sum := sha3.Sum256([]byte(secret))
+	return sum[:]
 }
