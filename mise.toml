@@ -2,5 +2,7 @@
 buf = "latest"
 go = "1.25.4"
 golangci-lint = "latest"
+lefthook = "latest"
 protoc = "latest"
 protoc-gen-go = "latest"
+trivy = "latest"

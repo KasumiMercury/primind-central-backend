@@ -1,0 +1,5 @@
+pre-push:
+  jobs:
+    - name: "trivy scan"
+      run: trivy fs . --exit-code 1
+
