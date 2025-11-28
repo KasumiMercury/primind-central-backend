@@ -219,8 +219,6 @@ func (h *loginHandler) Login(ctx context.Context, req *LoginRequest) (*LoginResu
 
 	h.logger.Info("oidc login successful", slog.String("provider", string(req.Provider)))
 
-	println("token:", sessionToken)
-
 	return &LoginResult{
 		SessionToken: sessionToken,
 	}, nil
