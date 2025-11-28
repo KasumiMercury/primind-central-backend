@@ -142,7 +142,12 @@ func (h *loginHandler) Login(ctx context.Context, req *LoginRequest) (*LoginResu
 	if oidcIdentity == nil {
 		h.logger.Debug("creating new user for oidc login", slog.String("provider", string(req.Provider)))
 
-		newUser := user.CreateUser()
+		newUser, err := user.CreateUser()
+		if err != nil {
+			h.logger.Error("failed to generate user ID", slog.String("error", err.Error()))
+			return nil, err
+		}
+
 		if err := h.userRepo.SaveUser(ctx, newUser); err != nil {
 			h.logger.Error("failed to persist user", slog.String("error", err.Error()))
 			return nil, err

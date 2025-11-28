@@ -10,26 +10,43 @@ import (
 )
 
 var (
-	ErrUserIDEmpty        = errors.New("user ID must be specified")
-	ErrExpiresAtMissing   = errors.New("expiresAt must be specified")
-	ErrExpiresBeforeStart = errors.New("expiresAt must be after createdAt")
-	ErrSessionIDEmpty     = errors.New("session ID must be specified")
+	ErrUserIDEmpty            = errors.New("user ID must be specified")
+	ErrExpiresAtMissing       = errors.New("expiresAt must be specified")
+	ErrExpiresBeforeStart     = errors.New("expiresAt must be after createdAt")
+	ErrSessionIDEmpty         = errors.New("session ID must be specified")
+	ErrSessionIDInvalidFormat = errors.New("session ID must be a valid UUID")
+	ErrSessionIDInvalidV7     = errors.New("session ID must be a UUIDv7")
+	ErrSessionIDGeneration    = errors.New("failed to generate session ID")
 )
 
-type ID string
+type ID uuid.UUID
 
 func NewID() (ID, error) {
-	return ID(uuid.NewString()), nil
+	v7, err := uuid.NewV7()
+	if err != nil {
+		return ID{}, fmt.Errorf("%w: %v", ErrSessionIDGeneration, err)
+	}
+
+	return ID(v7), nil
 }
 
 func ParseID(id string) (ID, error) {
-	candidate := ID(id)
+	if id == "" {
+		return ID{}, ErrSessionIDEmpty
+	}
+
+	parsed, err := uuid.Parse(id)
+	if err != nil {
+		return ID{}, fmt.Errorf("%w: %v", ErrSessionIDInvalidFormat, err)
+	}
+
+	candidate := ID(parsed)
 
 	return candidate, candidate.validate()
 }
 
 func (id ID) String() string {
-	return string(id)
+	return uuid.UUID(id).String()
 }
 
 func (id ID) Validate() error {
@@ -37,12 +54,12 @@ func (id ID) Validate() error {
 }
 
 func (id ID) validate() error {
-	if id == "" {
+	if uuid.UUID(id) == uuid.Nil {
 		return ErrSessionIDEmpty
 	}
 
-	if _, err := uuid.Parse(string(id)); err != nil {
-		return fmt.Errorf("invalid session ID: %w", err)
+	if uuid.UUID(id).Version() != 7 {
+		return ErrSessionIDInvalidV7
 	}
 
 	return nil
