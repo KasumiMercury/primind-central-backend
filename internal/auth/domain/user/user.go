@@ -42,24 +42,35 @@ func (id ID) String() string {
 }
 
 type User struct {
-	id ID
+	id    ID
+	color Color
 }
 
-func NewUser(id ID) *User {
+func NewUser(id ID, color Color) *User {
 	return &User{
-		id: id,
+		id:    id,
+		color: color,
 	}
 }
 
-func CreateUser() (*User, error) {
+func CreateUserWithRandomColor() (*User, error) {
+	color, err := RandomPaletteColor()
+	if err != nil {
+		return nil, err
+	}
+
 	id, err := NewID()
 	if err != nil {
 		return nil, err
 	}
 
-	return NewUser(id), nil
+	return NewUser(id, color), nil
 }
 
 func (u *User) ID() ID {
 	return u.id
+}
+
+func (u *User) Color() Color {
+	return u.color
 }

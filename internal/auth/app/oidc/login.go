@@ -25,7 +25,7 @@ type OIDCLoginUseCase interface {
 }
 
 type SessionTokenGenerator interface {
-	Generate(session *domain.Session) (string, error)
+	Generate(session *domain.Session, user *user.User) (string, error)
 }
 
 type IDToken struct {
@@ -138,12 +138,15 @@ func (h *loginHandler) Login(ctx context.Context, req *LoginRequest) (*LoginResu
 		return nil, err
 	}
 
-	var userID user.ID
+	var (
+		userID     user.ID
+		targetUser *user.User
+	)
 
 	if oidcIdentity == nil {
 		h.logger.Debug("creating new user for oidc login", slog.String("provider", string(req.Provider)))
 
-		newUser, err := user.CreateUser()
+		newUser, err := user.CreateUserWithRandomColor()
 		if err != nil {
 			h.logger.Error("failed to generate user ID", slog.String("error", err.Error()))
 
@@ -170,10 +173,25 @@ func (h *loginHandler) Login(ctx context.Context, req *LoginRequest) (*LoginResu
 		}
 
 		userID = newUser.ID()
+		targetUser = newUser
 	} else {
 		h.logger.Debug("existing user found for oidc login", slog.String("provider", string(req.Provider)))
 
-		userID = oidcIdentity.UserID()
+		existingUser, err := h.userRepo.GetUserByID(ctx, oidcIdentity.UserID())
+		if err != nil {
+			h.logger.Error("failed to load user", slog.String("error", err.Error()))
+
+			return nil, err
+		}
+
+		userID = existingUser.ID()
+		targetUser = existingUser
+	}
+
+	if targetUser == nil {
+		h.logger.Error("user instance missing during session creation")
+
+		return nil, fmt.Errorf("user not available for session token generation")
 	}
 
 	now := time.Now().UTC()
@@ -192,7 +210,7 @@ func (h *loginHandler) Login(ctx context.Context, req *LoginRequest) (*LoginResu
 		return nil, err
 	}
 
-	sessionToken, err := h.jwtGenerator.Generate(session)
+	sessionToken, err := h.jwtGenerator.Generate(session, targetUser)
 	if err != nil {
 		h.logger.Error("failed to generate session token", slog.String("error", err.Error()), slog.String("provider", string(req.Provider)))
 
@@ -200,6 +218,8 @@ func (h *loginHandler) Login(ctx context.Context, req *LoginRequest) (*LoginResu
 	}
 
 	h.logger.Info("oidc login successful", slog.String("provider", string(req.Provider)))
+
+	println("token:", sessionToken)
 
 	return &LoginResult{
 		SessionToken: sessionToken,

@@ -10,10 +10,16 @@ import (
 
 	sessionCfg "github.com/KasumiMercury/primind-central-backend/internal/auth/config/session"
 	domain "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/session"
+	"github.com/KasumiMercury/primind-central-backend/internal/auth/domain/user"
 )
 
 type SessionJWTGenerator struct {
 	sessionCfg *sessionCfg.Config
+}
+
+type SessionClaims struct {
+	jwt.Claims
+	Color string `json:"color,omitempty"`
 }
 
 func NewSessionJWTGenerator(cfg *sessionCfg.Config) *SessionJWTGenerator {
@@ -22,7 +28,16 @@ func NewSessionJWTGenerator(cfg *sessionCfg.Config) *SessionJWTGenerator {
 	}
 }
 
-func (g *SessionJWTGenerator) Generate(session *domain.Session) (string, error) {
+func (g *SessionJWTGenerator) Generate(session *domain.Session, u *user.User) (string, error) {
+	if u == nil {
+		return "", fmt.Errorf("user is required for session token generation")
+	}
+
+	userColor := u.Color()
+	if err := userColor.Validate(); err != nil {
+		return "", fmt.Errorf("invalid user color: %w", err)
+	}
+
 	key := deriveHMACKey(g.sessionCfg.Secret)
 
 	signer, err := jose.NewSigner(
@@ -42,11 +57,14 @@ func (g *SessionJWTGenerator) Generate(session *domain.Session) (string, error) 
 		expiresAt = now.Add(g.sessionCfg.Duration)
 	}
 
-	claims := jwt.Claims{
-		ID:       session.ID().String(),
-		Subject:  session.UserID().String(),
-		IssuedAt: jwt.NewNumericDate(now),
-		Expiry:   jwt.NewNumericDate(expiresAt),
+	claims := SessionClaims{
+		Claims: jwt.Claims{
+			ID:       session.ID().String(),
+			Subject:  session.UserID().String(),
+			IssuedAt: jwt.NewNumericDate(now),
+			Expiry:   jwt.NewNumericDate(expiresAt),
+		},
+		Color: userColor.String(),
 	}
 
 	token, err := jwt.Signed(signer).Claims(claims).Serialize()
@@ -57,7 +75,7 @@ func (g *SessionJWTGenerator) Generate(session *domain.Session) (string, error) 
 	return token, nil
 }
 
-func (g *SessionJWTGenerator) Verify(token string) (*jwt.Claims, error) {
+func (g *SessionJWTGenerator) Verify(token string) (*SessionClaims, error) {
 	key := deriveHMACKey(g.sessionCfg.Secret)
 
 	parsed, err := jwt.ParseSigned(token, []jose.SignatureAlgorithm{jose.HS256})
@@ -65,7 +83,7 @@ func (g *SessionJWTGenerator) Verify(token string) (*jwt.Claims, error) {
 		return nil, err
 	}
 
-	claims := &jwt.Claims{}
+	claims := &SessionClaims{}
 	if err := parsed.Claims(key, claims); err != nil {
 		return nil, err
 	}
