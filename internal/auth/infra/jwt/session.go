@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-jose/go-jose/v4"
 	"github.com/go-jose/go-jose/v4/jwt"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/sha3"
 
 	sessionCfg "github.com/KasumiMercury/primind-central-backend/internal/auth/config/session"
@@ -44,7 +45,7 @@ func (g *SessionJWTGenerator) Generate(session *domain.Session) (string, error) 
 
 	claims := jwt.Claims{
 		ID:       session.ID().String(),
-		Subject:  session.UserID(),
+		Subject:  uuid.UUID(session.UserID()).String(),
 		IssuedAt: jwt.NewNumericDate(now),
 		Expiry:   jwt.NewNumericDate(expiresAt),
 	}

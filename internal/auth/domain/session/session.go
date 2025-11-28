@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/KasumiMercury/primind-central-backend/internal/auth/domain/user"
 	"github.com/google/uuid"
 )
 
@@ -49,12 +50,12 @@ func (id ID) validate() error {
 
 type Session struct {
 	id        ID
-	userID    string
+	userID    user.ID
 	createdAt time.Time
 	expiresAt time.Time
 }
 
-func NewSession(userID string, createdAt, expiresAt time.Time) (*Session, error) {
+func NewSession(userID user.ID, createdAt, expiresAt time.Time) (*Session, error) {
 	id, err := NewID()
 	if err != nil {
 		return nil, err
@@ -63,16 +64,16 @@ func NewSession(userID string, createdAt, expiresAt time.Time) (*Session, error)
 	return newSession(id, userID, createdAt, expiresAt)
 }
 
-func NewSessionWithID(id ID, userID string, createdAt, expiresAt time.Time) (*Session, error) {
+func NewSessionWithID(id ID, userID user.ID, createdAt, expiresAt time.Time) (*Session, error) {
 	return newSession(id, userID, createdAt, expiresAt)
 }
 
-func newSession(id ID, userID string, createdAt, expiresAt time.Time) (*Session, error) {
+func newSession(id ID, userID user.ID, createdAt, expiresAt time.Time) (*Session, error) {
 	if err := id.validate(); err != nil {
 		return nil, err
 	}
 
-	if userID == "" {
+	if userID == (user.ID{}) {
 		return nil, ErrUserIDEmpty
 	}
 
@@ -100,7 +101,7 @@ func (s *Session) ID() ID {
 	return s.id
 }
 
-func (s *Session) UserID() string {
+func (s *Session) UserID() user.ID {
 	return s.userID
 }
 

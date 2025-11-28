@@ -12,7 +12,6 @@ import (
 	"github.com/KasumiMercury/primind-central-backend/internal/auth/domain/oidcidentity"
 	domain "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/session"
 	"github.com/KasumiMercury/primind-central-backend/internal/auth/domain/user"
-	"github.com/google/uuid"
 )
 
 var (
@@ -168,9 +167,8 @@ func (h *loginHandler) Login(ctx context.Context, req *LoginRequest) (*LoginResu
 
 	now := time.Now().UTC()
 	expiresAt := now.Add(h.sessionCfg.Duration)
-	userIDStr := uuid.UUID(userID).String()
 
-	session, err := domain.NewSession(userIDStr, now, expiresAt)
+	session, err := domain.NewSession(userID, now, expiresAt)
 	if err != nil {
 		h.logger.Error("failed to create session", slog.String("error", err.Error()))
 		return nil, err

@@ -4,7 +4,18 @@ import (
 	"errors"
 	"testing"
 	"time"
+
+	"github.com/KasumiMercury/primind-central-backend/internal/auth/domain/user"
 )
+
+func mustUserID(t *testing.T, idStr string) user.ID {
+	t.Helper()
+	id, err := user.NewIDFromString(idStr)
+	if err != nil {
+		t.Fatalf("failed to create user ID: %v", err)
+	}
+	return id
+}
 
 func TestParseIDSuccess(t *testing.T) {
 	t.Parallel()
@@ -88,41 +99,43 @@ func TestNewSessionSuccess(t *testing.T) {
 		t.Fatalf("NewID returned error: %v", err)
 	}
 
+	testUserID := mustUserID(t, "550e8400-e29b-41d4-a716-446655440000")
+
 	tests := []struct {
 		name       string
 		build      func() (*Session, time.Time, time.Time, error)
 		expectAuto bool
 		wantID     *ID
-		wantUser   string
+		wantUser   user.ID
 	}{
 		{
 			name: "provided times",
 			build: func() (*Session, time.Time, time.Time, error) {
-				s, err := NewSession("user-123", baseTime, expires)
+				s, err := NewSession(testUserID, baseTime, expires)
 
 				return s, baseTime, expires, err
 			},
-			wantUser: "user-123",
+			wantUser: testUserID,
 		},
 		{
 			name: "createdAt defaults to now",
 			build: func() (*Session, time.Time, time.Time, error) {
 				exp := time.Now().UTC().Add(30 * time.Minute)
-				s, err := NewSession("user-123", time.Time{}, exp)
+				s, err := NewSession(testUserID, time.Time{}, exp)
 
 				return s, time.Time{}, exp, err
 			},
 			expectAuto: true,
-			wantUser:   "user-123",
+			wantUser:   testUserID,
 		},
 		{
 			name: "custom session id",
 			build: func() (*Session, time.Time, time.Time, error) {
-				s, err := NewSessionWithID(customID, "user-123", baseTime, expires)
+				s, err := NewSessionWithID(customID, testUserID, baseTime, expires)
 
 				return s, baseTime, expires, err
 			},
-			wantUser: "user-123",
+			wantUser: testUserID,
 			wantID:   &customID,
 		},
 	}
@@ -176,6 +189,7 @@ func TestNewSessionErrors(t *testing.T) {
 
 	baseTime := time.Date(2025, time.January, 2, 15, 4, 5, 0, time.UTC)
 	expires := baseTime.Add(2 * time.Hour)
+	testUserID := mustUserID(t, "550e8400-e29b-41d4-a716-446655440000")
 
 	tests := []struct {
 		name      string
@@ -185,28 +199,28 @@ func TestNewSessionErrors(t *testing.T) {
 		{
 			name: "missing user id",
 			build: func() (*Session, error) {
-				return NewSession("", baseTime, expires)
+				return NewSession(user.ID{}, baseTime, expires)
 			},
 			wantErrIs: ErrUserIDEmpty,
 		},
 		{
 			name: "missing expiresAt",
 			build: func() (*Session, error) {
-				return NewSession("user-123", baseTime, time.Time{})
+				return NewSession(testUserID, baseTime, time.Time{})
 			},
 			wantErrIs: ErrExpiresAtMissing,
 		},
 		{
 			name: "expires before created",
 			build: func() (*Session, error) {
-				return NewSession("user-123", baseTime, baseTime.Add(-time.Minute))
+				return NewSession(testUserID, baseTime, baseTime.Add(-time.Minute))
 			},
 			wantErrIs: ErrExpiresBeforeStart,
 		},
 		{
 			name: "invalid custom session id",
 			build: func() (*Session, error) {
-				return NewSessionWithID(ID("invalid"), "user-123", baseTime, expires)
+				return NewSessionWithID(ID("invalid"), testUserID, baseTime, expires)
 			},
 		},
 	}
