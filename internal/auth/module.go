@@ -32,6 +32,8 @@ func NewHTTPHandler(ctx context.Context) (string, http.Handler, error) {
 
 	paramsRepo := repository.NewInMemoryOIDCParamsRepository()
 	sessionRepo := repository.NewInMemorySessionRepository()
+	userRepo := repository.NewInMemoryUserRepository()
+	oidcIdentityRepo := repository.NewInMemoryOIDCIdentityRepository()
 
 	var (
 		paramsGenerator appoidc.OIDCParamsGenerator
@@ -79,7 +81,7 @@ func NewHTTPHandler(ctx context.Context) (string, http.Handler, error) {
 			appProviders[id] = p
 		}
 
-		loginHandler = appoidc.NewLoginHandler(appProviders, paramsRepo, sessionRepo, jwtGenerator, authCfg.Session)
+		loginHandler = appoidc.NewLoginHandler(appProviders, paramsRepo, sessionRepo, userRepo, oidcIdentityRepo, jwtGenerator, authCfg.Session)
 
 		logger.Info("login handler initialized")
 	} else {
