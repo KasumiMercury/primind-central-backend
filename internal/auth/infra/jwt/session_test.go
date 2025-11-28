@@ -21,13 +21,16 @@ func TestSessionJWTIncludesColorClaim(t *testing.T) {
 	generator := NewSessionJWTGenerator(cfg)
 
 	expectedColor := user.MustColor("#123456")
+
 	userId, err := user.NewID()
 	if err != nil {
 		t.Fatalf("failed to create user id: %v", err)
 	}
+
 	u := user.NewUser(userId, expectedColor)
 
 	now := time.Now().UTC().Truncate(time.Second)
+
 	session, err := domain.NewSession(u.ID(), now, now.Add(time.Hour))
 	if err != nil {
 		t.Fatalf("failed to create session: %v", err)
@@ -72,6 +75,7 @@ func TestSessionJWTGenerateRequiresUser(t *testing.T) {
 	}
 
 	now := time.Now().UTC()
+
 	session, err := domain.NewSession(uid, now, now.Add(time.Hour))
 	if err != nil {
 		t.Fatalf("failed to create session: %v", err)
