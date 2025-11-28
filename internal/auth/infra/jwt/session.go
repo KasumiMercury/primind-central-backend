@@ -40,6 +40,7 @@ func (g *SessionJWTGenerator) Generate(session *domain.Session, u *user.User) (s
 	if session == nil {
 		return "", ErrSessionRequired
 	}
+
 	if u == nil {
 		return "", ErrUserRequired
 	}
