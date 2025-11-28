@@ -12,7 +12,8 @@ import (
 )
 
 const (
-	clientIDEnv     = "OIDC_GOOGLE_CLIENT_ID"
+	clientIDEnv = "OIDC_GOOGLE_CLIENT_ID"
+	//nolint:gosec // This is an environment variable name, not a hardcoded credential
 	clientSecretEnv = "OIDC_GOOGLE_CLIENT_SECRET"
 	redirectURIEnv  = "OIDC_GOOGLE_REDIRECT_URI"
 	scopesEnv       = "OIDC_GOOGLE_SCOPES"

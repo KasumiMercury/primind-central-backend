@@ -24,6 +24,13 @@ linters:
         - fmt.Println
     exhaustruct:
       exclude:
+        - 'log/slog\.HandlerOptions'
+        - 'github\.com/go-jose/go-jose/v4/jwt\.Claims'
+        - 'github\.com/go-jose/go-jose/v4/jwt\.Expected'
+        - 'github\.com/coreos/go-oidc/v3/oidc\.Config'
+        - 'net/http\.Server'
+        - '.*authv1\..*'
+        - '.*\.OIDCParamsRequest'
     wsl_v5:
       allow-first-in-block: true
       allow-whole-block: false

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -148,20 +149,29 @@ func startCallbackServer(redirectURI string) (func(), <-chan oidcCallback, error
 		default:
 		}
 
-		fmt.Fprintln(w, "OIDC login callback received. You can close this tab and return to the CLI.")
+		if _, err := fmt.Fprintln(w, "OIDC login callback received. You can close this tab and return to the CLI."); err != nil {
+			log.Printf("failed to write callback response: %v", err)
+		}
 	})
 
-	server := &http.Server{Handler: mux}
+	server := &http.Server{
+		Handler:           mux,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
 
 	go func() {
-		_ = server.Serve(listener)
+		if err := server.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Printf("callback server error: %v", err)
+		}
 	}()
 
 	shutdown := func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
-		_ = server.Shutdown(ctx)
+		if err := server.Shutdown(ctx); err != nil {
+			log.Printf("callback server shutdown error: %v", err)
+		}
 	}
 
 	return shutdown, results, nil

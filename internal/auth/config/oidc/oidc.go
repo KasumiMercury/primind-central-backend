@@ -93,11 +93,12 @@ type Config struct {
 }
 
 var (
-	ErrNoOIDCProviders      = errors.New("no oidc providers configured")
-	ErrProviderConfigNil    = errors.New("provider config missing")
-	ErrProviderIDMismatch   = errors.New("provider identifier mismatch")
-	ErrProviderCoreInvalid  = errors.New("provider core config invalid")
-	ErrProviderValidateFail = errors.New("provider validation failed")
+	ErrNoOIDCProviders       = errors.New("no oidc providers configured")
+	ErrNoProvidersConfigured = errors.New("no providers configured")
+	ErrProviderConfigNil     = errors.New("provider config missing")
+	ErrProviderIDMismatch    = errors.New("provider identifier mismatch")
+	ErrProviderCoreInvalid   = errors.New("provider core config invalid")
+	ErrProviderValidateFail  = errors.New("provider validation failed")
 )
 
 func (c *Config) Validate() error {
@@ -146,7 +147,7 @@ func RegisterProvider(id domainoidc.ProviderID, loader ProviderLoader) {
 
 func Load() (*Config, error) {
 	if len(loaders) == 0 {
-		return nil, nil
+		return nil, ErrNoProvidersConfigured
 	}
 
 	providers := make(map[domainoidc.ProviderID]ProviderConfig)
@@ -163,7 +164,7 @@ func Load() (*Config, error) {
 	}
 
 	if len(providers) == 0 {
-		return nil, nil
+		return nil, ErrNoProvidersConfigured
 	}
 
 	cfg := &Config{Providers: providers}

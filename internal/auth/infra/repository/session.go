@@ -17,6 +17,7 @@ type inMemorySessionRepository struct {
 
 func NewInMemorySessionRepository() domain.SessionRepository {
 	return &inMemorySessionRepository{
+		mu:          sync.Mutex{},
 		bySessionID: make(map[domain.ID]*domain.Session),
 	}
 }

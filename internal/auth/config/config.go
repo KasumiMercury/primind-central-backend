@@ -28,10 +28,11 @@ func Load() (*AuthConfig, error) {
 
 	cfg := &AuthConfig{
 		Session: sessionConfig,
+		OIDC:    nil,
 	}
 
 	oidcCfg, err := oidc.Load()
-	if err != nil {
+	if err != nil && !errors.Is(err, oidc.ErrNoProvidersConfigured) {
 		return nil, fmt.Errorf("load oidc providers: %w", err)
 	}
 

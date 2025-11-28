@@ -14,6 +14,7 @@ type inMemoryOIDCParamsRepository struct {
 
 func NewInMemoryOIDCParamsRepository() domain.ParamsRepository {
 	return &inMemoryOIDCParamsRepository{
+		mu:      sync.Mutex{},
 		byState: make(map[string]*domain.Params),
 	}
 }
