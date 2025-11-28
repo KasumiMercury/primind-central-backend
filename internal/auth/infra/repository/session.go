@@ -30,6 +30,7 @@ func (r *inMemorySessionRepository) SaveSession(_ context.Context, session *doma
 	}
 
 	r.bySessionID[session.ID()] = session
+
 	return nil
 }
 

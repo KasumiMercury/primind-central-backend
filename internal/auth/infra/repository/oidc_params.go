@@ -23,6 +23,7 @@ func (r *inMemoryOIDCParamsRepository) SaveParams(_ context.Context, params *dom
 	defer r.mu.Unlock()
 
 	r.byState[params.State()] = params
+
 	return nil
 }
 

@@ -17,6 +17,7 @@ func TestLoadConfigSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("loadConfig returned error: %v", err)
 	}
+
 	if !ok {
 		t.Fatalf("expected ok=true, got false")
 	}
@@ -29,15 +30,19 @@ func TestLoadConfigSuccess(t *testing.T) {
 	if googleCfg.ClientID != "client-id" {
 		t.Fatalf("ClientID = %s, want client-id", googleCfg.ClientID)
 	}
+
 	if googleCfg.ClientSecret != "client-secret" {
 		t.Fatalf("ClientSecret = %s, want client-secret", googleCfg.ClientSecret)
 	}
+
 	if googleCfg.RedirectURI != "https://example.com/callback" {
 		t.Fatalf("RedirectURI = %s, want https://example.com/callback", googleCfg.RedirectURI)
 	}
+
 	if len(googleCfg.Scopes) != 2 || googleCfg.Scopes[0] != "openid" || googleCfg.Scopes[1] != "email" {
 		t.Fatalf("Scopes = %#v, want [openid email]", googleCfg.Scopes)
 	}
+
 	if googleCfg.IssuerURL != "https://accounts.google.com" {
 		t.Fatalf("IssuerURL = %s, want https://accounts.google.com", googleCfg.IssuerURL)
 	}
@@ -46,13 +51,16 @@ func TestLoadConfigSuccess(t *testing.T) {
 func TestLoadConfigErrors(t *testing.T) {
 	t.Run("missing client id returns ok=false", func(t *testing.T) {
 		t.Setenv(clientIDEnv, "")
+
 		cfg, ok, err := loadConfig()
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
 		}
+
 		if ok {
 			t.Fatalf("expected ok=false when client id is missing")
 		}
+
 		if cfg != nil {
 			t.Fatalf("expected cfg to be nil")
 		}
@@ -67,12 +75,15 @@ func TestLoadConfigErrors(t *testing.T) {
 		if err == nil {
 			t.Fatalf("expected error but got nil")
 		}
+
 		if !errors.Is(err, ErrGoogleClientSecretMissing) {
 			t.Fatalf("expected ErrGoogleClientSecretMissing, got %v", err)
 		}
+
 		if ok {
 			t.Fatalf("expected ok=false when error occurs")
 		}
+
 		if !strings.Contains(err.Error(), clientSecretEnv) {
 			t.Fatalf("expected error to mention %s, got %v", clientSecretEnv, err)
 		}
@@ -87,12 +98,15 @@ func TestLoadConfigErrors(t *testing.T) {
 		if err == nil {
 			t.Fatalf("expected error but got nil")
 		}
+
 		if !errors.Is(err, ErrGoogleRedirectURIMissing) {
 			t.Fatalf("expected ErrGoogleRedirectURIMissing, got %v", err)
 		}
+
 		if ok {
 			t.Fatalf("expected ok=false when error occurs")
 		}
+
 		if !strings.Contains(err.Error(), "redirect uri") {
 			t.Fatalf("expected error to mention redirect uri, got %v", err)
 		}

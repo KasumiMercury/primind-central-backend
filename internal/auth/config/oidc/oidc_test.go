@@ -133,6 +133,7 @@ func TestCoreConfigValidateErrors(t *testing.T) {
 			if err == nil {
 				t.Fatalf("expected error but got nil")
 			}
+
 			if tt.wantErr != nil && !errors.Is(err, tt.wantErr) {
 				t.Fatalf("expected error %v, got %v", tt.wantErr, err)
 			}
@@ -229,6 +230,7 @@ func TestConfigValidateErrors(t *testing.T) {
 			if err == nil {
 				t.Fatalf("expected error but got nil")
 			}
+
 			if tt.wantErr != nil && !errors.Is(err, tt.wantErr) {
 				t.Fatalf("expected error %v, got %v", tt.wantErr, err)
 			}
@@ -239,6 +241,7 @@ func TestConfigValidateErrors(t *testing.T) {
 func TestLoadProviders(t *testing.T) {
 	// Do not run in parallel; mutates package-level loaders.
 	originalLoaders := loaders
+
 	defer func() { loaders = originalLoaders }()
 
 	stub := stubProvider{
@@ -256,12 +259,15 @@ func TestLoadProviders(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load returned error: %v", err)
 	}
+
 	if cfg == nil {
 		t.Fatalf("expected config but got nil")
 	}
+
 	if len(cfg.Providers) != 1 {
 		t.Fatalf("expected 1 provider, got %d", len(cfg.Providers))
 	}
+
 	if _, ok := cfg.Providers[domainoidc.ProviderGoogle]; !ok {
 		t.Fatalf("expected google provider to be present")
 	}
@@ -270,6 +276,7 @@ func TestLoadProviders(t *testing.T) {
 func TestLoadProvidersErrors(t *testing.T) {
 	// Do not run in parallel; mutates package-level loaders.
 	originalLoaders := loaders
+
 	defer func() { loaders = originalLoaders }()
 
 	tests := []struct {
@@ -322,9 +329,11 @@ func TestLoadProvidersErrors(t *testing.T) {
 				if err == nil {
 					t.Fatalf("expected error but got nil")
 				}
+
 				if tt.wantMsg != "" && !strings.Contains(err.Error(), tt.wantMsg) {
 					t.Fatalf("expected error to contain %q, got %v", tt.wantMsg, err)
 				}
+
 				return
 			}
 

@@ -23,10 +23,12 @@ func main() {
 		logger.Error("failed to initialize auth service", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
+
 	mux.Handle(authPath, authHandler)
 
 	addr := ":8080"
 	logger.Info("starting Connect API server", slog.String("address", addr))
+
 	if err := http.ListenAndServe(addr, mux); err != nil {
 		logger.Error("connect api server exited", slog.String("error", err.Error()))
 		os.Exit(1)

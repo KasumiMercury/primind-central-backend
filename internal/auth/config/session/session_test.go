@@ -31,6 +31,7 @@ func TestLoadSessionConfigSuccess(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Setenv(sessionSecretEnv, tt.secret)
+
 			if tt.durationEnv != "" {
 				t.Setenv(sessionDurationEnv, tt.durationEnv)
 			}
@@ -43,6 +44,7 @@ func TestLoadSessionConfigSuccess(t *testing.T) {
 			if cfg.Secret != tt.secret {
 				t.Fatalf("Secret = %s, want %s", cfg.Secret, tt.secret)
 			}
+
 			if cfg.Duration != tt.wantDuration {
 				t.Fatalf("Duration = %s, want %s", cfg.Duration, tt.wantDuration)
 			}
@@ -53,10 +55,12 @@ func TestLoadSessionConfigSuccess(t *testing.T) {
 func TestLoadSessionConfigErrors(t *testing.T) {
 	t.Run("missing secret", func(t *testing.T) {
 		t.Setenv(sessionSecretEnv, "")
+
 		_, err := Load()
 		if err == nil {
 			t.Fatalf("expected error but got nil")
 		}
+
 		if !errors.Is(err, ErrSessionSecretMissing) {
 			t.Fatalf("expected ErrSessionSecretMissing, got %v", err)
 		}
@@ -111,6 +115,7 @@ func TestSessionConfigValidateErrors(t *testing.T) {
 			if err == nil {
 				t.Fatalf("expected error but got nil")
 			}
+
 			if tt.wantErr != nil && !errors.Is(err, tt.wantErr) {
 				t.Fatalf("expected error %v, got %v", tt.wantErr, err)
 			}

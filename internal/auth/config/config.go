@@ -34,6 +34,7 @@ func Load() (*AuthConfig, error) {
 	if err != nil {
 		return nil, fmt.Errorf("load oidc providers: %w", err)
 	}
+
 	if oidcCfg != nil {
 		cfg.OIDC = oidcCfg
 	}
@@ -49,6 +50,7 @@ func (c *AuthConfig) Validate() error {
 	if c.Session == nil {
 		return ErrSessionConfigMissing
 	}
+
 	if err := c.Session.Validate(); err != nil {
 		return fmt.Errorf("%w: %w", ErrSessionConfigMissing, err)
 	}

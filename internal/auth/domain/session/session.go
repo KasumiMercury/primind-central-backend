@@ -23,6 +23,7 @@ func NewID() (ID, error) {
 
 func ParseID(id string) (ID, error) {
 	candidate := ID(id)
+
 	return candidate, candidate.validate()
 }
 
@@ -38,9 +39,11 @@ func (id ID) validate() error {
 	if id == "" {
 		return ErrSessionIDEmpty
 	}
+
 	if _, err := uuid.Parse(string(id)); err != nil {
 		return fmt.Errorf("invalid session ID: %w", err)
 	}
+
 	return nil
 }
 
@@ -56,6 +59,7 @@ func NewSession(userID string, createdAt, expiresAt time.Time) (*Session, error)
 	if err != nil {
 		return nil, err
 	}
+
 	return newSession(id, userID, createdAt, expiresAt)
 }
 
@@ -67,15 +71,19 @@ func newSession(id ID, userID string, createdAt, expiresAt time.Time) (*Session,
 	if err := id.validate(); err != nil {
 		return nil, err
 	}
+
 	if userID == "" {
 		return nil, ErrUserIDEmpty
 	}
+
 	if createdAt.IsZero() {
 		createdAt = time.Now().UTC()
 	}
+
 	if expiresAt.IsZero() {
 		return nil, ErrExpiresAtMissing
 	}
+
 	if !expiresAt.After(createdAt) {
 		return nil, ErrExpiresBeforeStart
 	}

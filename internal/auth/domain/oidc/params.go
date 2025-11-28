@@ -33,15 +33,19 @@ func NewParams(provider ProviderID, state, nonce, codeVerifier string, createdAt
 	if provider == "" {
 		return nil, ErrProviderInvalid
 	}
+
 	if state == "" {
 		return nil, ErrStateEmpty
 	}
+
 	if nonce == "" {
 		return nil, ErrNonceEmpty
 	}
+
 	if codeVerifier == "" {
 		return nil, ErrCodeVerifierEmpty
 	}
+
 	if createdAt.IsZero() {
 		createdAt = time.Now().UTC()
 	}

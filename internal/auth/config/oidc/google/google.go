@@ -97,6 +97,7 @@ func getEnv(key, defaultVal string) string {
 	if val := os.Getenv(key); val != "" {
 		return val
 	}
+
 	return defaultVal
 }
 
@@ -112,6 +113,7 @@ func getEnvRequired(key string) (string, error) {
 			return "", fmt.Errorf("required environment variable %s not set", key)
 		}
 	}
+
 	return val, nil
 }
 
@@ -120,10 +122,12 @@ func getEnvSlice(key, sep string, defaults ...string) []string {
 	if val == "" {
 		return defaults
 	}
+
 	parts := strings.Split(val, sep)
 
 	for i, part := range parts {
 		parts[i] = strings.TrimSpace(part)
 	}
+
 	return parts
 }

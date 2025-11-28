@@ -32,12 +32,14 @@ func NewService(oidcParamsGenerator appoidc.OIDCParamsGenerator, oidcLoginUseCas
 func (s *Service) OIDCParams(ctx context.Context, req *authv1.OIDCParamsRequest) (*authv1.OIDCParamsResponse, error) {
 	if s.oidcParams == nil {
 		s.logger.Warn("oidc params requested but generator is not configured")
+
 		return nil, connect.NewError(connect.CodeFailedPrecondition, appoidc.ErrOIDCNotConfigured)
 	}
 
 	providerID, err := mapProvider(req.GetProvider())
 	if err != nil {
 		s.logger.Warn("invalid provider in params request", slog.String("error", err.Error()))
+
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
@@ -48,12 +50,15 @@ func (s *Service) OIDCParams(ctx context.Context, req *authv1.OIDCParamsRequest)
 		switch {
 		case errors.Is(err, appoidc.ErrOIDCNotConfigured):
 			s.logger.Warn("oidc not configured during params request")
+
 			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 		case errors.Is(err, appoidc.ErrProviderUnsupported):
 			s.logger.Warn("oidc params requested for unsupported provider", slog.String("provider", string(providerID)))
+
 			return nil, connect.NewError(connect.CodeInvalidArgument, err)
 		default:
 			s.logger.Error("failed to generate oidc params", slog.String("error", err.Error()), slog.String("provider", string(providerID)))
+
 			return nil, connect.NewError(connect.CodeInternal, err)
 		}
 	}
@@ -69,12 +74,14 @@ func (s *Service) OIDCParams(ctx context.Context, req *authv1.OIDCParamsRequest)
 func (s *Service) OIDCLogin(ctx context.Context, req *authv1.OIDCLoginRequest) (*authv1.OIDCLoginResponse, error) {
 	if s.oidcLogin == nil {
 		s.logger.Warn("oidc login requested but handler is not configured")
+
 		return nil, connect.NewError(connect.CodeFailedPrecondition, appoidc.ErrOIDCNotConfigured)
 	}
 
 	providerID, err := mapProvider(req.GetProvider())
 	if err != nil {
 		s.logger.Warn("invalid provider in login request", slog.String("error", err.Error()))
+
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
@@ -91,24 +98,31 @@ func (s *Service) OIDCLogin(ctx context.Context, req *authv1.OIDCLoginRequest) (
 		switch {
 		case errors.Is(err, appoidc.ErrOIDCNotConfigured):
 			s.logger.Warn("oidc not configured during login")
+
 			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
 		case errors.Is(err, appoidc.ErrProviderUnsupported):
 			s.logger.Warn("oidc login requested for unsupported provider", slog.String("provider", string(providerID)))
+
 			return nil, connect.NewError(connect.CodeInvalidArgument, err)
 		case errors.Is(err, appoidc.ErrInvalidCode):
 			s.logger.Warn("login failed due to invalid authorization code", slog.String("provider", string(providerID)))
+
 			return nil, connect.NewError(connect.CodeInvalidArgument, err)
 		case errors.Is(err, appoidc.ErrInvalidState):
 			s.logger.Warn("login failed due to invalid state", slog.String("provider", string(providerID)))
+
 			return nil, connect.NewError(connect.CodeInvalidArgument, err)
 		case errors.Is(err, domainoidc.ErrParamsExpired):
 			s.logger.Warn("login failed due to expired params", slog.String("provider", string(providerID)))
+
 			return nil, connect.NewError(connect.CodeInvalidArgument, err)
 		case errors.Is(err, appoidc.ErrInvalidNonce):
 			s.logger.Warn("login failed due to nonce mismatch", slog.String("provider", string(providerID)))
+
 			return nil, connect.NewError(connect.CodeInvalidArgument, err)
 		default:
 			s.logger.Error("unexpected login failure", slog.String("error", err.Error()), slog.String("provider", string(providerID)))
+
 			return nil, connect.NewError(connect.CodeInternal, err)
 		}
 	}

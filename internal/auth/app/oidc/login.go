@@ -77,6 +77,7 @@ func (h *loginHandler) Login(ctx context.Context, req *LoginRequest) (*LoginResu
 	rpProvider, ok := h.providers[req.Provider]
 	if !ok {
 		h.logger.Warn("login attempted with unsupported provider", slog.String("provider", string(req.Provider)))
+
 		return nil, ErrProviderUnsupported
 	}
 
@@ -86,19 +87,24 @@ func (h *loginHandler) Login(ctx context.Context, req *LoginRequest) (*LoginResu
 	if err != nil {
 		if errors.Is(err, domainoidc.ErrParamsNotFound) {
 			h.logger.Warn("state not found during login", slog.String("provider", string(req.Provider)))
+
 			return nil, ErrInvalidState
 		}
+
 		h.logger.Error("failed to load stored params", slog.String("error", err.Error()), slog.String("provider", string(req.Provider)))
+
 		return nil, err
 	}
 
 	if storedParams.IsExpired(time.Now().UTC()) {
 		h.logger.Warn("login attempt with expired params", slog.String("provider", string(req.Provider)))
+
 		return nil, domainoidc.ErrParamsExpired
 	}
 
 	if storedParams.Provider() != req.Provider {
 		h.logger.Warn("login attempted with mismatched provider", slog.String("provider", string(req.Provider)))
+
 		return nil, ErrInvalidState
 	}
 
@@ -107,11 +113,13 @@ func (h *loginHandler) Login(ctx context.Context, req *LoginRequest) (*LoginResu
 	idToken, err := rpProvider.ExchangeToken(ctx, req.Code, codeVerifier, storedParams.Nonce())
 	if err != nil {
 		h.logger.Warn("token exchange failed", slog.String("error", err.Error()), slog.String("provider", string(req.Provider)))
+
 		return nil, fmt.Errorf("%w: %v", ErrInvalidCode, err)
 	}
 
 	if idToken.Nonce != storedParams.Nonce() {
 		h.logger.Warn("nonce validation failed", slog.String("provider", string(req.Provider)))
+
 		return nil, ErrInvalidNonce
 	}
 
@@ -121,17 +129,20 @@ func (h *loginHandler) Login(ctx context.Context, req *LoginRequest) (*LoginResu
 	session, err := domain.NewSession(idToken.Subject, now, expiresAt)
 	if err != nil {
 		h.logger.Error("failed to create session", slog.String("error", err.Error()), slog.String("provider", string(req.Provider)))
+
 		return nil, err
 	}
 
 	if err := h.sessionRepo.SaveSession(ctx, session); err != nil {
 		h.logger.Error("failed to persist session", slog.String("error", err.Error()), slog.String("provider", string(req.Provider)))
+
 		return nil, err
 	}
 
 	sessionToken, err := h.jwtGenerator.Generate(session)
 	if err != nil {
 		h.logger.Error("failed to generate session token", slog.String("error", err.Error()), slog.String("provider", string(req.Provider)))
+
 		return nil, err
 	}
 

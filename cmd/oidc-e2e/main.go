@@ -18,6 +18,7 @@ import (
 
 func main() {
 	log.SetFlags(0)
+
 	if err := run(); err != nil {
 		log.Fatal(err)
 	}
@@ -67,6 +68,7 @@ func run() error {
 	if callback.code == "" || callback.state == "" {
 		return fmt.Errorf("callback missing code/state: code=%q state=%q", callback.code, callback.state)
 	}
+
 	if callback.state != paramsResp.GetState() {
 		return fmt.Errorf("state mismatch: got %s want %s", callback.state, paramsResp.GetState())
 	}
@@ -88,6 +90,7 @@ func run() error {
 	log.Printf("Login succeeded. Session token length=%d", len(sessionToken))
 	log.Println("Session token:")
 	log.Println(sessionToken)
+
 	return nil
 }
 
@@ -103,6 +106,7 @@ func startAuthServer() (*httptest.Server, error) {
 	mux.Handle(authPath, authHandler)
 
 	server := httptest.NewServer(mux)
+
 	return server, nil
 }
 
@@ -116,11 +120,13 @@ func startCallbackServer(redirectURI string) (func(), <-chan oidcCallback, error
 	if err != nil {
 		return nil, nil, fmt.Errorf("invalid redirect uri %q: %w", redirectURI, err)
 	}
+
 	if u.Host == "" || u.Path == "" {
 		return nil, nil, fmt.Errorf("redirect uri must include host, port, and path; got %q", redirectURI)
 	}
 
 	results := make(chan oidcCallback, 1)
+
 	listener, err := net.Listen("tcp", u.Host)
 	if err != nil {
 		return nil, nil, fmt.Errorf("open listener on %s: %w", u.Host, err)
@@ -130,8 +136,10 @@ func startCallbackServer(redirectURI string) (func(), <-chan oidcCallback, error
 	mux.HandleFunc(u.Path, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			w.WriteHeader(http.StatusMethodNotAllowed)
+
 			return
 		}
+
 		code := r.URL.Query().Get("code")
 		state := r.URL.Query().Get("state")
 
@@ -144,6 +152,7 @@ func startCallbackServer(redirectURI string) (func(), <-chan oidcCallback, error
 	})
 
 	server := &http.Server{Handler: mux}
+
 	go func() {
 		_ = server.Serve(listener)
 	}()
@@ -151,6 +160,7 @@ func startCallbackServer(redirectURI string) (func(), <-chan oidcCallback, error
 	shutdown := func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
+
 		_ = server.Shutdown(ctx)
 	}
 
@@ -162,5 +172,6 @@ func requireEnv(key string) string {
 	if val == "" {
 		log.Fatalf("environment variable %s must be set for this CLI", key)
 	}
+
 	return val
 }

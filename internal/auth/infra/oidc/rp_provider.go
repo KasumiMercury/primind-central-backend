@@ -62,6 +62,7 @@ func (p *RPProvider) BuildAuthorizationURL(state, nonce, codeChallenge string) s
 			oauth2.SetAuthURLParam("code_challenge_method", "S256"),
 		)
 	}
+
 	baseURL := p.oauthConfig.AuthCodeURL(state, opts...)
 
 	// Safety: add nonce/code_challenge if the provider stripped it.
@@ -71,15 +72,18 @@ func (p *RPProvider) BuildAuthorizationURL(state, nonce, codeChallenge string) s
 		if !strings.Contains(baseURL, "?") {
 			separator = "?"
 		}
+
 		result := baseURL
 		if nonce != "" && !strings.Contains(baseURL, "nonce=") {
 			result += separator + "nonce=" + url.QueryEscape(nonce)
 			separator = "&"
 		}
+
 		if codeChallenge != "" && !strings.Contains(baseURL, "code_challenge=") {
 			result += separator + "code_challenge=" + url.QueryEscape(codeChallenge)
 			result += "&code_challenge_method=S256"
 		}
+
 		return result
 	}
 
@@ -87,11 +91,14 @@ func (p *RPProvider) BuildAuthorizationURL(state, nonce, codeChallenge string) s
 	if nonce != "" && query.Get("nonce") == "" {
 		query.Set("nonce", nonce)
 	}
+
 	if codeChallenge != "" && query.Get("code_challenge") == "" {
 		query.Set("code_challenge", codeChallenge)
 		query.Set("code_challenge_method", "S256")
 	}
+
 	parsedURL.RawQuery = query.Encode()
+
 	return parsedURL.String()
 }
 

@@ -109,12 +109,15 @@ func (c *Config) Validate() error {
 		if provider == nil {
 			return fmt.Errorf("%s: %w", id, ErrProviderConfigNil)
 		}
+
 		if provider.ProviderID() != id {
 			return fmt.Errorf("%s: %w", id, ErrProviderIDMismatch)
 		}
+
 		if err := provider.Core().Validate(); err != nil {
 			return fmt.Errorf("%s: %w: %w", id, ErrProviderCoreInvalid, err)
 		}
+
 		if err := provider.Validate(); err != nil {
 			return fmt.Errorf("%s: %w: %w", id, ErrProviderValidateFail, err)
 		}
@@ -133,9 +136,11 @@ func RegisterProvider(id domainoidc.ProviderID, loader ProviderLoader) {
 	if loader == nil {
 		panic("oidc: loader cannot be nil")
 	}
+
 	if _, ok := loaders[id]; ok {
 		panic(fmt.Sprintf("oidc: provider %s already registered", id))
 	}
+
 	loaders[id] = loader
 }
 
@@ -145,11 +150,13 @@ func Load() (*Config, error) {
 	}
 
 	providers := make(map[domainoidc.ProviderID]ProviderConfig)
+
 	for id, loader := range loaders {
 		cfg, ok, err := loader()
 		if err != nil {
 			return nil, fmt.Errorf("%s provider: %w", id, err)
 		}
+
 		if ok {
 			providers[id] = cfg
 		}

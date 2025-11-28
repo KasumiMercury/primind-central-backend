@@ -97,6 +97,7 @@ func TestAuthConfigValidateErrors(t *testing.T) {
 			if err == nil {
 				t.Fatalf("expected error but got nil")
 			}
+
 			if tt.wantErr != nil && !errors.Is(err, tt.wantErr) {
 				t.Fatalf("expected error %v, got %v", tt.wantErr, err)
 			}

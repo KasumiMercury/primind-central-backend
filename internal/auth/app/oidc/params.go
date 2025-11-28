@@ -55,6 +55,7 @@ func (g *paramsGenerator) Generate(ctx context.Context, provider domain.Provider
 	rpProvider, ok := g.providers[provider]
 	if !ok {
 		g.logger.Warn("oidc params requested for unsupported provider", slog.String("provider", string(provider)))
+
 		return nil, ErrProviderUnsupported
 	}
 
@@ -63,18 +64,21 @@ func (g *paramsGenerator) Generate(ctx context.Context, provider domain.Provider
 	state, err := randomToken()
 	if err != nil {
 		g.logger.Error("failed to generate state token", slog.String("error", err.Error()))
+
 		return nil, err
 	}
 
 	nonce, err := randomToken()
 	if err != nil {
 		g.logger.Error("failed to generate nonce token", slog.String("error", err.Error()))
+
 		return nil, err
 	}
 
 	codeVerifier, err := randomToken()
 	if err != nil {
 		g.logger.Error("failed to generate code verifier", slog.String("error", err.Error()))
+
 		return nil, err
 	}
 
@@ -85,11 +89,13 @@ func (g *paramsGenerator) Generate(ctx context.Context, provider domain.Provider
 	params, err := domain.NewParams(provider, state, nonce, codeVerifier, time.Now().UTC())
 	if err != nil {
 		g.logger.Error("failed to build params model", slog.String("error", err.Error()))
+
 		return nil, err
 	}
 
 	if err := g.repo.SaveParams(ctx, params); err != nil {
 		g.logger.Error("failed to persist oidc params", slog.String("error", err.Error()))
+
 		return nil, err
 	}
 
@@ -112,5 +118,6 @@ func randomToken() (string, error) {
 
 func generateCodeChallenge(verifier string) string {
 	hash := sha256.Sum256([]byte(verifier))
+
 	return base64.RawURLEncoding.EncodeToString(hash[:])
 }

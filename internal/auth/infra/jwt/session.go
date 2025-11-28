@@ -79,5 +79,6 @@ func (g *SessionJWTGenerator) Verify(token string) (*jwt.Claims, error) {
 
 func deriveHMACKey(secret string) []byte {
 	sum := sha3.Sum256([]byte(secret))
+
 	return sum[:]
 }
