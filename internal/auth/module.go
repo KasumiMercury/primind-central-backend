@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	appoidc "github.com/KasumiMercury/primind-central-backend/internal/auth/app/oidc"
+	appsession "github.com/KasumiMercury/primind-central-backend/internal/auth/app/session"
 	authconfig "github.com/KasumiMercury/primind-central-backend/internal/auth/config"
 	domainoidc "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/oidc"
 	sessionjwt "github.com/KasumiMercury/primind-central-backend/internal/auth/infra/jwt"
@@ -71,10 +72,15 @@ func NewHTTPHandler(ctx context.Context) (string, http.Handler, error) {
 		logger.Warn("oidc configuration not provided; auth endpoints will be disabled")
 	}
 
-	var loginHandler appoidc.OIDCLoginUseCase
+	var (
+		loginHandler        appoidc.OIDCLoginUseCase
+		jwtGenerator        *sessionjwt.SessionJWTGenerator
+		sessionValidateCase appsession.ValidateSessionUseCase
+	)
 
 	if authCfg.Session != nil && authCfg.OIDC != nil {
-		jwtGenerator := sessionjwt.NewSessionJWTGenerator(authCfg.Session)
+		jwtGenerator = sessionjwt.NewSessionJWTGenerator(authCfg.Session)
+		jwtValidator := sessionjwt.NewSessionJWTValidator(authCfg.Session)
 
 		appProviders := make(map[domainoidc.ProviderID]appoidc.OIDCProviderWithLogin)
 		for id, p := range providers {
@@ -82,13 +88,14 @@ func NewHTTPHandler(ctx context.Context) (string, http.Handler, error) {
 		}
 
 		loginHandler = appoidc.NewLoginHandler(appProviders, paramsRepo, sessionRepo, userRepo, oidcIdentityRepo, jwtGenerator, authCfg.Session)
+		sessionValidateCase = appsession.NewValidateSessionHandler(sessionRepo, jwtValidator)
 
-		logger.Info("login handler initialized")
+		logger.Info("login and session validation handlers initialized")
 	} else {
-		logger.Warn("session or oidc config missing; login handler disabled")
+		logger.Warn("session or oidc config missing; login and session validation handlers disabled")
 	}
 
-	authService := authsvc.NewService(paramsGenerator, loginHandler)
+	authService := authsvc.NewService(paramsGenerator, loginHandler, sessionValidateCase)
 
 	authPath, authHandler := authv1connect.NewAuthServiceHandler(authService)
 	logger.Info("auth service handler registered", slog.String("path", authPath))

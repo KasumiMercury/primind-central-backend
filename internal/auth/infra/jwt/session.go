@@ -13,13 +13,13 @@ import (
 	"github.com/KasumiMercury/primind-central-backend/internal/auth/domain/user"
 )
 
-type SessionJWTGenerator struct {
-	sessionCfg *sessionCfg.Config
-}
-
 type SessionClaims struct {
 	jwt.Claims
 	Color string `json:"color,omitempty"`
+}
+
+type SessionJWTGenerator struct {
+	sessionCfg *sessionCfg.Config
 }
 
 func NewSessionJWTGenerator(cfg *sessionCfg.Config) *SessionJWTGenerator {
@@ -69,8 +69,8 @@ func (g *SessionJWTGenerator) Generate(session *domain.Session, u *user.User) (s
 	return token, nil
 }
 
-func (g *SessionJWTGenerator) Verify(token string) (*SessionClaims, error) {
-	key := deriveHMACKey(g.sessionCfg.Secret)
+func (v *SessionJWTValidator) parseClaims(token string) (*SessionClaims, error) {
+	key := deriveHMACKey(v.sessionCfg.Secret)
 
 	parsed, err := jwt.ParseSigned(token, []jose.SignatureAlgorithm{jose.HS256})
 	if err != nil {
@@ -83,10 +83,6 @@ func (g *SessionJWTGenerator) Verify(token string) (*SessionClaims, error) {
 		return nil, err
 	}
 
-	if err := claims.Validate(jwt.Expected{Time: time.Now()}); err != nil {
-		return nil, err
-	}
-
 	return claims, nil
 }
 
@@ -94,4 +90,40 @@ func deriveHMACKey(secret string) []byte {
 	sum := sha3.Sum256([]byte(secret))
 
 	return sum[:]
+}
+
+type SessionJWTValidator struct {
+	sessionCfg *sessionCfg.Config
+}
+
+func NewSessionJWTValidator(cfg *sessionCfg.Config) *SessionJWTValidator {
+	return &SessionJWTValidator{
+		sessionCfg: cfg,
+	}
+}
+
+func (v *SessionJWTValidator) Verify(token string) error {
+	claims, err := v.parseClaims(token)
+	if err != nil {
+		return err
+	}
+
+	if err := claims.Validate(jwt.Expected{Time: time.Now()}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (v *SessionJWTValidator) ExtractSessionID(token string) (string, error) {
+	claims, err := v.parseClaims(token)
+	if err != nil {
+		return "", err
+	}
+
+	if claims == nil || claims.ID == "" {
+		return "", fmt.Errorf("session id missing in token")
+	}
+
+	return claims.ID, nil
 }

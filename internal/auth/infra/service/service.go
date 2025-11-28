@@ -8,24 +8,31 @@ import (
 
 	connect "connectrpc.com/connect"
 	appoidc "github.com/KasumiMercury/primind-central-backend/internal/auth/app/oidc"
+	appsession "github.com/KasumiMercury/primind-central-backend/internal/auth/app/session"
 	domainoidc "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/oidc"
 	authv1 "github.com/KasumiMercury/primind-central-backend/internal/gen/auth/v1"
 	authv1connect "github.com/KasumiMercury/primind-central-backend/internal/gen/auth/v1/authv1connect"
 )
 
 type Service struct {
-	oidcParams appoidc.OIDCParamsGenerator
-	oidcLogin  appoidc.OIDCLoginUseCase
-	logger     *slog.Logger
+	oidcParams      appoidc.OIDCParamsGenerator
+	oidcLogin       appoidc.OIDCLoginUseCase
+	validateSession appsession.ValidateSessionUseCase
+	logger          *slog.Logger
 }
 
 var _ authv1connect.AuthServiceHandler = (*Service)(nil)
 
-func NewService(oidcParamsGenerator appoidc.OIDCParamsGenerator, oidcLoginUseCase appoidc.OIDCLoginUseCase) *Service {
+func NewService(
+	oidcParamsGenerator appoidc.OIDCParamsGenerator,
+	oidcLoginUseCase appoidc.OIDCLoginUseCase,
+	validateSessionUseCase appsession.ValidateSessionUseCase,
+) *Service {
 	return &Service{
-		oidcParams: oidcParamsGenerator,
-		oidcLogin:  oidcLoginUseCase,
-		logger:     slog.Default().WithGroup("auth").WithGroup("service"),
+		oidcParams:      oidcParamsGenerator,
+		oidcLogin:       oidcLoginUseCase,
+		validateSession: validateSessionUseCase,
+		logger:          slog.Default().WithGroup("auth").WithGroup("service"),
 	}
 }
 
@@ -136,6 +143,37 @@ func (s *Service) OIDCLogin(ctx context.Context, req *authv1.OIDCLoginRequest) (
 
 func (s *Service) Logout(ctx context.Context, req *authv1.LogoutRequest) (*authv1.LogoutResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.Logout not implemented"))
+}
+
+func (s *Service) ValidateSession(ctx context.Context, req *authv1.ValidateSessionRequest) (*authv1.ValidateSessionResponse, error) {
+	if s.validateSession == nil {
+		s.logger.Warn("validate session requested but handler is not configured")
+
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("session validation not configured"))
+	}
+
+	result, err := s.validateSession.Validate(ctx, &appsession.ValidateSessionRequest{
+		SessionToken: req.GetSessionToken(),
+	})
+	if err != nil {
+		switch {
+		case errors.Is(err, appsession.ErrTokenRequired),
+			errors.Is(err, appsession.ErrInvalidToken),
+			errors.Is(err, appsession.ErrSessionNotFound),
+			errors.Is(err, appsession.ErrSessionExpired):
+			s.logger.Info("session validation failed", slog.String("error", err.Error()))
+
+			return nil, connect.NewError(connect.CodeUnauthenticated, err)
+		default:
+			s.logger.Error("unexpected session validation error", slog.String("error", err.Error()))
+
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
+	}
+
+	return &authv1.ValidateSessionResponse{
+		UserId: result.UserID.String(),
+	}, nil
 }
 
 func mapProvider(provider authv1.OIDCProvider) (domainoidc.ProviderID, error) {

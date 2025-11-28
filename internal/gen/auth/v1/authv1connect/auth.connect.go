@@ -39,6 +39,9 @@ const (
 	AuthServiceOIDCLoginProcedure = "/auth.v1.AuthService/OIDCLogin"
 	// AuthServiceLogoutProcedure is the fully-qualified name of the AuthService's Logout RPC.
 	AuthServiceLogoutProcedure = "/auth.v1.AuthService/Logout"
+	// AuthServiceValidateSessionProcedure is the fully-qualified name of the AuthService's
+	// ValidateSession RPC.
+	AuthServiceValidateSessionProcedure = "/auth.v1.AuthService/ValidateSession"
 )
 
 // AuthServiceClient is a client for the auth.v1.AuthService service.
@@ -46,6 +49,7 @@ type AuthServiceClient interface {
 	OIDCParams(context.Context, *v1.OIDCParamsRequest) (*v1.OIDCParamsResponse, error)
 	OIDCLogin(context.Context, *v1.OIDCLoginRequest) (*v1.OIDCLoginResponse, error)
 	Logout(context.Context, *v1.LogoutRequest) (*v1.LogoutResponse, error)
+	ValidateSession(context.Context, *v1.ValidateSessionRequest) (*v1.ValidateSessionResponse, error)
 }
 
 // NewAuthServiceClient constructs a client for the auth.v1.AuthService service. By default, it uses
@@ -77,14 +81,21 @@ func NewAuthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(authServiceMethods.ByName("Logout")),
 			connect.WithClientOptions(opts...),
 		),
+		validateSession: connect.NewClient[v1.ValidateSessionRequest, v1.ValidateSessionResponse](
+			httpClient,
+			baseURL+AuthServiceValidateSessionProcedure,
+			connect.WithSchema(authServiceMethods.ByName("ValidateSession")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // authServiceClient implements AuthServiceClient.
 type authServiceClient struct {
-	oIDCParams *connect.Client[v1.OIDCParamsRequest, v1.OIDCParamsResponse]
-	oIDCLogin  *connect.Client[v1.OIDCLoginRequest, v1.OIDCLoginResponse]
-	logout     *connect.Client[v1.LogoutRequest, v1.LogoutResponse]
+	oIDCParams      *connect.Client[v1.OIDCParamsRequest, v1.OIDCParamsResponse]
+	oIDCLogin       *connect.Client[v1.OIDCLoginRequest, v1.OIDCLoginResponse]
+	logout          *connect.Client[v1.LogoutRequest, v1.LogoutResponse]
+	validateSession *connect.Client[v1.ValidateSessionRequest, v1.ValidateSessionResponse]
 }
 
 // OIDCParams calls auth.v1.AuthService.OIDCParams.
@@ -114,11 +125,21 @@ func (c *authServiceClient) Logout(ctx context.Context, req *v1.LogoutRequest) (
 	return nil, err
 }
 
+// ValidateSession calls auth.v1.AuthService.ValidateSession.
+func (c *authServiceClient) ValidateSession(ctx context.Context, req *v1.ValidateSessionRequest) (*v1.ValidateSessionResponse, error) {
+	response, err := c.validateSession.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // AuthServiceHandler is an implementation of the auth.v1.AuthService service.
 type AuthServiceHandler interface {
 	OIDCParams(context.Context, *v1.OIDCParamsRequest) (*v1.OIDCParamsResponse, error)
 	OIDCLogin(context.Context, *v1.OIDCLoginRequest) (*v1.OIDCLoginResponse, error)
 	Logout(context.Context, *v1.LogoutRequest) (*v1.LogoutResponse, error)
+	ValidateSession(context.Context, *v1.ValidateSessionRequest) (*v1.ValidateSessionResponse, error)
 }
 
 // NewAuthServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -146,6 +167,12 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(authServiceMethods.ByName("Logout")),
 		connect.WithHandlerOptions(opts...),
 	)
+	authServiceValidateSessionHandler := connect.NewUnaryHandlerSimple(
+		AuthServiceValidateSessionProcedure,
+		svc.ValidateSession,
+		connect.WithSchema(authServiceMethods.ByName("ValidateSession")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/auth.v1.AuthService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AuthServiceOIDCParamsProcedure:
@@ -154,6 +181,8 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 			authServiceOIDCLoginHandler.ServeHTTP(w, r)
 		case AuthServiceLogoutProcedure:
 			authServiceLogoutHandler.ServeHTTP(w, r)
+		case AuthServiceValidateSessionProcedure:
+			authServiceValidateSessionHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -173,4 +202,8 @@ func (UnimplementedAuthServiceHandler) OIDCLogin(context.Context, *v1.OIDCLoginR
 
 func (UnimplementedAuthServiceHandler) Logout(context.Context, *v1.LogoutRequest) (*v1.LogoutResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.v1.AuthService.Logout is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) ValidateSession(context.Context, *v1.ValidateSessionRequest) (*v1.ValidateSessionResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.v1.AuthService.ValidateSession is not implemented"))
 }
