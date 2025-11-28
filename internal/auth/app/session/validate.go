@@ -68,28 +68,28 @@ func (h *validateSessionHandler) Validate(ctx context.Context, req *ValidateSess
 	if err := h.tokenVerifier.Verify(req.SessionToken); err != nil {
 		h.logger.Info("session token verification failed", slog.String("error", err.Error()))
 
-		return nil, ErrInvalidToken
+		return nil, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
 
 	rawSessionID, err := h.tokenVerifier.ExtractSessionID(req.SessionToken)
 	if err != nil {
 		h.logger.Info("session id extraction failed", slog.String("error", err.Error()))
 
-		return nil, ErrInvalidToken
+		return nil, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
 
 	sessionID, err := domainsession.ParseID(rawSessionID)
 	if err != nil {
 		h.logger.Info("session id in token is invalid", slog.String("error", err.Error()))
 
-		return nil, ErrInvalidToken
+		return nil, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
 
 	session, err := h.sessionRepo.GetSession(ctx, sessionID)
 	if err != nil {
 		h.logger.Info("session not found for validated token", slog.String("error", err.Error()))
 
-		return nil, ErrSessionNotFound
+		return nil, fmt.Errorf("%w: %v", ErrSessionNotFound, err)
 	}
 
 	now := h.now()
