@@ -17,7 +17,6 @@ func TestSessionJWTIncludesColorClaim(t *testing.T) {
 		Duration: time.Hour,
 		Secret:   "test-secret",
 	}
-
 	generator := NewSessionJWTGenerator(cfg)
 
 	expectedColor := user.MustColor("#123456")
@@ -64,7 +63,7 @@ func TestSessionJWTGenerateRequiresUser(t *testing.T) {
 
 	cfg := &sessionCfg.Config{
 		Duration: time.Hour,
-		Secret:   "test-secret",
+		Secret:   "test-secret-2",
 	}
 
 	generator := NewSessionJWTGenerator(cfg)
@@ -83,5 +82,50 @@ func TestSessionJWTGenerateRequiresUser(t *testing.T) {
 
 	if _, err := generator.Generate(session, nil); err == nil {
 		t.Fatalf("expected error when user is nil")
+	}
+}
+
+func TestSessionJWTDoesNotIncludeUserIDInSubject(t *testing.T) {
+	t.Parallel()
+
+	cfg := &sessionCfg.Config{
+		Duration: time.Hour,
+		Secret:   "test-secret-3",
+	}
+
+	generator := NewSessionJWTGenerator(cfg)
+
+	userID, err := user.NewID()
+	if err != nil {
+		t.Fatalf("failed to create user id: %v", err)
+	}
+
+	color := user.MustColor("#abcdef")
+	u := user.NewUser(userID, color)
+
+	now := time.Now().UTC()
+
+	session, err := domain.NewSession(u.ID(), now, now.Add(time.Hour))
+	if err != nil {
+		t.Fatalf("failed to create session: %v", err)
+	}
+
+	token, err := generator.Generate(session, u)
+	if err != nil {
+		t.Fatalf("failed to generate token: %v", err)
+	}
+
+	parsed, err := jwt.ParseSigned(token, []jose.SignatureAlgorithm{jose.HS256})
+	if err != nil {
+		t.Fatalf("failed to parse token: %v", err)
+	}
+
+	var claims jwt.Claims
+	if err := parsed.Claims(deriveHMACKey(cfg.Secret), &claims); err != nil {
+		t.Fatalf("failed to extract claims: %v", err)
+	}
+
+	if claims.Subject != "" {
+		t.Fatalf("expected empty subject, got %q", claims.Subject)
 	}
 }
