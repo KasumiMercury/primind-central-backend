@@ -26,6 +26,7 @@ type inMemoryOIDCIdentityRepository struct {
 
 func NewInMemoryOIDCIdentityRepository() oidcidentity.OIDCIdentityRepository {
 	return &inMemoryOIDCIdentityRepository{
+		mu:                sync.Mutex{},
 		byProviderSubject: make(map[IdentityKey]IdentityRecord),
 	}
 }

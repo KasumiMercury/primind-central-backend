@@ -20,6 +20,7 @@ type inMemoryUserRepository struct {
 
 func NewInMemoryUserRepository() user.UserRepository {
 	return &inMemoryUserRepository{
+		mu:   sync.Mutex{},
 		byID: make(map[user.ID]UserRecord),
 	}
 }
