@@ -83,6 +83,7 @@ func (g *SessionJWTGenerator) Verify(token string) (*SessionClaims, error) {
 		return nil, err
 	}
 
+	//exhaustruct:ignore
 	claims := &SessionClaims{}
 	if err := parsed.Claims(key, claims); err != nil {
 		return nil, err
