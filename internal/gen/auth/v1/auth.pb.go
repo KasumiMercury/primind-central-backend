@@ -358,6 +358,94 @@ func (x *LogoutResponse) GetSuccess() bool {
 	return false
 }
 
+type ValidateSessionRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionToken  string                 `protobuf:"bytes,1,opt,name=session_token,json=sessionToken,proto3" json:"session_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ValidateSessionRequest) Reset() {
+	*x = ValidateSessionRequest{}
+	mi := &file_auth_v1_auth_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ValidateSessionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ValidateSessionRequest) ProtoMessage() {}
+
+func (x *ValidateSessionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_auth_v1_auth_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ValidateSessionRequest.ProtoReflect.Descriptor instead.
+func (*ValidateSessionRequest) Descriptor() ([]byte, []int) {
+	return file_auth_v1_auth_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *ValidateSessionRequest) GetSessionToken() string {
+	if x != nil {
+		return x.SessionToken
+	}
+	return ""
+}
+
+type ValidateSessionResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ValidateSessionResponse) Reset() {
+	*x = ValidateSessionResponse{}
+	mi := &file_auth_v1_auth_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ValidateSessionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ValidateSessionResponse) ProtoMessage() {}
+
+func (x *ValidateSessionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_auth_v1_auth_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ValidateSessionResponse.ProtoReflect.Descriptor instead.
+func (*ValidateSessionResponse) Descriptor() ([]byte, []int) {
+	return file_auth_v1_auth_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *ValidateSessionResponse) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
 var File_auth_v1_auth_proto protoreflect.FileDescriptor
 
 const file_auth_v1_auth_proto_rawDesc = "" +
@@ -377,15 +465,20 @@ const file_auth_v1_auth_proto_rawDesc = "" +
 	"\rsession_token\x18\x01 \x01(\tR\fsessionToken\"\x0f\n" +
 	"\rLogoutRequest\"*\n" +
 	"\x0eLogoutResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess*G\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"=\n" +
+	"\x16ValidateSessionRequest\x12#\n" +
+	"\rsession_token\x18\x01 \x01(\tR\fsessionToken\"2\n" +
+	"\x17ValidateSessionResponse\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId*G\n" +
 	"\fOIDCProvider\x12\x1d\n" +
 	"\x19OIDC_PROVIDER_UNSPECIFIED\x10\x00\x12\x18\n" +
-	"\x14OIDC_PROVIDER_GOOGLE\x10\x012\xd3\x01\n" +
+	"\x14OIDC_PROVIDER_GOOGLE\x10\x012\xa9\x02\n" +
 	"\vAuthService\x12E\n" +
 	"\n" +
 	"OIDCParams\x12\x1a.auth.v1.OIDCParamsRequest\x1a\x1b.auth.v1.OIDCParamsResponse\x12B\n" +
 	"\tOIDCLogin\x12\x19.auth.v1.OIDCLoginRequest\x1a\x1a.auth.v1.OIDCLoginResponse\x129\n" +
-	"\x06Logout\x12\x16.auth.v1.LogoutRequest\x1a\x17.auth.v1.LogoutResponseB\xa3\x01\n" +
+	"\x06Logout\x12\x16.auth.v1.LogoutRequest\x1a\x17.auth.v1.LogoutResponse\x12T\n" +
+	"\x0fValidateSession\x12\x1f.auth.v1.ValidateSessionRequest\x1a .auth.v1.ValidateSessionResponseB\xa3\x01\n" +
 	"\vcom.auth.v1B\tAuthProtoP\x01ZLgithub.com/KasumiMercury/primind-central-backend/internal/gen/auth/v1;authv1\xa2\x02\x03AXX\xaa\x02\aAuth.V1\xca\x02\aAuth\\V1\xe2\x02\x13Auth\\V1\\GPBMetadata\xea\x02\bAuth::V1b\x06proto3"
 
 var (
@@ -401,15 +494,17 @@ func file_auth_v1_auth_proto_rawDescGZIP() []byte {
 }
 
 var file_auth_v1_auth_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_auth_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_auth_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_auth_v1_auth_proto_goTypes = []any{
-	(OIDCProvider)(0),          // 0: auth.v1.OIDCProvider
-	(*OIDCParamsRequest)(nil),  // 1: auth.v1.OIDCParamsRequest
-	(*OIDCParamsResponse)(nil), // 2: auth.v1.OIDCParamsResponse
-	(*OIDCLoginRequest)(nil),   // 3: auth.v1.OIDCLoginRequest
-	(*OIDCLoginResponse)(nil),  // 4: auth.v1.OIDCLoginResponse
-	(*LogoutRequest)(nil),      // 5: auth.v1.LogoutRequest
-	(*LogoutResponse)(nil),     // 6: auth.v1.LogoutResponse
+	(OIDCProvider)(0),               // 0: auth.v1.OIDCProvider
+	(*OIDCParamsRequest)(nil),       // 1: auth.v1.OIDCParamsRequest
+	(*OIDCParamsResponse)(nil),      // 2: auth.v1.OIDCParamsResponse
+	(*OIDCLoginRequest)(nil),        // 3: auth.v1.OIDCLoginRequest
+	(*OIDCLoginResponse)(nil),       // 4: auth.v1.OIDCLoginResponse
+	(*LogoutRequest)(nil),           // 5: auth.v1.LogoutRequest
+	(*LogoutResponse)(nil),          // 6: auth.v1.LogoutResponse
+	(*ValidateSessionRequest)(nil),  // 7: auth.v1.ValidateSessionRequest
+	(*ValidateSessionResponse)(nil), // 8: auth.v1.ValidateSessionResponse
 }
 var file_auth_v1_auth_proto_depIdxs = []int32{
 	0, // 0: auth.v1.OIDCParamsRequest.provider:type_name -> auth.v1.OIDCProvider
@@ -417,11 +512,13 @@ var file_auth_v1_auth_proto_depIdxs = []int32{
 	1, // 2: auth.v1.AuthService.OIDCParams:input_type -> auth.v1.OIDCParamsRequest
 	3, // 3: auth.v1.AuthService.OIDCLogin:input_type -> auth.v1.OIDCLoginRequest
 	5, // 4: auth.v1.AuthService.Logout:input_type -> auth.v1.LogoutRequest
-	2, // 5: auth.v1.AuthService.OIDCParams:output_type -> auth.v1.OIDCParamsResponse
-	4, // 6: auth.v1.AuthService.OIDCLogin:output_type -> auth.v1.OIDCLoginResponse
-	6, // 7: auth.v1.AuthService.Logout:output_type -> auth.v1.LogoutResponse
-	5, // [5:8] is the sub-list for method output_type
-	2, // [2:5] is the sub-list for method input_type
+	7, // 5: auth.v1.AuthService.ValidateSession:input_type -> auth.v1.ValidateSessionRequest
+	2, // 6: auth.v1.AuthService.OIDCParams:output_type -> auth.v1.OIDCParamsResponse
+	4, // 7: auth.v1.AuthService.OIDCLogin:output_type -> auth.v1.OIDCLoginResponse
+	6, // 8: auth.v1.AuthService.Logout:output_type -> auth.v1.LogoutResponse
+	8, // 9: auth.v1.AuthService.ValidateSession:output_type -> auth.v1.ValidateSessionResponse
+	6, // [6:10] is the sub-list for method output_type
+	2, // [2:6] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name
 	2, // [2:2] is the sub-list for extension extendee
 	0, // [0:2] is the sub-list for field type_name
@@ -438,7 +535,7 @@ func file_auth_v1_auth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_auth_v1_auth_proto_rawDesc), len(file_auth_v1_auth_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   6,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

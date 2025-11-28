@@ -10,7 +10,21 @@ import (
 
 	sessionCfg "github.com/KasumiMercury/primind-central-backend/internal/auth/config/session"
 	domain "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/session"
+	"github.com/KasumiMercury/primind-central-backend/internal/auth/domain/user"
 )
+
+var (
+	ErrUserRequired      = fmt.Errorf("user is required for session token generation")
+	ErrSessionRequired   = fmt.Errorf("session is required for token generation")
+	ErrInvalidUserColor  = fmt.Errorf("invalid user color")
+	ErrJWTSignerCreation = fmt.Errorf("failed to create JWT signer")
+	ErrMissingSessionID  = fmt.Errorf("missing session ID in token")
+)
+
+type SessionClaims struct {
+	jwt.Claims
+	Color string `json:"color,omitempty"`
+}
 
 type SessionJWTGenerator struct {
 	sessionCfg *sessionCfg.Config
@@ -22,14 +36,27 @@ func NewSessionJWTGenerator(cfg *sessionCfg.Config) *SessionJWTGenerator {
 	}
 }
 
-func (g *SessionJWTGenerator) Generate(session *domain.Session) (string, error) {
+func (g *SessionJWTGenerator) Generate(session *domain.Session, u *user.User) (string, error) {
+	if session == nil {
+		return "", ErrSessionRequired
+	}
+
+	if u == nil {
+		return "", ErrUserRequired
+	}
+
+	userColor := u.Color()
+	if err := userColor.Validate(); err != nil {
+		return "", fmt.Errorf("%w: %v", ErrInvalidUserColor, err)
+	}
+
 	key := deriveHMACKey(g.sessionCfg.Secret)
 
 	signer, err := jose.NewSigner(
 		jose.SigningKey{Algorithm: jose.HS256, Key: key}, nil,
 	)
 	if err != nil {
-		return "", fmt.Errorf("failed to create JWT signer: %w", err)
+		return "", fmt.Errorf("%w: %v", ErrJWTSignerCreation, err)
 	}
 
 	now := session.CreatedAt()
@@ -37,16 +64,13 @@ func (g *SessionJWTGenerator) Generate(session *domain.Session) (string, error) 
 		now = time.Now()
 	}
 
-	expiresAt := session.ExpiresAt()
-	if expiresAt.IsZero() {
-		expiresAt = now.Add(g.sessionCfg.Duration)
-	}
-
-	claims := jwt.Claims{
-		ID:       session.ID().String(),
-		Subject:  session.UserID(),
-		IssuedAt: jwt.NewNumericDate(now),
-		Expiry:   jwt.NewNumericDate(expiresAt),
+	claims := SessionClaims{
+		Claims: jwt.Claims{
+			ID:       session.ID().String(),
+			IssuedAt: jwt.NewNumericDate(now),
+			Expiry:   jwt.NewNumericDate(session.ExpiresAt()),
+		},
+		Color: userColor.String(),
 	}
 
 	token, err := jwt.Signed(signer).Claims(claims).Serialize()
@@ -57,20 +81,17 @@ func (g *SessionJWTGenerator) Generate(session *domain.Session) (string, error) 
 	return token, nil
 }
 
-func (g *SessionJWTGenerator) Verify(token string) (*jwt.Claims, error) {
-	key := deriveHMACKey(g.sessionCfg.Secret)
+func (v *SessionJWTValidator) parseClaims(token string) (*SessionClaims, error) {
+	key := deriveHMACKey(v.sessionCfg.Secret)
 
 	parsed, err := jwt.ParseSigned(token, []jose.SignatureAlgorithm{jose.HS256})
 	if err != nil {
 		return nil, err
 	}
 
-	claims := &jwt.Claims{}
+	//exhaustruct:ignore
+	claims := &SessionClaims{}
 	if err := parsed.Claims(key, claims); err != nil {
-		return nil, err
-	}
-
-	if err := claims.Validate(jwt.Expected{Time: time.Now()}); err != nil {
 		return nil, err
 	}
 
@@ -81,4 +102,40 @@ func deriveHMACKey(secret string) []byte {
 	sum := sha3.Sum256([]byte(secret))
 
 	return sum[:]
+}
+
+type SessionJWTValidator struct {
+	sessionCfg *sessionCfg.Config
+}
+
+func NewSessionJWTValidator(cfg *sessionCfg.Config) *SessionJWTValidator {
+	return &SessionJWTValidator{
+		sessionCfg: cfg,
+	}
+}
+
+func (v *SessionJWTValidator) Verify(token string) error {
+	claims, err := v.parseClaims(token)
+	if err != nil {
+		return err
+	}
+
+	if err := claims.Validate(jwt.Expected{Time: time.Now()}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (v *SessionJWTValidator) ExtractSessionID(token string) (string, error) {
+	claims, err := v.parseClaims(token)
+	if err != nil {
+		return "", err
+	}
+
+	if claims == nil || claims.ID == "" {
+		return "", ErrMissingSessionID
+	}
+
+	return claims.ID, nil
 }

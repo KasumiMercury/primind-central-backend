@@ -9,7 +9,9 @@ import (
 
 	sessionCfg "github.com/KasumiMercury/primind-central-backend/internal/auth/config/session"
 	domainoidc "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/oidc"
+	"github.com/KasumiMercury/primind-central-backend/internal/auth/domain/oidcidentity"
 	domain "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/session"
+	"github.com/KasumiMercury/primind-central-backend/internal/auth/domain/user"
 )
 
 var (
@@ -23,7 +25,7 @@ type OIDCLoginUseCase interface {
 }
 
 type SessionTokenGenerator interface {
-	Generate(session *domain.Session) (string, error)
+	Generate(session *domain.Session, user *user.User) (string, error)
 }
 
 type IDToken struct {
@@ -48,28 +50,34 @@ type LoginResult struct {
 }
 
 type loginHandler struct {
-	providers    map[domainoidc.ProviderID]OIDCProviderWithLogin
-	paramsRepo   domainoidc.ParamsRepository
-	sessionRepo  domain.SessionRepository
-	jwtGenerator SessionTokenGenerator
-	sessionCfg   *sessionCfg.Config
-	logger       *slog.Logger
+	providers        map[domainoidc.ProviderID]OIDCProviderWithLogin
+	paramsRepo       domainoidc.ParamsRepository
+	sessionRepo      domain.SessionRepository
+	userRepo         user.UserRepository
+	oidcIdentityRepo oidcidentity.OIDCIdentityRepository
+	jwtGenerator     SessionTokenGenerator
+	sessionCfg       *sessionCfg.Config
+	logger           *slog.Logger
 }
 
 func NewLoginHandler(
 	providers map[domainoidc.ProviderID]OIDCProviderWithLogin,
 	paramsRepo domainoidc.ParamsRepository,
 	sessionRepo domain.SessionRepository,
+	userRepo user.UserRepository,
+	oidcIdentityRepo oidcidentity.OIDCIdentityRepository,
 	jwtGenerator SessionTokenGenerator,
 	sessionCfg *sessionCfg.Config,
 ) OIDCLoginUseCase {
 	return &loginHandler{
-		providers:    providers,
-		paramsRepo:   paramsRepo,
-		sessionRepo:  sessionRepo,
-		jwtGenerator: jwtGenerator,
-		sessionCfg:   sessionCfg,
-		logger:       slog.Default().WithGroup("auth").WithGroup("oidc").WithGroup("login"),
+		providers:        providers,
+		paramsRepo:       paramsRepo,
+		sessionRepo:      sessionRepo,
+		userRepo:         userRepo,
+		oidcIdentityRepo: oidcIdentityRepo,
+		jwtGenerator:     jwtGenerator,
+		sessionCfg:       sessionCfg,
+		logger:           slog.Default().WithGroup("auth").WithGroup("oidc").WithGroup("login"),
 	}
 }
 
@@ -123,23 +131,86 @@ func (h *loginHandler) Login(ctx context.Context, req *LoginRequest) (*LoginResu
 		return nil, ErrInvalidNonce
 	}
 
+	oidcIdentity, err := h.oidcIdentityRepo.GetOIDCIdentityByProviderSubject(ctx, req.Provider, idToken.Subject)
+	if err != nil && !errors.Is(err, oidcidentity.ErrOIDCIdentityNotFound) {
+		h.logger.Error("failed to lookup oidc identity", slog.String("error", err.Error()))
+
+		return nil, err
+	}
+
+	var (
+		userID     user.ID
+		targetUser *user.User
+	)
+
+	if oidcIdentity == nil {
+		h.logger.Debug("creating new user for oidc login", slog.String("provider", string(req.Provider)))
+
+		newUser, err := user.CreateUserWithRandomColor()
+		if err != nil {
+			h.logger.Error("failed to generate user ID", slog.String("error", err.Error()))
+
+			return nil, err
+		}
+
+		if err := h.userRepo.SaveUser(ctx, newUser); err != nil {
+			h.logger.Error("failed to persist user", slog.String("error", err.Error()))
+
+			return nil, err
+		}
+
+		newIdentity, err := oidcidentity.NewOIDCIdentity(newUser.ID(), req.Provider, idToken.Subject)
+		if err != nil {
+			h.logger.Error("failed to create oidc identity", slog.String("error", err.Error()))
+
+			return nil, err
+		}
+
+		if err := h.oidcIdentityRepo.SaveOIDCIdentity(ctx, newIdentity); err != nil {
+			h.logger.Error("failed to persist oidc identity", slog.String("error", err.Error()))
+
+			return nil, err
+		}
+
+		userID = newUser.ID()
+		targetUser = newUser
+	} else {
+		h.logger.Debug("existing user found for oidc login", slog.String("provider", string(req.Provider)))
+
+		existingUser, err := h.userRepo.GetUserByID(ctx, oidcIdentity.UserID())
+		if err != nil {
+			h.logger.Error("failed to load user", slog.String("error", err.Error()))
+
+			return nil, err
+		}
+
+		userID = existingUser.ID()
+		targetUser = existingUser
+	}
+
+	if targetUser == nil {
+		h.logger.Error("user instance missing during session creation")
+
+		return nil, fmt.Errorf("user not available for session token generation")
+	}
+
 	now := time.Now().UTC()
 	expiresAt := now.Add(h.sessionCfg.Duration)
 
-	session, err := domain.NewSession(idToken.Subject, now, expiresAt)
+	session, err := domain.NewSession(userID, now, expiresAt)
 	if err != nil {
-		h.logger.Error("failed to create session", slog.String("error", err.Error()), slog.String("provider", string(req.Provider)))
+		h.logger.Error("failed to create session", slog.String("error", err.Error()))
 
 		return nil, err
 	}
 
 	if err := h.sessionRepo.SaveSession(ctx, session); err != nil {
-		h.logger.Error("failed to persist session", slog.String("error", err.Error()), slog.String("provider", string(req.Provider)))
+		h.logger.Error("failed to persist session", slog.String("error", err.Error()))
 
 		return nil, err
 	}
 
-	sessionToken, err := h.jwtGenerator.Generate(session)
+	sessionToken, err := h.jwtGenerator.Generate(session, targetUser)
 	if err != nil {
 		h.logger.Error("failed to generate session token", slog.String("error", err.Error()), slog.String("provider", string(req.Provider)))
 
