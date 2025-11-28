@@ -13,6 +13,13 @@ import (
 	"github.com/KasumiMercury/primind-central-backend/internal/auth/domain/user"
 )
 
+var (
+	ErrUserRequired      = fmt.Errorf("user is required for session token generation")
+	ErrInvalidUserColor  = fmt.Errorf("invalid user color")
+	ErrJWTSignerCreation = fmt.Errorf("failed to create JWT signer")
+	ErrMissingSessionID  = fmt.Errorf("missing session ID in token")
+)
+
 type SessionClaims struct {
 	jwt.Claims
 	Color string `json:"color,omitempty"`
@@ -30,12 +37,12 @@ func NewSessionJWTGenerator(cfg *sessionCfg.Config) *SessionJWTGenerator {
 
 func (g *SessionJWTGenerator) Generate(session *domain.Session, u *user.User) (string, error) {
 	if u == nil {
-		return "", fmt.Errorf("user is required for session token generation")
+		return "", ErrUserRequired
 	}
 
 	userColor := u.Color()
 	if err := userColor.Validate(); err != nil {
-		return "", fmt.Errorf("invalid user color: %w", err)
+		return "", fmt.Errorf("%w: %v", ErrInvalidUserColor, err)
 	}
 
 	key := deriveHMACKey(g.sessionCfg.Secret)
@@ -44,7 +51,7 @@ func (g *SessionJWTGenerator) Generate(session *domain.Session, u *user.User) (s
 		jose.SigningKey{Algorithm: jose.HS256, Key: key}, nil,
 	)
 	if err != nil {
-		return "", fmt.Errorf("failed to create JWT signer: %w", err)
+		return "", fmt.Errorf("%w: %v", ErrJWTSignerCreation, err)
 	}
 
 	now := session.CreatedAt()
@@ -122,7 +129,7 @@ func (v *SessionJWTValidator) ExtractSessionID(token string) (string, error) {
 	}
 
 	if claims == nil || claims.ID == "" {
-		return "", fmt.Errorf("session id missing in token")
+		return "", ErrMissingSessionID
 	}
 
 	return claims.ID, nil
