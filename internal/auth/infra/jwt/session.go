@@ -15,6 +15,7 @@ import (
 
 var (
 	ErrUserRequired      = fmt.Errorf("user is required for session token generation")
+	ErrSessionRequired   = fmt.Errorf("session is required for token generation")
 	ErrInvalidUserColor  = fmt.Errorf("invalid user color")
 	ErrJWTSignerCreation = fmt.Errorf("failed to create JWT signer")
 	ErrMissingSessionID  = fmt.Errorf("missing session ID in token")
@@ -36,6 +37,9 @@ func NewSessionJWTGenerator(cfg *sessionCfg.Config) *SessionJWTGenerator {
 }
 
 func (g *SessionJWTGenerator) Generate(session *domain.Session, u *user.User) (string, error) {
+	if session == nil {
+		return "", ErrSessionRequired
+	}
 	if u == nil {
 		return "", ErrUserRequired
 	}
