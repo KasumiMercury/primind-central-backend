@@ -300,14 +300,15 @@ func TestLoadProvidersErrors(t *testing.T) {
 			wantMsg: "loader failed",
 		},
 		{
-			name: "no loaders registered returns nil",
+			name: "no loaders registered returns error",
 			setup: func() {
 				loaders = map[domainoidc.ProviderID]ProviderLoader{}
 			},
-			wantNil: true,
+			wantErr: true,
+			wantMsg: "no providers configured",
 		},
 		{
-			name: "loader returns ok=false results in nil",
+			name: "loader returns ok=false results in error",
 			setup: func() {
 				loaders = map[domainoidc.ProviderID]ProviderLoader{
 					domainoidc.ProviderGoogle: func() (ProviderConfig, bool, error) {
@@ -315,7 +316,8 @@ func TestLoadProvidersErrors(t *testing.T) {
 					},
 				}
 			},
-			wantNil: true,
+			wantErr: true,
+			wantMsg: "no providers configured",
 		},
 	}
 
