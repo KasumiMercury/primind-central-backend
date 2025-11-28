@@ -134,6 +134,7 @@ func (h *loginHandler) Login(ctx context.Context, req *LoginRequest) (*LoginResu
 	oidcIdentity, err := h.oidcIdentityRepo.GetOIDCIdentityByProviderSubject(ctx, req.Provider, idToken.Subject)
 	if err != nil && !errors.Is(err, oidcidentity.ErrOIDCIdentityNotFound) {
 		h.logger.Error("failed to lookup oidc identity", slog.String("error", err.Error()))
+
 		return nil, err
 	}
 
@@ -145,28 +146,33 @@ func (h *loginHandler) Login(ctx context.Context, req *LoginRequest) (*LoginResu
 		newUser, err := user.CreateUser()
 		if err != nil {
 			h.logger.Error("failed to generate user ID", slog.String("error", err.Error()))
+
 			return nil, err
 		}
 
 		if err := h.userRepo.SaveUser(ctx, newUser); err != nil {
 			h.logger.Error("failed to persist user", slog.String("error", err.Error()))
+
 			return nil, err
 		}
 
 		newIdentity, err := oidcidentity.NewOIDCIdentity(newUser.ID(), req.Provider, idToken.Subject)
 		if err != nil {
 			h.logger.Error("failed to create oidc identity", slog.String("error", err.Error()))
+
 			return nil, err
 		}
 
 		if err := h.oidcIdentityRepo.SaveOIDCIdentity(ctx, newIdentity); err != nil {
 			h.logger.Error("failed to persist oidc identity", slog.String("error", err.Error()))
+
 			return nil, err
 		}
 
 		userID = newUser.ID()
 	} else {
 		h.logger.Debug("existing user found for oidc login", slog.String("provider", string(req.Provider)))
+
 		userID = oidcIdentity.UserID()
 	}
 
@@ -176,11 +182,13 @@ func (h *loginHandler) Login(ctx context.Context, req *LoginRequest) (*LoginResu
 	session, err := domain.NewSession(userID, now, expiresAt)
 	if err != nil {
 		h.logger.Error("failed to create session", slog.String("error", err.Error()))
+
 		return nil, err
 	}
 
 	if err := h.sessionRepo.SaveSession(ctx, session); err != nil {
 		h.logger.Error("failed to persist session", slog.String("error", err.Error()))
+
 		return nil, err
 	}
 

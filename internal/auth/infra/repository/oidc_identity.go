@@ -43,6 +43,7 @@ func (r *inMemoryOIDCIdentityRepository) SaveOIDCIdentity(_ context.Context, ide
 		identity:  identity,
 		createdAt: time.Now(),
 	}
+
 	return nil
 }
 
@@ -59,5 +60,6 @@ func (r *inMemoryOIDCIdentityRepository) GetOIDCIdentityByProviderSubject(_ cont
 	if !exists {
 		return nil, oidcidentity.ErrOIDCIdentityNotFound
 	}
+
 	return record.identity, nil
 }

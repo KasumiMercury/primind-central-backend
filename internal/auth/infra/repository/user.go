@@ -32,6 +32,7 @@ func (r *inMemoryUserRepository) SaveUser(_ context.Context, u *user.User) error
 		user:      u,
 		createdAt: time.Now(),
 	}
+
 	return nil
 }
 
@@ -43,5 +44,6 @@ func (r *inMemoryUserRepository) GetUserByID(_ context.Context, id user.ID) (*us
 	if !exists {
 		return nil, user.ErrUserNotFound
 	}
+
 	return record.user, nil
 }

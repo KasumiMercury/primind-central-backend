@@ -11,10 +11,12 @@ import (
 
 func mustUserID(t *testing.T) user.ID {
 	t.Helper()
+
 	id, err := user.NewID()
 	if err != nil {
 		t.Fatalf("failed to create user ID: %v", err)
 	}
+
 	return id
 }
 
