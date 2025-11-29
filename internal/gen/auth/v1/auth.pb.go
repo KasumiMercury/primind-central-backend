@@ -280,6 +280,7 @@ func (x *OIDCLoginResponse) GetSessionToken() string {
 
 type LogoutRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionToken  string                 `protobuf:"bytes,1,opt,name=session_token,json=sessionToken,proto3" json:"session_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -312,6 +313,13 @@ func (x *LogoutRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use LogoutRequest.ProtoReflect.Descriptor instead.
 func (*LogoutRequest) Descriptor() ([]byte, []int) {
 	return file_auth_v1_auth_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *LogoutRequest) GetSessionToken() string {
+	if x != nil {
+		return x.SessionToken
+	}
+	return ""
 }
 
 type LogoutResponse struct {
@@ -462,8 +470,9 @@ const file_auth_v1_auth_proto_rawDesc = "" +
 	"\x04code\x18\x02 \x01(\tR\x04code\x12\x14\n" +
 	"\x05state\x18\x03 \x01(\tR\x05state\"8\n" +
 	"\x11OIDCLoginResponse\x12#\n" +
-	"\rsession_token\x18\x01 \x01(\tR\fsessionToken\"\x0f\n" +
-	"\rLogoutRequest\"*\n" +
+	"\rsession_token\x18\x01 \x01(\tR\fsessionToken\"4\n" +
+	"\rLogoutRequest\x12#\n" +
+	"\rsession_token\x18\x01 \x01(\tR\fsessionToken\"*\n" +
 	"\x0eLogoutResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\"=\n" +
 	"\x16ValidateSessionRequest\x12#\n" +

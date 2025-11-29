@@ -7,6 +7,7 @@ import (
 	"log/slog"
 
 	connect "connectrpc.com/connect"
+	applogout "github.com/KasumiMercury/primind-central-backend/internal/auth/app/logout"
 	appoidc "github.com/KasumiMercury/primind-central-backend/internal/auth/app/oidc"
 	appsession "github.com/KasumiMercury/primind-central-backend/internal/auth/app/session"
 	domainoidc "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/oidc"
@@ -18,6 +19,7 @@ type Service struct {
 	oidcParams      appoidc.OIDCParamsGenerator
 	oidcLogin       appoidc.OIDCLoginUseCase
 	validateSession appsession.ValidateSessionUseCase
+	logout          applogout.LogoutUseCase
 	logger          *slog.Logger
 }
 
@@ -27,11 +29,13 @@ func NewService(
 	oidcParamsGenerator appoidc.OIDCParamsGenerator,
 	oidcLoginUseCase appoidc.OIDCLoginUseCase,
 	validateSessionUseCase appsession.ValidateSessionUseCase,
+	logoutUseCase applogout.LogoutUseCase,
 ) *Service {
 	return &Service{
 		oidcParams:      oidcParamsGenerator,
 		oidcLogin:       oidcLoginUseCase,
 		validateSession: validateSessionUseCase,
+		logout:          logoutUseCase,
 		logger:          slog.Default().WithGroup("auth").WithGroup("service"),
 	}
 }
@@ -142,7 +146,34 @@ func (s *Service) OIDCLogin(ctx context.Context, req *authv1.OIDCLoginRequest) (
 }
 
 func (s *Service) Logout(ctx context.Context, req *authv1.LogoutRequest) (*authv1.LogoutResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.Logout not implemented"))
+	if s.logout == nil {
+		s.logger.Warn("logout requested but handler is not configured")
+
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("logout not configured"))
+	}
+
+	sessionToken := req.GetSessionToken()
+
+	result, err := s.logout.Logout(ctx, &applogout.LogoutRequest{
+		SessionToken: sessionToken,
+	})
+	if err != nil {
+		switch {
+		case errors.Is(err, applogout.ErrTokenRequired),
+			errors.Is(err, applogout.ErrInvalidToken):
+			s.logger.Info("logout failed", slog.String("error", err.Error()))
+
+			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		default:
+			s.logger.Error("unexpected logout error", slog.String("error", err.Error()))
+
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
+	}
+
+	return &authv1.LogoutResponse{
+		Success: result.Success,
+	}, nil
 }
 
 func (s *Service) ValidateSession(ctx context.Context, req *authv1.ValidateSessionRequest) (*authv1.ValidateSessionResponse, error) {
