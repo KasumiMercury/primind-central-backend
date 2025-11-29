@@ -153,6 +153,7 @@ func (s *Service) Logout(ctx context.Context, req *authv1.LogoutRequest) (*authv
 	}
 
 	sessionToken := req.GetSessionToken()
+
 	result, err := s.logout.Logout(ctx, &applogout.LogoutRequest{
 		SessionToken: sessionToken,
 	})
