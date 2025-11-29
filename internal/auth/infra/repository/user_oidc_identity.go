@@ -47,6 +47,7 @@ func (r *userWithIdentityRepository) SaveUserWithOIDCIdentity(
 		}
 
 		var existingIdentity OIDCIdentityModel
+
 		identityLookup := tx.
 			Clauses(clause.Locking{Strength: "UPDATE"}).
 			Where("provider = ? AND subject = ?", identity.Provider(), identity.Subject()).

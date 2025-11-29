@@ -32,6 +32,8 @@ linters:
                 - 'gorm\.io/gorm\.Config'
                 - 'github\.com/redis/go-redis/v9\.Options'
                 - 'gorm\.io/gorm/clause\.OnConflict'
+                - 'gorm\.io/gorm/clause\.Locking'
+                - 'gorm\.io/gorm/clause\.Column'
                 - '.*repository\..*Model'
         wsl_v5:
             allow-first-in-block: true

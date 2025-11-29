@@ -128,7 +128,9 @@ func startAuthServer() (*httptest.Server, func(), error) {
 	})
 
 	if err := redisClient.Ping(ctx).Err(); err != nil {
-		sqlDB.Close()
+		if err := sqlDB.Close(); err != nil {
+			log.Printf("failed to close postgres connection: %v", err)
+		}
 
 		return nil, func() {}, fmt.Errorf("connect redis: %w", err)
 	}
@@ -141,8 +143,12 @@ func startAuthServer() (*httptest.Server, func(), error) {
 		UserIdentity: repository.NewUserWithIdentityRepository(db),
 	})
 	if err != nil {
-		redisClient.Close()
-		sqlDB.Close()
+		if err := redisClient.Close(); err != nil {
+			log.Printf("failed to close redis client: %v", err)
+		}
+		if err := sqlDB.Close(); err != nil {
+			log.Printf("failed to close postgres connection: %v", err)
+		}
 
 		return nil, func() {}, fmt.Errorf("wire auth module: %w", err)
 	}
@@ -152,8 +158,12 @@ func startAuthServer() (*httptest.Server, func(), error) {
 	server := httptest.NewServer(mux)
 
 	cleanup := func() {
-		redisClient.Close()
-		sqlDB.Close()
+		if err := redisClient.Close(); err != nil {
+			log.Printf("failed to close redis client: %v", err)
+		}
+		if err := sqlDB.Close(); err != nil {
+			log.Printf("failed to close postgres connection: %v", err)
+		}
 	}
 
 	return server, cleanup, nil

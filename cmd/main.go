@@ -41,7 +41,11 @@ func main() {
 		logger.Error("failed to obtain postgres handle", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
-	defer sqlDB.Close()
+	defer func() {
+		if err := sqlDB.Close(); err != nil {
+			logger.Warn("failed to close postgres connection", slog.String("error", err.Error()))
+		}
+	}()
 
 	redisClient := redis.NewClient(&redis.Options{
 		Addr:     appCfg.Persistence.RedisAddr,
@@ -49,7 +53,11 @@ func main() {
 		DB:       appCfg.Persistence.RedisDB,
 	})
 
-	defer redisClient.Close()
+	defer func() {
+		if err := redisClient.Close(); err != nil {
+			logger.Warn("failed to close redis client", slog.String("error", err.Error()))
+		}
+	}()
 
 	if err := redisClient.Ping(ctx).Err(); err != nil {
 		logger.Error("failed to connect redis", slog.String("error", err.Error()))
