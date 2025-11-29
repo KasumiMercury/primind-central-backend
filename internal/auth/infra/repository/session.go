@@ -90,6 +90,10 @@ func (r *sessionRepository) GetSession(ctx context.Context, sessionID domainsess
 	return domainsession.NewSessionWithID(parsedID, uid, record.CreatedAt, record.ExpiresAt)
 }
 
+func (r *sessionRepository) DeleteSession(ctx context.Context, sessionID domainsession.ID) error {
+	return r.client.Del(ctx, r.key(sessionID.String())).Err()
+}
+
 func (r *sessionRepository) key(sessionID string) string {
 	return fmt.Sprintf("auth:session:%s", sessionID)
 }

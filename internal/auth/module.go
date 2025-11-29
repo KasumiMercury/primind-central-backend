@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	applogout "github.com/KasumiMercury/primind-central-backend/internal/auth/app/logout"
 	appoidc "github.com/KasumiMercury/primind-central-backend/internal/auth/app/oidc"
 	appsession "github.com/KasumiMercury/primind-central-backend/internal/auth/app/session"
 	authconfig "github.com/KasumiMercury/primind-central-backend/internal/auth/config"
@@ -85,6 +86,7 @@ func NewHTTPHandler(ctx context.Context, repos Repositories) (string, http.Handl
 		loginHandler        appoidc.OIDCLoginUseCase
 		jwtGenerator        *sessionjwt.SessionJWTGenerator
 		sessionValidateCase appsession.ValidateSessionUseCase
+		logoutHandler       applogout.LogoutUseCase
 	)
 
 	if authCfg.Session != nil && authCfg.OIDC != nil {
@@ -107,13 +109,14 @@ func NewHTTPHandler(ctx context.Context, repos Repositories) (string, http.Handl
 			authCfg.Session,
 		)
 		sessionValidateCase = appsession.NewValidateSessionHandler(repos.Sessions, jwtValidator)
+		logoutHandler = applogout.NewLogoutHandler(repos.Sessions, jwtValidator)
 
 		logger.Info("login and session validation handlers initialized")
 	} else {
 		logger.Warn("session or oidc config missing; login and session validation handlers disabled")
 	}
 
-	authService := authsvc.NewService(paramsGenerator, loginHandler, sessionValidateCase)
+	authService := authsvc.NewService(paramsGenerator, loginHandler, sessionValidateCase, logoutHandler)
 
 	authPath, authHandler := authv1connect.NewAuthServiceHandler(authService)
 	logger.Info("auth service handler registered", slog.String("path", authPath))
