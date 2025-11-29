@@ -41,6 +41,7 @@ func main() {
 		logger.Error("failed to obtain postgres handle", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
+
 	defer func() {
 		if err := sqlDB.Close(); err != nil {
 			logger.Warn("failed to close postgres connection", slog.String("error", err.Error()))

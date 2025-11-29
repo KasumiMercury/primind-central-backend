@@ -146,6 +146,7 @@ func startAuthServer() (*httptest.Server, func(), error) {
 		if err := redisClient.Close(); err != nil {
 			log.Printf("failed to close redis client: %v", err)
 		}
+
 		if err := sqlDB.Close(); err != nil {
 			log.Printf("failed to close postgres connection: %v", err)
 		}
@@ -161,6 +162,7 @@ func startAuthServer() (*httptest.Server, func(), error) {
 		if err := redisClient.Close(); err != nil {
 			log.Printf("failed to close redis client: %v", err)
 		}
+
 		if err := sqlDB.Close(); err != nil {
 			log.Printf("failed to close postgres connection: %v", err)
 		}
