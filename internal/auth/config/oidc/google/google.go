@@ -21,6 +21,8 @@ const (
 )
 
 var (
+	ErrEnvVarRequiredMissing = errors.New("required environment variable missing")
+
 	ErrGoogleClientSecretMissing = errors.New("google oidc client secret missing")
 	ErrGoogleRedirectURIMissing  = errors.New("google oidc redirect uri missing")
 	ErrGoogleIssuerInvalid       = errors.New("issuer URL host should contain 'google.com'")
@@ -48,12 +50,12 @@ func loadConfig() (oidc.ProviderConfig, bool, error) {
 
 	clientSecret, err := getEnvRequired(clientSecretEnv)
 	if err != nil {
-		return nil, false, fmt.Errorf("client secret: %w", err)
+		return nil, false, ErrGoogleClientSecretMissing
 	}
 
 	redirectURI, err := getEnvRequired(redirectURIEnv)
 	if err != nil {
-		return nil, false, fmt.Errorf("redirect uri: %w", err)
+		return nil, false, ErrGoogleRedirectURIMissing
 	}
 
 	cfg := &Config{
@@ -84,7 +86,7 @@ func (c *Config) Core() oidc.CoreConfig {
 func (c *Config) Validate() error {
 	parsedIssuer, err := url.Parse(c.IssuerURL)
 	if err != nil {
-		return fmt.Errorf("invalid issuer URL: %w", err)
+		return fmt.Errorf("%w: %s", ErrGoogleIssuerInvalid, err.Error())
 	}
 
 	if !strings.Contains(parsedIssuer.Host, "google.com") {
@@ -105,14 +107,7 @@ func getEnv(key, defaultVal string) string {
 func getEnvRequired(key string) (string, error) {
 	val := os.Getenv(key)
 	if val == "" {
-		switch key {
-		case clientSecretEnv:
-			return "", fmt.Errorf("%w: %s", ErrGoogleClientSecretMissing, key)
-		case redirectURIEnv:
-			return "", fmt.Errorf("%w: %s", ErrGoogleRedirectURIMissing, key)
-		default:
-			return "", fmt.Errorf("required environment variable %s not set", key)
-		}
+		return "", ErrEnvVarRequiredMissing
 	}
 
 	return val, nil
