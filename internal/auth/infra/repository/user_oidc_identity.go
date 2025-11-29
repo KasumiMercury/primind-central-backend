@@ -3,9 +3,9 @@ package repository
 import (
 	"context"
 	"errors"
-	"time"
 
 	appoidc "github.com/KasumiMercury/primind-central-backend/internal/auth/app/oidc"
+	"github.com/KasumiMercury/primind-central-backend/internal/auth/infra/clock"
 	domainidentity "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/oidcidentity"
 	domainuser "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/user"
 	"gorm.io/gorm"
@@ -15,11 +15,15 @@ import (
 var ErrOIDCIdentityConflict = errors.New("oidc identity belongs to a different user")
 
 type userWithIdentityRepository struct {
-	db *gorm.DB
+	db    *gorm.DB
+	clock clock.Clock
 }
 
 func NewUserWithIdentityRepository(db *gorm.DB) appoidc.UserWithOIDCIdentityRepository {
-	return &userWithIdentityRepository{db: db}
+	return &userWithIdentityRepository{
+		db:    db,
+		clock: &clock.RealClock{},
+	}
 }
 
 func (r *userWithIdentityRepository) SaveUserWithOIDCIdentity(
@@ -39,7 +43,7 @@ func (r *userWithIdentityRepository) SaveUserWithOIDCIdentity(
 		userRecord := UserModel{
 			ID:        u.ID().String(),
 			Color:     u.Color().String(),
-			CreatedAt: time.Now().UTC(),
+			CreatedAt: r.clock.Now(),
 		}
 
 		if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&userRecord).Error; err != nil {
@@ -69,7 +73,7 @@ func (r *userWithIdentityRepository) SaveUserWithOIDCIdentity(
 			UserID:    identity.UserID().String(),
 			Provider:  string(identity.Provider()),
 			Subject:   identity.Subject(),
-			CreatedAt: time.Now().UTC(),
+			CreatedAt: r.clock.Now(),
 		}
 
 		result := tx.Clauses(clause.OnConflict{

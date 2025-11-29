@@ -7,9 +7,9 @@ import (
 	"encoding/base64"
 	"errors"
 	"log/slog"
-	"time"
 
 	domain "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/oidc"
+	"github.com/KasumiMercury/primind-central-backend/internal/auth/infra/clock"
 )
 
 var (
@@ -37,6 +37,7 @@ type ParamsResult struct {
 type paramsGenerator struct {
 	providers map[domain.ProviderID]OIDCProvider
 	repo      domain.ParamsRepository
+	clock     clock.Clock
 	logger    *slog.Logger
 }
 
@@ -44,9 +45,18 @@ func NewParamsGenerator(
 	providers map[domain.ProviderID]OIDCProvider,
 	repo domain.ParamsRepository,
 ) OIDCParamsGenerator {
+	return newParamsGenerator(providers, repo, &clock.RealClock{})
+}
+
+func newParamsGenerator(
+	providers map[domain.ProviderID]OIDCProvider,
+	repo domain.ParamsRepository,
+	clk clock.Clock,
+) OIDCParamsGenerator {
 	return &paramsGenerator{
 		providers: providers,
 		repo:      repo,
+		clock:     clk,
 		logger:    slog.Default().WithGroup("auth").WithGroup("oidc").WithGroup("params"),
 	}
 }
@@ -86,7 +96,7 @@ func (g *paramsGenerator) Generate(ctx context.Context, provider domain.Provider
 
 	authURL := rpProvider.BuildAuthorizationURL(state, nonce, codeChallenge)
 
-	params, err := domain.NewParams(provider, state, nonce, codeVerifier, time.Now().UTC())
+	params, err := domain.NewParams(provider, state, nonce, codeVerifier, g.clock.Now())
 	if err != nil {
 		g.logger.Error("failed to build params model", slog.String("error", err.Error()))
 

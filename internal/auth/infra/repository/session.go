@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/KasumiMercury/primind-central-backend/internal/auth/infra/clock"
 	domainsession "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/session"
 	domainuser "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/user"
 	"github.com/redis/go-redis/v9"
@@ -27,13 +28,13 @@ type sessionRecord struct {
 
 type sessionRepository struct {
 	client *redis.Client
-	now    func() time.Time
+	clock  clock.Clock
 }
 
 func NewSessionRepository(client *redis.Client) domainsession.SessionRepository {
 	return &sessionRepository{
 		client: client,
-		now:    func() time.Time { return time.Now().UTC() },
+		clock:  &clock.RealClock{},
 	}
 }
 

@@ -5,10 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"time"
 
 	domainsession "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/session"
 	"github.com/KasumiMercury/primind-central-backend/internal/auth/domain/user"
+	"github.com/KasumiMercury/primind-central-backend/internal/auth/infra/clock"
 )
 
 var (
@@ -38,7 +38,7 @@ type ValidateSessionUseCase interface {
 type validateSessionHandler struct {
 	sessionRepo   domainsession.SessionRepository
 	tokenVerifier TokenVerifier
-	now           func() time.Time
+	clock         clock.Clock
 	logger        *slog.Logger
 }
 
@@ -46,10 +46,18 @@ func NewValidateSessionHandler(
 	sessionRepo domainsession.SessionRepository,
 	tokenVerifier TokenVerifier,
 ) ValidateSessionUseCase {
+	return newValidateSessionHandler(sessionRepo, tokenVerifier, &clock.RealClock{})
+}
+
+func newValidateSessionHandler(
+	sessionRepo domainsession.SessionRepository,
+	tokenVerifier TokenVerifier,
+	clk clock.Clock,
+) ValidateSessionUseCase {
 	return &validateSessionHandler{
 		sessionRepo:   sessionRepo,
 		tokenVerifier: tokenVerifier,
-		now:           func() time.Time { return time.Now().UTC() },
+		clock:         clk,
 		logger:        slog.Default().WithGroup("auth").WithGroup("session").WithGroup("validate"),
 	}
 }
@@ -92,7 +100,7 @@ func (h *validateSessionHandler) Validate(ctx context.Context, req *ValidateSess
 		return nil, fmt.Errorf("%w: %v", ErrSessionNotFound, err)
 	}
 
-	now := h.now()
+	now := h.clock.Now()
 	if !session.ExpiresAt().After(now) {
 		h.logger.Info("session has expired")
 

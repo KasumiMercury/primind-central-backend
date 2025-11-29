@@ -5,13 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"time"
 
 	sessionCfg "github.com/KasumiMercury/primind-central-backend/internal/auth/config/session"
 	domainoidc "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/oidc"
 	"github.com/KasumiMercury/primind-central-backend/internal/auth/domain/oidcidentity"
 	domain "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/session"
 	"github.com/KasumiMercury/primind-central-backend/internal/auth/domain/user"
+	"github.com/KasumiMercury/primind-central-backend/internal/auth/infra/clock"
 )
 
 var (
@@ -62,6 +62,7 @@ type loginHandler struct {
 	userIdentityRepo UserWithOIDCIdentityRepository
 	jwtGenerator     SessionTokenGenerator
 	sessionCfg       *sessionCfg.Config
+	clock            clock.Clock
 	logger           *slog.Logger
 }
 
@@ -75,6 +76,30 @@ func NewLoginHandler(
 	jwtGenerator SessionTokenGenerator,
 	sessionCfg *sessionCfg.Config,
 ) OIDCLoginUseCase {
+	return newLoginHandler(
+		providers,
+		paramsRepo,
+		sessionRepo,
+		userRepo,
+		oidcIdentityRepo,
+		userIdentityRepo,
+		jwtGenerator,
+		sessionCfg,
+		&clock.RealClock{},
+	)
+}
+
+func newLoginHandler(
+	providers map[domainoidc.ProviderID]OIDCProviderWithLogin,
+	paramsRepo domainoidc.ParamsRepository,
+	sessionRepo domain.SessionRepository,
+	userRepo user.UserRepository,
+	oidcIdentityRepo oidcidentity.OIDCIdentityRepository,
+	userIdentityRepo UserWithOIDCIdentityRepository,
+	jwtGenerator SessionTokenGenerator,
+	sessionCfg *sessionCfg.Config,
+	clk clock.Clock,
+) OIDCLoginUseCase {
 	return &loginHandler{
 		providers:        providers,
 		paramsRepo:       paramsRepo,
@@ -84,6 +109,7 @@ func NewLoginHandler(
 		userIdentityRepo: userIdentityRepo,
 		jwtGenerator:     jwtGenerator,
 		sessionCfg:       sessionCfg,
+		clock:            clk,
 		logger:           slog.Default().WithGroup("auth").WithGroup("oidc").WithGroup("login"),
 	}
 }
@@ -113,7 +139,7 @@ func (h *loginHandler) Login(ctx context.Context, req *LoginRequest) (*LoginResu
 		return nil, err
 	}
 
-	now := time.Now().UTC()
+	now := h.clock.Now()
 	expiresAt := now.Add(h.sessionCfg.Duration)
 
 	session, err := domain.NewSession(userID, now, expiresAt)
@@ -157,7 +183,7 @@ func (h *loginHandler) loadAndValidateParams(ctx context.Context, req *LoginRequ
 		return nil, err
 	}
 
-	if storedParams.IsExpired(time.Now().UTC()) {
+	if storedParams.IsExpired(h.clock.Now()) {
 		h.logger.Warn("login attempt with expired params", slog.String("provider", string(req.Provider)))
 
 		return nil, domainoidc.ErrParamsExpired
