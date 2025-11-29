@@ -1,0 +1,23 @@
+# https://taskfile.dev
+
+version: "3"
+
+vars:
+    GREETING: Hello, World!
+
+tasks:
+    atlas:inspect:
+        desc: Inspect schema from GORM models
+        cmds:
+            - atlas schema inspect --env gorm --url "env://src"
+
+    atlas:diff:
+        desc: Create a migration diff from GORM models
+        cmds:
+            - atlas migrate diff --env gorm
+
+    atlas:apply:
+        desc: Apply migrations
+        cmds:
+            - test -n "$POSTGRES_DSN"
+            - atlas migrate apply --url "$POSTGRES_DSN"
