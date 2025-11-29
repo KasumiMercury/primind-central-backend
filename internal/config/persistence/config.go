@@ -20,6 +20,7 @@ const (
 var (
 	ErrPostgresDSNMissing = errors.New("postgres dsn is required")
 	ErrRedisAddrMissing   = errors.New("redis address is required")
+	ErrInvalidRedisDB     = errors.New("invalid redis db value")
 )
 
 type Config struct {
@@ -45,9 +46,12 @@ func Load() (*Config, error) {
 	redisDB := defaultRedisDB
 
 	if raw := os.Getenv(redisDBEnv); raw != "" {
-		if parsed, err := strconv.Atoi(raw); err == nil {
-			redisDB = parsed
+		parsed, err := strconv.Atoi(raw)
+		if err != nil {
+			return nil, ErrInvalidRedisDB
 		}
+
+		redisDB = parsed
 	}
 
 	cfg := &Config{
