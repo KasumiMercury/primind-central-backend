@@ -39,11 +39,12 @@ func run() error {
 	requireEnv("OIDC_GOOGLE_CLIENT_ID")
 	requireEnv("OIDC_GOOGLE_CLIENT_SECRET")
 
-	authSrv, err := startAuthServer()
+	authSrv, cleanup, err := startAuthServer()
 	if err != nil {
 		return err
 	}
 	defer authSrv.Close()
+	defer cleanup()
 
 	client := authv1connect.NewAuthServiceClient(authSrv.Client(), authSrv.URL)
 
@@ -101,18 +102,23 @@ func run() error {
 	return nil
 }
 
-func startAuthServer() (*httptest.Server, error) {
+func startAuthServer() (*httptest.Server, func(), error) {
 	ctx := context.Background()
 	mux := http.NewServeMux()
 
 	appCfg, err := config.Load()
 	if err != nil {
-		return nil, fmt.Errorf("load config: %w", err)
+		return nil, func() {}, fmt.Errorf("load config: %w", err)
 	}
 
 	db, err := gorm.Open(postgres.Open(appCfg.Persistence.PostgresDSN), &gorm.Config{})
 	if err != nil {
-		return nil, fmt.Errorf("connect postgres: %w", err)
+		return nil, func() {}, fmt.Errorf("connect postgres: %w", err)
+	}
+
+	sqlDB, err := db.DB()
+	if err != nil {
+		return nil, func() {}, fmt.Errorf("obtain postgres handle: %w", err)
 	}
 
 	redisClient := redis.NewClient(&redis.Options{
@@ -122,7 +128,9 @@ func startAuthServer() (*httptest.Server, error) {
 	})
 
 	if err := redisClient.Ping(ctx).Err(); err != nil {
-		return nil, fmt.Errorf("connect redis: %w", err)
+		sqlDB.Close()
+
+		return nil, func() {}, fmt.Errorf("connect redis: %w", err)
 	}
 
 	authPath, authHandler, err := authmodule.NewHTTPHandler(ctx, authmodule.Repositories{
@@ -133,14 +141,22 @@ func startAuthServer() (*httptest.Server, error) {
 		UserIdentity: repository.NewUserWithIdentityRepository(db),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("wire auth module: %w", err)
+		redisClient.Close()
+		sqlDB.Close()
+
+		return nil, func() {}, fmt.Errorf("wire auth module: %w", err)
 	}
 
 	mux.Handle(authPath, authHandler)
 
 	server := httptest.NewServer(mux)
 
-	return server, nil
+	cleanup := func() {
+		redisClient.Close()
+		sqlDB.Close()
+	}
+
+	return server, cleanup, nil
 }
 
 type oidcCallback struct {
