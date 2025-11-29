@@ -98,107 +98,19 @@ func (h *loginHandler) Login(ctx context.Context, req *LoginRequest) (*LoginResu
 
 	h.logger.Debug("processing oidc login", slog.String("provider", string(req.Provider)))
 
-	storedParams, err := h.paramsRepo.GetParamsByState(ctx, req.State)
+	storedParams, err := h.loadAndValidateParams(ctx, req)
 	if err != nil {
-		if errors.Is(err, domainoidc.ErrParamsNotFound) {
-			h.logger.Warn("state not found during login", slog.String("provider", string(req.Provider)))
-
-			return nil, ErrInvalidState
-		}
-
-		h.logger.Error("failed to load stored params", slog.String("error", err.Error()), slog.String("provider", string(req.Provider)))
-
 		return nil, err
 	}
 
-	if storedParams.IsExpired(time.Now().UTC()) {
-		h.logger.Warn("login attempt with expired params", slog.String("provider", string(req.Provider)))
-
-		return nil, domainoidc.ErrParamsExpired
-	}
-
-	if storedParams.Provider() != req.Provider {
-		h.logger.Warn("login attempted with mismatched provider", slog.String("provider", string(req.Provider)))
-
-		return nil, ErrInvalidState
-	}
-
-	codeVerifier := storedParams.CodeVerifier()
-
-	idToken, err := rpProvider.ExchangeToken(ctx, req.Code, codeVerifier, storedParams.Nonce())
+	idToken, err := h.exchangeAndValidateIDToken(ctx, rpProvider, req, storedParams)
 	if err != nil {
-		h.logger.Warn("token exchange failed", slog.String("error", err.Error()), slog.String("provider", string(req.Provider)))
-
-		return nil, fmt.Errorf("%w: %v", ErrInvalidCode, err)
-	}
-
-	if idToken.Nonce != storedParams.Nonce() {
-		h.logger.Warn("nonce validation failed", slog.String("provider", string(req.Provider)))
-
-		return nil, ErrInvalidNonce
-	}
-
-	oidcIdentity, err := h.oidcIdentityRepo.GetOIDCIdentityByProviderSubject(ctx, req.Provider, idToken.Subject)
-	if err != nil && !errors.Is(err, oidcidentity.ErrOIDCIdentityNotFound) {
-		h.logger.Error("failed to lookup oidc identity", slog.String("error", err.Error()))
-
 		return nil, err
 	}
 
-	var (
-		userID     user.ID
-		targetUser *user.User
-	)
-
-	if oidcIdentity == nil {
-		h.logger.Debug("creating new user for oidc login", slog.String("provider", string(req.Provider)))
-
-		newUser, err := user.CreateUserWithRandomColor()
-		if err != nil {
-			h.logger.Error("failed to generate user ID", slog.String("error", err.Error()))
-
-			return nil, err
-		}
-
-		if err := h.userRepo.SaveUser(ctx, newUser); err != nil {
-			h.logger.Error("failed to persist user", slog.String("error", err.Error()))
-
-			return nil, err
-		}
-
-		newIdentity, err := oidcidentity.NewOIDCIdentity(newUser.ID(), req.Provider, idToken.Subject)
-		if err != nil {
-			h.logger.Error("failed to create oidc identity", slog.String("error", err.Error()))
-
-			return nil, err
-		}
-
-		if err := h.userIdentityRepo.SaveUserWithOIDCIdentity(ctx, newUser, newIdentity); err != nil {
-			h.logger.Error("failed to persist user and oidc identity", slog.String("error", err.Error()))
-
-			return nil, err
-		}
-
-		userID = newUser.ID()
-		targetUser = newUser
-	} else {
-		h.logger.Debug("existing user found for oidc login", slog.String("provider", string(req.Provider)))
-
-		existingUser, err := h.userRepo.GetUserByID(ctx, oidcIdentity.UserID())
-		if err != nil {
-			h.logger.Error("failed to load user", slog.String("error", err.Error()))
-
-			return nil, err
-		}
-
-		userID = existingUser.ID()
-		targetUser = existingUser
-	}
-
-	if targetUser == nil {
-		h.logger.Error("user instance missing during session creation")
-
-		return nil, fmt.Errorf("user not available for session token generation")
+	userID, targetUser, err := h.resolveUser(ctx, req.Provider, idToken)
+	if err != nil {
+		return nil, err
 	}
 
 	now := time.Now().UTC()
@@ -229,4 +141,113 @@ func (h *loginHandler) Login(ctx context.Context, req *LoginRequest) (*LoginResu
 	return &LoginResult{
 		SessionToken: sessionToken,
 	}, nil
+}
+
+func (h *loginHandler) loadAndValidateParams(ctx context.Context, req *LoginRequest) (*domainoidc.Params, error) {
+	storedParams, err := h.paramsRepo.GetParamsByState(ctx, req.State)
+	if err != nil {
+		if errors.Is(err, domainoidc.ErrParamsNotFound) {
+			h.logger.Warn("state not found during login", slog.String("provider", string(req.Provider)))
+
+			return nil, ErrInvalidState
+		}
+
+		h.logger.Error("failed to load stored params", slog.String("error", err.Error()), slog.String("provider", string(req.Provider)))
+
+		return nil, err
+	}
+
+	if storedParams.IsExpired(time.Now().UTC()) {
+		h.logger.Warn("login attempt with expired params", slog.String("provider", string(req.Provider)))
+
+		return nil, domainoidc.ErrParamsExpired
+	}
+
+	if storedParams.Provider() != req.Provider {
+		h.logger.Warn("login attempted with mismatched provider", slog.String("provider", string(req.Provider)))
+
+		return nil, ErrInvalidState
+	}
+
+	return storedParams, nil
+}
+
+func (h *loginHandler) exchangeAndValidateIDToken(
+	ctx context.Context,
+	rpProvider OIDCProviderWithLogin,
+	req *LoginRequest,
+	params *domainoidc.Params,
+) (*IDToken, error) {
+	idToken, err := rpProvider.ExchangeToken(ctx, req.Code, params.CodeVerifier(), params.Nonce())
+	if err != nil {
+		h.logger.Warn("token exchange failed", slog.String("error", err.Error()), slog.String("provider", string(req.Provider)))
+
+		return nil, fmt.Errorf("%w: %v", ErrInvalidCode, err)
+	}
+
+	if idToken.Nonce != params.Nonce() {
+		h.logger.Warn("nonce validation failed", slog.String("provider", string(req.Provider)))
+
+		return nil, ErrInvalidNonce
+	}
+
+	return idToken, nil
+}
+
+func (h *loginHandler) resolveUser(
+	ctx context.Context,
+	provider domainoidc.ProviderID,
+	idToken *IDToken,
+) (user.ID, *user.User, error) {
+	oidcIdentity, err := h.oidcIdentityRepo.GetOIDCIdentityByProviderSubject(ctx, provider, idToken.Subject)
+	if err != nil && !errors.Is(err, oidcidentity.ErrOIDCIdentityNotFound) {
+		h.logger.Error("failed to lookup oidc identity", slog.String("error", err.Error()))
+
+		return user.ID{}, nil, err
+	}
+
+	if oidcIdentity == nil {
+		return h.createUserAndIdentity(ctx, provider, idToken.Subject)
+	}
+
+	h.logger.Debug("existing user found for oidc login", slog.String("provider", string(provider)))
+
+	existingUser, err := h.userRepo.GetUserByID(ctx, oidcIdentity.UserID())
+	if err != nil {
+		h.logger.Error("failed to load user", slog.String("error", err.Error()))
+
+		return user.ID{}, nil, err
+	}
+
+	return existingUser.ID(), existingUser, nil
+}
+
+func (h *loginHandler) createUserAndIdentity(
+	ctx context.Context,
+	provider domainoidc.ProviderID,
+	subject string,
+) (user.ID, *user.User, error) {
+	h.logger.Debug("creating new user for oidc login", slog.String("provider", string(provider)))
+
+	newUser, err := user.CreateUserWithRandomColor()
+	if err != nil {
+		h.logger.Error("failed to generate user ID", slog.String("error", err.Error()))
+
+		return user.ID{}, nil, err
+	}
+
+	newIdentity, err := oidcidentity.NewOIDCIdentity(newUser.ID(), provider, subject)
+	if err != nil {
+		h.logger.Error("failed to create oidc identity", slog.String("error", err.Error()))
+
+		return user.ID{}, nil, err
+	}
+
+	if err := h.userIdentityRepo.SaveUserWithOIDCIdentity(ctx, newUser, newIdentity); err != nil {
+		h.logger.Error("failed to persist user and oidc identity", slog.String("error", err.Error()))
+
+		return user.ID{}, nil, err
+	}
+
+	return newUser.ID(), newUser, nil
 }
