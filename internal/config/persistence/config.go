@@ -8,10 +8,10 @@ import (
 )
 
 const (
-	postgresDSNEnv   = "AUTH_POSTGRES_DSN"
-	redisAddrEnv     = "AUTH_REDIS_ADDR"
-	redisPasswordEnv = "AUTH_REDIS_PASSWORD"
-	redisDBEnv       = "AUTH_REDIS_DB"
+	postgresDSNEnv   = "POSTGRES_DSN"
+	redisAddrEnv     = "REDIS_ADDR"
+	redisPasswordEnv = "REDIS_PASSWORD"
+	redisDBEnv       = "REDIS_DB"
 
 	defaultRedisAddr = "localhost:6379"
 	defaultRedisDB   = 0
