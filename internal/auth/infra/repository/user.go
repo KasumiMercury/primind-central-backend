@@ -2,49 +2,70 @@ package repository
 
 import (
 	"context"
-	"sync"
+	"errors"
 	"time"
 
-	"github.com/KasumiMercury/primind-central-backend/internal/auth/domain/user"
+	domainuser "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/user"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
-type UserRecord struct {
-	user      *user.User
-	createdAt time.Time
+var ErrUserRequired = errors.New("user is required")
+
+type UserModel struct {
+	ID        string    `gorm:"type:uuid;primaryKey"`
+	Color     string    `gorm:"type:varchar(7);not null"`
+	CreatedAt time.Time `gorm:"not null;autoCreateTime"`
 }
 
-type inMemoryUserRepository struct {
-	mu   sync.Mutex
-	byID map[user.ID]UserRecord
+func (UserModel) TableName() string {
+	return "auth_users"
 }
 
-func NewInMemoryUserRepository() user.UserRepository {
-	return &inMemoryUserRepository{
-		mu:   sync.Mutex{},
-		byID: make(map[user.ID]UserRecord),
-	}
+type userRepository struct {
+	db *gorm.DB
 }
 
-func (r *inMemoryUserRepository) SaveUser(_ context.Context, u *user.User) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	r.byID[u.ID()] = UserRecord{
-		user:      u,
-		createdAt: time.Now(),
-	}
-
-	return nil
+func NewUserRepository(db *gorm.DB) domainuser.UserRepository {
+	return &userRepository{db: db}
 }
 
-func (r *inMemoryUserRepository) GetUserByID(_ context.Context, id user.ID) (*user.User, error) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	record, exists := r.byID[id]
-	if !exists {
-		return nil, user.ErrUserNotFound
+func (r *userRepository) SaveUser(ctx context.Context, u *domainuser.User) error {
+	if u == nil {
+		return ErrUserRequired
 	}
 
-	return record.user, nil
+	record := UserModel{
+		ID:        u.ID().String(),
+		Color:     u.Color().String(),
+		CreatedAt: time.Now().UTC(),
+	}
+
+	return r.db.WithContext(ctx).
+		Clauses(clause.OnConflict{DoNothing: true}).
+		Create(&record).
+		Error
+}
+
+func (r *userRepository) GetUserByID(ctx context.Context, id domainuser.ID) (*domainuser.User, error) {
+	var record UserModel
+	if err := r.db.WithContext(ctx).First(&record, "id = ?", id.String()).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, domainuser.ErrUserNotFound
+		}
+
+		return nil, err
+	}
+
+	userID, err := domainuser.NewIDFromString(record.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	color, err := domainuser.NewColor(record.Color)
+	if err != nil {
+		return nil, err
+	}
+
+	return domainuser.NewUser(userID, color), nil
 }
