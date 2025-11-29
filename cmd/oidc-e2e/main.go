@@ -53,6 +53,7 @@ func run() error {
 	}
 	defer stopCallback()
 
+	//exhaustruct:ignore
 	paramsResp, err := client.OIDCParams(ctx, &authv1.OIDCParamsRequest{
 		Provider: authv1.OIDCProvider_OIDC_PROVIDER_GOOGLE,
 	})
