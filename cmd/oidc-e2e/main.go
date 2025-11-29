@@ -13,8 +13,13 @@ import (
 	"time"
 
 	authmodule "github.com/KasumiMercury/primind-central-backend/internal/auth"
+	"github.com/KasumiMercury/primind-central-backend/internal/auth/infra/repository"
+	"github.com/KasumiMercury/primind-central-backend/internal/config"
 	authv1 "github.com/KasumiMercury/primind-central-backend/internal/gen/auth/v1"
 	authv1connect "github.com/KasumiMercury/primind-central-backend/internal/gen/auth/v1/authv1connect"
+	"github.com/redis/go-redis/v9"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 func main() {
@@ -99,7 +104,32 @@ func startAuthServer() (*httptest.Server, error) {
 	ctx := context.Background()
 	mux := http.NewServeMux()
 
-	authPath, authHandler, err := authmodule.NewHTTPHandler(ctx)
+	appCfg, err := config.Load()
+	if err != nil {
+		return nil, fmt.Errorf("load config: %w", err)
+	}
+
+	db, err := gorm.Open(postgres.Open(appCfg.Persistence.PostgresDSN), &gorm.Config{})
+	if err != nil {
+		return nil, fmt.Errorf("connect postgres: %w", err)
+	}
+
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     appCfg.Persistence.RedisAddr,
+		Password: appCfg.Persistence.RedisPassword,
+		DB:       appCfg.Persistence.RedisDB,
+	})
+
+	if err := redisClient.Ping(ctx).Err(); err != nil {
+		return nil, fmt.Errorf("connect redis: %w", err)
+	}
+
+	authPath, authHandler, err := authmodule.NewHTTPHandler(ctx, authmodule.Repositories{
+		Params:       repository.NewOIDCParamsRepository(redisClient),
+		Sessions:     repository.NewSessionRepository(redisClient),
+		Users:        repository.NewUserRepository(db),
+		OIDCIdentity: repository.NewOIDCIdentityRepository(db),
+	})
 	if err != nil {
 		return nil, fmt.Errorf("wire auth module: %w", err)
 	}
