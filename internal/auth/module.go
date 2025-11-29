@@ -10,16 +10,26 @@ import (
 	appsession "github.com/KasumiMercury/primind-central-backend/internal/auth/app/session"
 	authconfig "github.com/KasumiMercury/primind-central-backend/internal/auth/config"
 	domainoidc "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/oidc"
+	"github.com/KasumiMercury/primind-central-backend/internal/auth/domain/oidcidentity"
+	domainsession "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/session"
+	"github.com/KasumiMercury/primind-central-backend/internal/auth/domain/user"
 	sessionjwt "github.com/KasumiMercury/primind-central-backend/internal/auth/infra/jwt"
 	infraoidc "github.com/KasumiMercury/primind-central-backend/internal/auth/infra/oidc"
-	"github.com/KasumiMercury/primind-central-backend/internal/auth/infra/repository"
 	authsvc "github.com/KasumiMercury/primind-central-backend/internal/auth/infra/service"
 	authv1connect "github.com/KasumiMercury/primind-central-backend/internal/gen/auth/v1/authv1connect"
 )
 
+type Repositories struct {
+	Params       domainoidc.ParamsRepository
+	Sessions     domainsession.SessionRepository
+	Users        user.UserRepository
+	OIDCIdentity oidcidentity.OIDCIdentityRepository
+	UserIdentity appoidc.UserWithOIDCIdentityRepository
+}
+
 // NewHTTPHandler wires the auth module and returns the Connect HTTP handler
 // and its base path for registration into an HTTP mux.
-func NewHTTPHandler(ctx context.Context) (string, http.Handler, error) {
+func NewHTTPHandler(ctx context.Context, repos Repositories) (string, http.Handler, error) {
 	logger := slog.Default().WithGroup("auth")
 
 	logger.Debug("loading auth configuration")
@@ -31,10 +41,9 @@ func NewHTTPHandler(ctx context.Context) (string, http.Handler, error) {
 		return "", nil, err
 	}
 
-	paramsRepo := repository.NewInMemoryOIDCParamsRepository()
-	sessionRepo := repository.NewInMemorySessionRepository()
-	userRepo := repository.NewInMemoryUserRepository()
-	oidcIdentityRepo := repository.NewInMemoryOIDCIdentityRepository()
+	if repos.Params == nil || repos.Sessions == nil || repos.Users == nil || repos.OIDCIdentity == nil || repos.UserIdentity == nil {
+		return "", nil, fmt.Errorf("repositories are not fully configured")
+	}
 
 	var (
 		paramsGenerator appoidc.OIDCParamsGenerator
@@ -67,7 +76,7 @@ func NewHTTPHandler(ctx context.Context) (string, http.Handler, error) {
 			appProviders[id] = p
 		}
 
-		paramsGenerator = appoidc.NewParamsGenerator(appProviders, paramsRepo)
+		paramsGenerator = appoidc.NewParamsGenerator(appProviders, repos.Params)
 	} else {
 		logger.Warn("oidc configuration not provided; auth endpoints will be disabled")
 	}
@@ -87,8 +96,17 @@ func NewHTTPHandler(ctx context.Context) (string, http.Handler, error) {
 			appProviders[id] = p
 		}
 
-		loginHandler = appoidc.NewLoginHandler(appProviders, paramsRepo, sessionRepo, userRepo, oidcIdentityRepo, jwtGenerator, authCfg.Session)
-		sessionValidateCase = appsession.NewValidateSessionHandler(sessionRepo, jwtValidator)
+		loginHandler = appoidc.NewLoginHandler(
+			appProviders,
+			repos.Params,
+			repos.Sessions,
+			repos.Users,
+			repos.OIDCIdentity,
+			repos.UserIdentity,
+			jwtGenerator,
+			authCfg.Session,
+		)
+		sessionValidateCase = appsession.NewValidateSessionHandler(repos.Sessions, jwtValidator)
 
 		logger.Info("login and session validation handlers initialized")
 	} else {

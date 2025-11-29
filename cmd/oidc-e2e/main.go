@@ -13,8 +13,13 @@ import (
 	"time"
 
 	authmodule "github.com/KasumiMercury/primind-central-backend/internal/auth"
+	"github.com/KasumiMercury/primind-central-backend/internal/auth/infra/repository"
+	"github.com/KasumiMercury/primind-central-backend/internal/config"
 	authv1 "github.com/KasumiMercury/primind-central-backend/internal/gen/auth/v1"
 	authv1connect "github.com/KasumiMercury/primind-central-backend/internal/gen/auth/v1/authv1connect"
+	"github.com/redis/go-redis/v9"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 func main() {
@@ -34,11 +39,12 @@ func run() error {
 	requireEnv("OIDC_GOOGLE_CLIENT_ID")
 	requireEnv("OIDC_GOOGLE_CLIENT_SECRET")
 
-	authSrv, err := startAuthServer()
+	authSrv, cleanup, err := startAuthServer()
 	if err != nil {
 		return err
 	}
 	defer authSrv.Close()
+	defer cleanup()
 
 	client := authv1connect.NewAuthServiceClient(authSrv.Client(), authSrv.URL)
 
@@ -48,6 +54,7 @@ func run() error {
 	}
 	defer stopCallback()
 
+	//exhaustruct:ignore
 	paramsResp, err := client.OIDCParams(ctx, &authv1.OIDCParamsRequest{
 		Provider: authv1.OIDCProvider_OIDC_PROVIDER_GOOGLE,
 	})
@@ -95,20 +102,73 @@ func run() error {
 	return nil
 }
 
-func startAuthServer() (*httptest.Server, error) {
+func startAuthServer() (*httptest.Server, func(), error) {
 	ctx := context.Background()
 	mux := http.NewServeMux()
 
-	authPath, authHandler, err := authmodule.NewHTTPHandler(ctx)
+	appCfg, err := config.Load()
 	if err != nil {
-		return nil, fmt.Errorf("wire auth module: %w", err)
+		return nil, func() {}, fmt.Errorf("load config: %w", err)
+	}
+
+	db, err := gorm.Open(postgres.Open(appCfg.Persistence.PostgresDSN), &gorm.Config{})
+	if err != nil {
+		return nil, func() {}, fmt.Errorf("connect postgres: %w", err)
+	}
+
+	sqlDB, err := db.DB()
+	if err != nil {
+		return nil, func() {}, fmt.Errorf("obtain postgres handle: %w", err)
+	}
+
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     appCfg.Persistence.RedisAddr,
+		Password: appCfg.Persistence.RedisPassword,
+		DB:       appCfg.Persistence.RedisDB,
+	})
+
+	if err := redisClient.Ping(ctx).Err(); err != nil {
+		if err := sqlDB.Close(); err != nil {
+			log.Printf("failed to close postgres connection: %v", err)
+		}
+
+		return nil, func() {}, fmt.Errorf("connect redis: %w", err)
+	}
+
+	authPath, authHandler, err := authmodule.NewHTTPHandler(ctx, authmodule.Repositories{
+		Params:       repository.NewOIDCParamsRepository(redisClient),
+		Sessions:     repository.NewSessionRepository(redisClient),
+		Users:        repository.NewUserRepository(db),
+		OIDCIdentity: repository.NewOIDCIdentityRepository(db),
+		UserIdentity: repository.NewUserWithIdentityRepository(db),
+	})
+	if err != nil {
+		if err := redisClient.Close(); err != nil {
+			log.Printf("failed to close redis client: %v", err)
+		}
+
+		if err := sqlDB.Close(); err != nil {
+			log.Printf("failed to close postgres connection: %v", err)
+		}
+
+		return nil, func() {}, fmt.Errorf("wire auth module: %w", err)
 	}
 
 	mux.Handle(authPath, authHandler)
 
 	server := httptest.NewServer(mux)
 
-	return server, nil
+	cleanup := func() {
+		if err := redisClient.Close(); err != nil {
+			log.Printf("failed to close redis client: %v", err)
+		}
+
+		if err := sqlDB.Close(); err != nil {
+			log.Printf("failed to close postgres connection: %v", err)
+		}
+	}
+
+	return server, cleanup, nil
 }
 
 type oidcCallback struct {
