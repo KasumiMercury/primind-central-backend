@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"time"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 )
@@ -13,6 +14,7 @@ var (
 	ErrIDInvalidFormat = errors.New("task ID must be a valid UUID")
 	ErrIDInvalidV7     = errors.New("task ID must be a UUIDv7")
 
+	ErrUserIDEmpty       = errors.New("user ID cannot be empty")
 	ErrTitleEmpty        = errors.New("task title cannot be empty")
 	ErrTitleTooLong      = errors.New("task title cannot exceed 500 characters")
 	ErrInvalidTaskType   = errors.New("invalid task type")
@@ -104,11 +106,15 @@ func NewTask(
 	dueTime *time.Time,
 	createdAt time.Time,
 ) (*Task, error) {
+	if userID == "" {
+		return nil, ErrUserIDEmpty
+	}
+
 	if title == "" {
 		return nil, ErrTitleEmpty
 	}
 
-	if len(title) > 500 {
+	if utf8.RuneCountInString(title) > 500 {
 		return nil, ErrTitleTooLong
 	}
 
