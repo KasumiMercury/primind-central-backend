@@ -43,6 +43,7 @@ func Load() (*Config, error) {
 	redisPassword := os.Getenv(redisPasswordEnv)
 
 	redisDB := defaultRedisDB
+
 	if raw := os.Getenv(redisDBEnv); raw != "" {
 		if parsed, err := strconv.Atoi(raw); err == nil {
 			redisDB = parsed
