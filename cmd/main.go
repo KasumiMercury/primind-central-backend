@@ -8,8 +8,11 @@ import (
 	"time"
 
 	authmodule "github.com/KasumiMercury/primind-central-backend/internal/auth"
-	"github.com/KasumiMercury/primind-central-backend/internal/auth/infra/repository"
+	authrepository "github.com/KasumiMercury/primind-central-backend/internal/auth/infra/repository"
 	"github.com/KasumiMercury/primind-central-backend/internal/config"
+	taskmodule "github.com/KasumiMercury/primind-central-backend/internal/task"
+	taskconfig "github.com/KasumiMercury/primind-central-backend/internal/task/config"
+	taskrepository "github.com/KasumiMercury/primind-central-backend/internal/task/infra/repository"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -66,11 +69,11 @@ func main() {
 	}
 
 	authPath, authHandler, err := authmodule.NewHTTPHandler(ctx, authmodule.Repositories{
-		Params:       repository.NewOIDCParamsRepository(redisClient),
-		Sessions:     repository.NewSessionRepository(redisClient),
-		Users:        repository.NewUserRepository(db),
-		OIDCIdentity: repository.NewOIDCIdentityRepository(db),
-		UserIdentity: repository.NewUserWithIdentityRepository(db),
+		Params:       authrepository.NewOIDCParamsRepository(redisClient),
+		Sessions:     authrepository.NewSessionRepository(redisClient),
+		Users:        authrepository.NewUserRepository(db),
+		OIDCIdentity: authrepository.NewOIDCIdentityRepository(db),
+		UserIdentity: authrepository.NewUserWithIdentityRepository(db),
 	})
 	if err != nil {
 		logger.Error("failed to initialize auth service", slog.String("error", err.Error()))
@@ -78,6 +81,24 @@ func main() {
 	}
 
 	mux.Handle(authPath, authHandler)
+
+	taskCfg, err := taskconfig.Load()
+	if err != nil {
+		logger.Error("failed to load task config", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+
+	taskPath, taskHandler, err := taskmodule.NewHTTPHandler(
+		ctx,
+		taskrepository.NewTaskRepository(db),
+		taskCfg.AuthServiceURL,
+	)
+	if err != nil {
+		logger.Error("failed to initialize task service", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+
+	mux.Handle(taskPath, taskHandler)
 
 	addr := ":8080"
 	logger.Info("starting Connect API server", slog.String("address", addr))
