@@ -15,7 +15,8 @@ import (
 var ErrIdentityRequired = errors.New("identity is required")
 
 type OIDCIdentityModel struct {
-	UserID    string    `gorm:"type:uuid;not null"`
+	UserID    string    `gorm:"type:uuid;not null;index"`
+	User      UserModel `gorm:"constraint:OnDelete:CASCADE,OnUpdate:CASCADE;foreignKey:UserID;references:ID"`
 	Provider  string    `gorm:"type:text;not null;primaryKey"`
 	Subject   string    `gorm:"type:text;not null;primaryKey"`
 	CreatedAt time.Time `gorm:"not null;autoCreateTime"`

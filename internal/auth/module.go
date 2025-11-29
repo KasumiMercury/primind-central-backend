@@ -24,6 +24,7 @@ type Repositories struct {
 	Sessions     domainsession.SessionRepository
 	Users        user.UserRepository
 	OIDCIdentity oidcidentity.OIDCIdentityRepository
+	UserIdentity appoidc.UserWithOIDCIdentityRepository
 }
 
 // NewHTTPHandler wires the auth module and returns the Connect HTTP handler
@@ -40,7 +41,7 @@ func NewHTTPHandler(ctx context.Context, repos Repositories) (string, http.Handl
 		return "", nil, err
 	}
 
-	if repos.Params == nil || repos.Sessions == nil || repos.Users == nil || repos.OIDCIdentity == nil {
+	if repos.Params == nil || repos.Sessions == nil || repos.Users == nil || repos.OIDCIdentity == nil || repos.UserIdentity == nil {
 		return "", nil, fmt.Errorf("repositories are not fully configured")
 	}
 
@@ -95,7 +96,16 @@ func NewHTTPHandler(ctx context.Context, repos Repositories) (string, http.Handl
 			appProviders[id] = p
 		}
 
-		loginHandler = appoidc.NewLoginHandler(appProviders, repos.Params, repos.Sessions, repos.Users, repos.OIDCIdentity, jwtGenerator, authCfg.Session)
+		loginHandler = appoidc.NewLoginHandler(
+			appProviders,
+			repos.Params,
+			repos.Sessions,
+			repos.Users,
+			repos.OIDCIdentity,
+			repos.UserIdentity,
+			jwtGenerator,
+			authCfg.Session,
+		)
 		sessionValidateCase = appsession.NewValidateSessionHandler(repos.Sessions, jwtValidator)
 
 		logger.Info("login and session validation handlers initialized")

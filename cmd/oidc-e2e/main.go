@@ -129,6 +129,7 @@ func startAuthServer() (*httptest.Server, error) {
 		Sessions:     repository.NewSessionRepository(redisClient),
 		Users:        repository.NewUserRepository(db),
 		OIDCIdentity: repository.NewOIDCIdentityRepository(db),
+		UserIdentity: repository.NewUserWithIdentityRepository(db),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("wire auth module: %w", err)

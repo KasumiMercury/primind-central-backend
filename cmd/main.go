@@ -52,6 +52,7 @@ func main() {
 		Sessions:     repository.NewSessionRepository(redisClient),
 		Users:        repository.NewUserRepository(db),
 		OIDCIdentity: repository.NewOIDCIdentityRepository(db),
+		UserIdentity: repository.NewUserWithIdentityRepository(db),
 	})
 	if err != nil {
 		logger.Error("failed to initialize auth service", slog.String("error", err.Error()))

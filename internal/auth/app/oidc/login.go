@@ -24,6 +24,10 @@ type OIDCLoginUseCase interface {
 	Login(ctx context.Context, req *LoginRequest) (*LoginResult, error)
 }
 
+type UserWithOIDCIdentityRepository interface {
+	SaveUserWithOIDCIdentity(ctx context.Context, user *user.User, identity *oidcidentity.OIDCIdentity) error
+}
+
 type SessionTokenGenerator interface {
 	Generate(session *domain.Session, user *user.User) (string, error)
 }
@@ -55,6 +59,7 @@ type loginHandler struct {
 	sessionRepo      domain.SessionRepository
 	userRepo         user.UserRepository
 	oidcIdentityRepo oidcidentity.OIDCIdentityRepository
+	userIdentityRepo UserWithOIDCIdentityRepository
 	jwtGenerator     SessionTokenGenerator
 	sessionCfg       *sessionCfg.Config
 	logger           *slog.Logger
@@ -66,6 +71,7 @@ func NewLoginHandler(
 	sessionRepo domain.SessionRepository,
 	userRepo user.UserRepository,
 	oidcIdentityRepo oidcidentity.OIDCIdentityRepository,
+	userIdentityRepo UserWithOIDCIdentityRepository,
 	jwtGenerator SessionTokenGenerator,
 	sessionCfg *sessionCfg.Config,
 ) OIDCLoginUseCase {
@@ -75,6 +81,7 @@ func NewLoginHandler(
 		sessionRepo:      sessionRepo,
 		userRepo:         userRepo,
 		oidcIdentityRepo: oidcIdentityRepo,
+		userIdentityRepo: userIdentityRepo,
 		jwtGenerator:     jwtGenerator,
 		sessionCfg:       sessionCfg,
 		logger:           slog.Default().WithGroup("auth").WithGroup("oidc").WithGroup("login"),
@@ -166,8 +173,8 @@ func (h *loginHandler) Login(ctx context.Context, req *LoginRequest) (*LoginResu
 			return nil, err
 		}
 
-		if err := h.oidcIdentityRepo.SaveOIDCIdentity(ctx, newIdentity); err != nil {
-			h.logger.Error("failed to persist oidc identity", slog.String("error", err.Error()))
+		if err := h.userIdentityRepo.SaveUserWithOIDCIdentity(ctx, newUser, newIdentity); err != nil {
+			h.logger.Error("failed to persist user and oidc identity", slog.String("error", err.Error()))
 
 			return nil, err
 		}
