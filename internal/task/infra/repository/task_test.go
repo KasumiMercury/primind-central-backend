@@ -32,7 +32,11 @@ func TestTaskRepositoryIntegrationSuccess(t *testing.T) {
 	repo := NewTaskRepository(db)
 
 	taskId := uuid.Must(uuid.NewV7())
+
 	userId, err := domainuser.NewID()
+	if err != nil {
+		t.Fatalf("failed to create user ID: %v", err)
+	}
 
 	task, err := domaintask.NewTask(
 		domaintask.ID(taskId),
