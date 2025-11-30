@@ -90,7 +90,11 @@ func TestNewHTTPHandlerWithRepositoriesError(t *testing.T) {
 					AuthClient: apptask.NewMockAuthClient(ctrl),
 				}
 			},
-			ctx:         context.Background(),
+			ctx: func() context.Context {
+				ctx, cancel := context.WithCancel(context.Background())
+				cancel()
+				return ctx
+			}(),
 			expectError: false,
 		},
 	}

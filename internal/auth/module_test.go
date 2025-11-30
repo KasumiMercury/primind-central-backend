@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"os"
 	"testing"
 	"time"
 
@@ -74,7 +73,7 @@ func TestNewHTTPHandlerError(t *testing.T) {
 			name: "missing session secret",
 			setupEnv: func() {
 				clearOIDCEnv(t)
-				os.Unsetenv("SESSION_SECRET")
+				t.Setenv("SESSION_SECRET", "")
 			},
 			repos:     Repositories{},
 			wantError: true,

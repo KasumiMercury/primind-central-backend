@@ -132,7 +132,6 @@ func TestAuthE2ELoginValidateLogoutFlow(t *testing.T) {
 		t.Fatalf("expected user id in validate response")
 	}
 
-	// Logout should succeed and invalidate the session.
 	_, err = service.Logout(ctx, &authv1.LogoutRequest{
 		SessionToken: loginResp.GetSessionToken(),
 	})
@@ -227,11 +226,10 @@ func TestAuthE2EValidateInvalidSession(t *testing.T) {
 		t.Fatalf("expected invalid token error, got %v", err)
 	}
 
-	// create and expire a session manually to test expired path.
 	userID, _ := user.NewID()
 	now := time.Now().UTC().Add(-2 * time.Minute)
-	session, _ := domainsession.NewSession(userID, now, now.Add(-time.Minute))
-	// Save will fail due to TTL check; ensure validator handles missing session.
+	session, _ := domainsession.NewSession(userID, now, now.Add(time.Minute))
+
 	if err := sessionRepo.SaveSession(ctx, session); err == nil {
 		t.Fatalf("expected save session to fail due to expiry")
 	}

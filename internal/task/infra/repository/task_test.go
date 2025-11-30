@@ -16,8 +16,8 @@ func setupTaskDB(t *testing.T) *gorm.DB {
 	t.Helper()
 
 	ctx := context.Background()
-	db, clenaup := testutil.SetupPostgresContainer(ctx, t)
-	t.Cleanup(clenaup)
+	db, cleanup := testutil.SetupPostgresContainer(ctx, t)
+	t.Cleanup(cleanup)
 
 	if err := db.AutoMigrate(&TaskModel{}); err != nil {
 		t.Fatalf("failed to migrate database: %v", err)

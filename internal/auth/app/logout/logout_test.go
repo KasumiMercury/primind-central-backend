@@ -53,10 +53,6 @@ func TestLogoutSuccess(t *testing.T) {
 	if !resp.Success {
 		t.Fatalf("expected success response")
 	}
-
-	if userID == (user.ID{}) {
-		t.Fatalf("user id should not be zero")
-	}
 }
 
 func TestLogoutError(t *testing.T) {

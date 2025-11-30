@@ -249,7 +249,7 @@ func TestNewTypeErrors(t *testing.T) {
 	}
 }
 
-func NewStatusSuccess(t *testing.T) {
+func TestNewStatusSuccess(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
