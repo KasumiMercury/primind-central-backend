@@ -230,7 +230,9 @@ func TestAuthE2EValidateInvalidSession(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create user id: %v", err)
 	}
+
 	now := time.Now().UTC().Add(-2 * time.Minute)
+
 	session, err := domainsession.NewSession(userID, now, now.Add(time.Minute))
 	if err != nil {
 		t.Fatalf("failed to create session: %v", err)
