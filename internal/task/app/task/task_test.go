@@ -221,6 +221,7 @@ func TestGetTaskSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to generate user id: %v", err)
 	}
+
 	userIDWithDue, err := domainuser.NewID()
 	if err != nil {
 		t.Fatalf("failed to generate user id: %v", err)

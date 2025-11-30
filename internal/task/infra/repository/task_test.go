@@ -81,6 +81,7 @@ func TestTaskRepositoryIntegrationError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create user ID: %v", err)
 	}
+
 	if _, err := repo.GetTaskByID(ctx, nonExistentID, userID); !errors.Is(err, domaintask.ErrTaskNotFound) {
 		t.Fatalf("expected ErrTaskNotFound, got %v", err)
 	}
@@ -90,10 +91,12 @@ func TestTaskRepositoryIntegrationError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create user1 ID: %v", err)
 	}
+
 	user2ID, err := domainuser.NewID()
 	if err != nil {
 		t.Fatalf("failed to create user2 ID: %v", err)
 	}
+
 	taskID := domaintask.ID(uuid.Must(uuid.NewV7()))
 
 	task, err := domaintask.NewTask(
