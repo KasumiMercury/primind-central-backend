@@ -1,16 +1,8 @@
 package oidcidentity
 
 import (
-	"errors"
-
 	domainoidc "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/oidc"
 	"github.com/KasumiMercury/primind-central-backend/internal/auth/domain/user"
-)
-
-var (
-	ErrUserIDEmpty   = errors.New("user ID must be specified")
-	ErrProviderEmpty = errors.New("provider must be specified")
-	ErrSubjectEmpty  = errors.New("subject must be specified")
 )
 
 type OIDCIdentity struct {

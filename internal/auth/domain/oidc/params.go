@@ -1,9 +1,6 @@
 package oidc
 
-import (
-	"errors"
-	"time"
-)
+import "time"
 
 type ProviderID string
 
@@ -11,14 +8,6 @@ const (
 	ProviderGoogle ProviderID = "google"
 
 	ParamsExpirationDuration = 10 * time.Minute
-)
-
-var (
-	ErrProviderInvalid   = errors.New("provider must be specified")
-	ErrStateEmpty        = errors.New("state must be specified")
-	ErrNonceEmpty        = errors.New("nonce must be specified")
-	ErrCodeVerifierEmpty = errors.New("code verifier must be specified")
-	ErrParamsExpired     = errors.New("authentication parameters have expired")
 )
 
 type Params struct {

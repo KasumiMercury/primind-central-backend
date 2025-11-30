@@ -1,22 +1,11 @@
 package domain
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
 	"github.com/KasumiMercury/primind-central-backend/internal/auth/domain/user"
 	"github.com/google/uuid"
-)
-
-var (
-	ErrUserIDEmpty            = errors.New("user ID must be specified")
-	ErrExpiresAtMissing       = errors.New("expiresAt must be specified")
-	ErrExpiresBeforeStart     = errors.New("expiresAt must be after createdAt")
-	ErrSessionIDEmpty         = errors.New("session ID must be specified")
-	ErrSessionIDInvalidFormat = errors.New("session ID must be a valid UUID")
-	ErrSessionIDInvalidV7     = errors.New("session ID must be a UUIDv7")
-	ErrSessionIDGeneration    = errors.New("failed to generate session ID")
 )
 
 type ID uuid.UUID

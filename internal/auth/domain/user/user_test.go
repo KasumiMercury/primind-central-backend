@@ -40,6 +40,7 @@ func TestNewIDFromStringSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("setup failed: %v", err)
 	}
+
 	validIDStr := validID.String()
 
 	tests := []struct {
@@ -75,6 +76,7 @@ func TestNewIDFromStringSuccess(t *testing.T) {
 		}
 
 		idStr := originalID.String()
+
 		parsedID, err := NewIDFromString(idStr)
 		if err != nil {
 			t.Fatalf("NewIDFromString(%q) error: %v", idStr, err)
@@ -124,7 +126,6 @@ func TestNewIDFromStringErrors(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			id, err := NewIDFromString(tt.input)
-
 			if err == nil {
 				t.Fatalf("NewIDFromString(%q) expected error, got ID: %s", tt.input, id.String())
 			}
@@ -261,6 +262,7 @@ func TestCreateUserWithRandomColorSuccess(t *testing.T) {
 					if ids[idStr] {
 						t.Errorf("CreateUserWithRandomColor() generated duplicate ID: %s", idStr)
 					}
+
 					ids[idStr] = true
 				}
 			}

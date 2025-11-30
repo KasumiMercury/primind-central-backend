@@ -49,7 +49,6 @@ func TestNewOIDCIdentitySuccess(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			identity, err := NewOIDCIdentity(tt.userID, tt.provider, tt.subject)
-
 			if err != nil {
 				t.Fatalf("NewOIDCIdentity() unexpected error: %v", err)
 			}
@@ -142,7 +141,6 @@ func TestNewOIDCIdentityErrors(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			identity, err := NewOIDCIdentity(tt.userID, tt.provider, tt.subject)
-
 			if err == nil {
 				t.Fatalf("NewOIDCIdentity() expected error %v, got nil (identity: %+v)", tt.expectedErr, identity)
 			}
@@ -164,8 +162,10 @@ func TestOIDCIdentityAccessors(t *testing.T) {
 		t.Fatalf("setup failed: %v", err)
 	}
 
-	const testProvider = domainoidc.ProviderGoogle
-	const testSubject = "test-subject-123"
+	const (
+		testProvider = domainoidc.ProviderGoogle
+		testSubject  = "test-subject-123"
+	)
 
 	identity, err := NewOIDCIdentity(userID, testProvider, testSubject)
 	if err != nil {
@@ -231,7 +231,6 @@ func TestOIDCIdentityWithDifferentProviders(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			identity, err := NewOIDCIdentity(userID, tt.provider, tt.subject)
-
 			if err != nil {
 				t.Fatalf("NewOIDCIdentity() error: %v", err)
 			}
