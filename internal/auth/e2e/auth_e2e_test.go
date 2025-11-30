@@ -226,20 +226,29 @@ func TestAuthE2EValidateInvalidSession(t *testing.T) {
 		t.Fatalf("expected invalid token error, got %v", err)
 	}
 
-	userID, _ := user.NewID()
+	userID, err := user.NewID()
+	if err != nil {
+		t.Fatalf("failed to create user id: %v", err)
+	}
 	now := time.Now().UTC().Add(-2 * time.Minute)
-	session, _ := domainsession.NewSession(userID, now, now.Add(time.Minute))
+	session, err := domainsession.NewSession(userID, now, now.Add(time.Minute))
+	if err != nil {
+		t.Fatalf("failed to create session: %v", err)
+	}
 
 	if err := sessionRepo.SaveSession(ctx, session); err == nil {
 		t.Fatalf("expected save session to fail due to expiry")
 	}
 
-	expiredToken, _ := jwtGenerator.Generate(session, user.NewUser(userID, user.MustColor("#000000")))
+	expiredToken, err := jwtGenerator.Generate(session, user.NewUser(userID, user.MustColor("#000000")))
+	if err != nil {
+		t.Fatalf("failed to generate token: %v", err)
+	}
 
 	_, err = service.ValidateSession(ctx, &authv1.ValidateSessionRequest{
 		SessionToken: expiredToken,
 	})
-	if err == nil {
-		t.Fatalf("expected error for expired session token")
+	if err == nil || !errors.Is(err, appsession.ErrSessionTokenInvalid) {
+		t.Fatalf("expected invalid token error for expired session, got %v", err)
 	}
 }
