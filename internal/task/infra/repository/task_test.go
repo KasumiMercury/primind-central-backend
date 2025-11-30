@@ -7,6 +7,7 @@ import (
 	"time"
 
 	domaintask "github.com/KasumiMercury/primind-central-backend/internal/task/domain/task"
+	domainuser "github.com/KasumiMercury/primind-central-backend/internal/task/domain/user"
 	"github.com/KasumiMercury/primind-central-backend/internal/testutil"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -31,11 +32,15 @@ func TestTaskRepositoryIntegrationSuccess(t *testing.T) {
 	repo := NewTaskRepository(db)
 
 	taskId := uuid.Must(uuid.NewV7())
-	userId := uuid.Must(uuid.NewV7())
+
+	userId, err := domainuser.NewID()
+	if err != nil {
+		t.Fatalf("failed to create user ID: %v", err)
+	}
 
 	task, err := domaintask.NewTask(
 		domaintask.ID(taskId),
-		userId.String(),
+		userId,
 		"Test Task",
 		"normal",
 		"active",
@@ -53,7 +58,7 @@ func TestTaskRepositoryIntegrationSuccess(t *testing.T) {
 	}
 
 	// Test GetByID
-	retrievedTask, err := repo.GetTaskByID(context.Background(), task.ID(), userId.String())
+	retrievedTask, err := repo.GetTaskByID(context.Background(), task.ID(), userId)
 	if err != nil {
 		t.Fatalf("failed to get task by ID: %v", err)
 	}
@@ -76,14 +81,26 @@ func TestTaskRepositoryIntegrationError(t *testing.T) {
 	// Scenario 2: GetTaskByID for non-existent task
 	nonExistentID := domaintask.ID(uuid.Must(uuid.NewV7()))
 
-	userID := uuid.Must(uuid.NewV7()).String()
+	userID, err := domainuser.NewID()
+	if err != nil {
+		t.Fatalf("failed to create user ID: %v", err)
+	}
+
 	if _, err := repo.GetTaskByID(ctx, nonExistentID, userID); !errors.Is(err, domaintask.ErrTaskNotFound) {
 		t.Fatalf("expected ErrTaskNotFound, got %v", err)
 	}
 
 	// Scenario 3: GetTaskByID with user isolation
-	user1ID := uuid.Must(uuid.NewV7()).String()
-	user2ID := uuid.Must(uuid.NewV7()).String()
+	user1ID, err := domainuser.NewID()
+	if err != nil {
+		t.Fatalf("failed to create user1 ID: %v", err)
+	}
+
+	user2ID, err := domainuser.NewID()
+	if err != nil {
+		t.Fatalf("failed to create user2 ID: %v", err)
+	}
+
 	taskID := domaintask.ID(uuid.Must(uuid.NewV7()))
 
 	task, err := domaintask.NewTask(
@@ -140,7 +157,11 @@ func TestTaskRepositoryWithFixedClock(t *testing.T) {
 
 	fixedTime := time.Date(2024, 1, 1, 10, 0, 0, 0, time.UTC)
 	taskID := domaintask.ID(uuid.Must(uuid.NewV7()))
-	userID := uuid.Must(uuid.NewV7()).String()
+
+	userID, err := domainuser.NewID()
+	if err != nil {
+		t.Fatalf("failed to create user ID: %v", err)
+	}
 
 	// Create task with specific CreatedAt
 	task, err := domaintask.NewTask(

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	domaintask "github.com/KasumiMercury/primind-central-backend/internal/task/domain/task"
+	domainuser "github.com/KasumiMercury/primind-central-backend/internal/task/domain/user"
 	"gorm.io/gorm"
 )
 
@@ -49,7 +50,7 @@ func (r *taskRepository) SaveTask(ctx context.Context, task *domaintask.Task) er
 
 	record := TaskModel{
 		ID:          task.ID().String(),
-		UserID:      task.UserID(),
+		UserID:      task.UserID().String(),
 		Title:       task.Title(),
 		TaskType:    string(task.TaskType()),
 		TaskStatus:  string(task.TaskStatus()),
@@ -61,7 +62,7 @@ func (r *taskRepository) SaveTask(ctx context.Context, task *domaintask.Task) er
 	return r.db.WithContext(ctx).Create(&record).Error
 }
 
-func (r *taskRepository) GetTaskByID(ctx context.Context, id domaintask.ID, userID string) (*domaintask.Task, error) {
+func (r *taskRepository) GetTaskByID(ctx context.Context, id domaintask.ID, userID domainuser.ID) (*domaintask.Task, error) {
 	var record TaskModel
 	if err := r.db.WithContext(ctx).
 		Where("id = ? AND user_id = ?", id.String(), userID).
@@ -73,7 +74,12 @@ func (r *taskRepository) GetTaskByID(ctx context.Context, id domaintask.ID, user
 		return nil, err
 	}
 
-	taskID, err := domaintask.NewIDFromString(record.ID)
+	recordTaskID, err := domaintask.NewIDFromString(record.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	recordUserID, err := domainuser.NewIDFromString(record.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -89,8 +95,8 @@ func (r *taskRepository) GetTaskByID(ctx context.Context, id domaintask.ID, user
 	}
 
 	return domaintask.NewTask(
-		taskID,
-		record.UserID,
+		recordTaskID,
+		recordUserID,
 		record.Title,
 		taskType,
 		taskStatus,

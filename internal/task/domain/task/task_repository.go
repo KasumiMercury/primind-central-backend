@@ -1,8 +1,12 @@
 package task
 
-import "context"
+import (
+	"context"
+
+	"github.com/KasumiMercury/primind-central-backend/internal/task/domain/user"
+)
 
 type TaskRepository interface {
 	SaveTask(ctx context.Context, task *Task) error
-	GetTaskByID(ctx context.Context, id ID, userID string) (*Task, error)
+	GetTaskByID(ctx context.Context, id ID, userID user.ID) (*Task, error)
 }

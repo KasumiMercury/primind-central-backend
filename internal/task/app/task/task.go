@@ -3,10 +3,12 @@ package task
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"time"
 
 	domaintask "github.com/KasumiMercury/primind-central-backend/internal/task/domain/task"
+	domainuser "github.com/KasumiMercury/primind-central-backend/internal/task/domain/user"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/authclient"
 )
 
@@ -48,9 +50,16 @@ func (h *createTaskHandler) CreateTask(ctx context.Context, req *CreateTaskReque
 		return nil, ErrCreateTaskRequestRequired
 	}
 
-	userID, err := h.authClient.ValidateSession(ctx, req.SessionToken)
+	userIDstr, err := h.authClient.ValidateSession(ctx, req.SessionToken)
 	if err != nil {
 		h.logger.Info("session validation failed", slog.String("error", err.Error()))
+
+		return nil, fmt.Errorf("%w: %s", ErrUnauthorized, err.Error())
+	}
+
+	userID, err := domainuser.NewIDFromString(userIDstr)
+	if err != nil {
+		h.logger.Warn("invalid user ID format", slog.String("error", err.Error()))
 
 		return nil, err
 	}
@@ -128,9 +137,16 @@ func (h *getTaskHandler) GetTask(ctx context.Context, req *GetTaskRequest) (*Get
 		return nil, ErrGetTaskRequestRequired
 	}
 
-	userID, err := h.authClient.ValidateSession(ctx, req.SessionToken)
+	userIDstr, err := h.authClient.ValidateSession(ctx, req.SessionToken)
 	if err != nil {
 		h.logger.Info("session validation failed", slog.String("error", err.Error()))
+
+		return nil, fmt.Errorf("%w: %s", ErrUnauthorized, err.Error())
+	}
+
+	userID, err := domainuser.NewIDFromString(userIDstr)
+	if err != nil {
+		h.logger.Warn("invalid user ID format", slog.String("error", err.Error()))
 
 		return nil, err
 	}
