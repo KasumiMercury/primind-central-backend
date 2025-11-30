@@ -54,14 +54,14 @@ func (h *createTaskHandler) CreateTask(ctx context.Context, req *CreateTaskReque
 	if err != nil {
 		h.logger.Info("session validation failed", slog.String("error", err.Error()))
 
-		return nil, err
+		return nil, fmt.Errorf("%w: %s", ErrUnauthorized, err.Error())
 	}
 
 	userID, err := domainuser.NewIDFromString(userIDstr)
 	if err != nil {
 		h.logger.Warn("invalid user ID format", slog.String("error", err.Error()))
 
-		return nil, err
+		return nil, fmt.Errorf("%w: %s", ErrUnauthorized, err.Error())
 	}
 
 	if req.Title == "" {
