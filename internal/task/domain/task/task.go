@@ -5,6 +5,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/KasumiMercury/primind-central-backend/internal/task/domain/user"
 	"github.com/google/uuid"
 )
 
@@ -72,7 +73,7 @@ func NewStatus(s string) (Status, error) {
 
 type Task struct {
 	id          ID
-	userID      string
+	userID      user.ID
 	title       string
 	taskType    Type
 	taskStatus  Status
@@ -83,7 +84,7 @@ type Task struct {
 
 func NewTask(
 	id ID,
-	userID string,
+	userID user.ID,
 	title string,
 	taskType Type,
 	taskStatus Status,
@@ -97,10 +98,6 @@ func NewTask(
 	if dueTime != nil {
 		t := dueTime.UTC().Truncate(time.Microsecond)
 		normalizedDueTime = &t
-	}
-
-	if userID == "" {
-		return nil, ErrUserIDEmpty
 	}
 
 	if title == "" {
@@ -128,7 +125,7 @@ func NewTask(
 }
 
 func CreateTask(
-	userID string,
+	userID user.ID,
 	title string,
 	taskType Type,
 	description *string,
@@ -155,7 +152,7 @@ func (t *Task) ID() ID {
 	return t.id
 }
 
-func (t *Task) UserID() string {
+func (t *Task) UserID() user.ID {
 	return t.userID
 }
 
