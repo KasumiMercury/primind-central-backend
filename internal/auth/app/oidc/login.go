@@ -14,12 +14,6 @@ import (
 	"github.com/KasumiMercury/primind-central-backend/internal/auth/infra/clock"
 )
 
-var (
-	ErrInvalidCode  = errors.New("invalid authorization code")
-	ErrInvalidState = errors.New("invalid state parameter")
-	ErrInvalidNonce = errors.New("nonce validation failed")
-)
-
 type OIDCLoginUseCase interface {
 	Login(ctx context.Context, req *LoginRequest) (*LoginResult, error)
 }
@@ -143,7 +137,7 @@ func (h *loginHandler) Login(ctx context.Context, req *LoginRequest) (*LoginResu
 	if !ok {
 		h.logger.Warn("login attempted with unsupported provider", slog.String("provider", string(req.Provider)))
 
-		return nil, ErrProviderUnsupported
+		return nil, ErrOIDCProviderUnsupported
 	}
 
 	h.logger.Debug("processing oidc login", slog.String("provider", string(req.Provider)))
@@ -199,7 +193,7 @@ func (h *loginHandler) loadAndValidateParams(ctx context.Context, req *LoginRequ
 		if errors.Is(err, domainoidc.ErrParamsNotFound) {
 			h.logger.Warn("state not found during login", slog.String("provider", string(req.Provider)))
 
-			return nil, ErrInvalidState
+			return nil, ErrStateInvalid
 		}
 
 		h.logger.Error("failed to load stored params", slog.String("error", err.Error()), slog.String("provider", string(req.Provider)))
@@ -216,7 +210,7 @@ func (h *loginHandler) loadAndValidateParams(ctx context.Context, req *LoginRequ
 	if storedParams.Provider() != req.Provider {
 		h.logger.Warn("login attempted with mismatched provider", slog.String("provider", string(req.Provider)))
 
-		return nil, ErrInvalidState
+		return nil, ErrStateInvalid
 	}
 
 	return storedParams, nil
@@ -232,13 +226,13 @@ func (h *loginHandler) exchangeAndValidateIDToken(
 	if err != nil {
 		h.logger.Warn("token exchange failed", slog.String("error", err.Error()), slog.String("provider", string(req.Provider)))
 
-		return nil, fmt.Errorf("%w: %v", ErrInvalidCode, err)
+		return nil, fmt.Errorf("%w: %v", ErrCodeInvalid, err)
 	}
 
 	if idToken.Nonce != params.Nonce() {
 		h.logger.Warn("nonce validation failed", slog.String("provider", string(req.Provider)))
 
-		return nil, ErrInvalidNonce
+		return nil, ErrNonceInvalid
 	}
 
 	return idToken, nil

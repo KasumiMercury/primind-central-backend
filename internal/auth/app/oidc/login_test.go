@@ -103,7 +103,7 @@ func TestLoginError(t *testing.T) {
 				Code:     "code",
 				State:    "state",
 			},
-			expectedErr: oidc.ErrProviderUnsupported,
+			expectedErr: oidc.ErrOIDCProviderUnsupported,
 		},
 		{
 			name: "params not found",
@@ -130,7 +130,7 @@ func TestLoginError(t *testing.T) {
 				Code:     "code",
 				State:    "missing",
 			},
-			expectedErr: oidc.ErrInvalidState,
+			expectedErr: oidc.ErrStateInvalid,
 		},
 		{
 			name: "params expired",
@@ -191,7 +191,7 @@ func TestLoginError(t *testing.T) {
 				Code:     "code",
 				State:    "state-1",
 			},
-			expectedErr: oidc.ErrInvalidState,
+			expectedErr: oidc.ErrStateInvalid,
 		},
 		{
 			name: "token exchange failed",
@@ -226,7 +226,7 @@ func TestLoginError(t *testing.T) {
 				Code:     "bad-code",
 				State:    "state-1",
 			},
-			expectedErr: oidc.ErrInvalidCode,
+			expectedErr: oidc.ErrCodeInvalid,
 		},
 		{
 			name: "nonce mismatch",
@@ -264,7 +264,7 @@ func TestLoginError(t *testing.T) {
 				Code:     "code-123",
 				State:    "state-1",
 			},
-			expectedErr: oidc.ErrInvalidNonce,
+			expectedErr: oidc.ErrNonceInvalid,
 		},
 		{
 			name: "identity lookup error",

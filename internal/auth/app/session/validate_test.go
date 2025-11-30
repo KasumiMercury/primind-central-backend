@@ -72,14 +72,14 @@ func TestValidateSessionError(t *testing.T) {
 			req:         nil,
 			repo:        setupSessionRepo(t),
 			verifier:    jwt.NewSessionJWTValidator(&sessionCfg.Config{Secret: "x", Duration: time.Hour}),
-			expectedErr: ErrInvalidToken,
+			expectedErr: ErrRequestNil,
 		},
 		{
 			name:        "empty token",
 			req:         &ValidateSessionRequest{SessionToken: ""},
 			repo:        setupSessionRepo(t),
 			verifier:    jwt.NewSessionJWTValidator(&sessionCfg.Config{Secret: "x", Duration: time.Hour}),
-			expectedErr: ErrTokenRequired,
+			expectedErr: ErrSessionTokenRequired,
 		},
 		{
 			name: "verification failed",
@@ -88,7 +88,7 @@ func TestValidateSessionError(t *testing.T) {
 			},
 			repo:        setupSessionRepo(t),
 			verifier:    jwt.NewSessionJWTValidator(&sessionCfg.Config{Secret: "wrong", Duration: time.Hour}),
-			expectedErr: ErrInvalidToken,
+			expectedErr: ErrSessionTokenInvalid,
 		},
 		{
 			name: "extract session id failed",
@@ -97,7 +97,7 @@ func TestValidateSessionError(t *testing.T) {
 			},
 			repo:        setupSessionRepo(t),
 			verifier:    jwt.NewSessionJWTValidator(&sessionCfg.Config{Secret: "wrong", Duration: time.Hour}),
-			expectedErr: ErrInvalidToken,
+			expectedErr: ErrSessionTokenInvalid,
 		},
 		{
 			name: "session missing",

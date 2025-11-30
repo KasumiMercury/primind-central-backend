@@ -2,7 +2,7 @@ package e2e
 
 import (
 	"context"
-	"strings"
+	"errors"
 	"testing"
 	"time"
 
@@ -181,7 +181,7 @@ func TestAuthE2EValidateInvalidSession(t *testing.T) {
 		Return(domainoidc.ProviderGoogle).AnyTimes()
 	mockProviderWithLogin.EXPECT().
 		ExchangeToken(gomock.Any(), "code-invalid", gomock.Any(), gomock.Any()).
-		Return(nil, appoidc.ErrInvalidCode).AnyTimes()
+		Return(nil, appoidc.ErrCodeInvalid).AnyTimes()
 
 	providerMap := map[domainoidc.ProviderID]appoidc.OIDCProvider{
 		domainoidc.ProviderGoogle: mockProvider,
@@ -223,7 +223,7 @@ func TestAuthE2EValidateInvalidSession(t *testing.T) {
 	_, err = service.ValidateSession(ctx, &authv1.ValidateSessionRequest{
 		SessionToken: "bad-token",
 	})
-	if err == nil || !strings.Contains(err.Error(), "invalid session token") {
+	if err == nil || !errors.Is(err, appsession.ErrSessionTokenInvalid) {
 		t.Fatalf("expected invalid token error, got %v", err)
 	}
 

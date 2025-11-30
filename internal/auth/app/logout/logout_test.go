@@ -72,14 +72,14 @@ func TestLogoutError(t *testing.T) {
 			req:         nil,
 			repo:        setupSessionRepo(t),
 			verifier:    jwt.NewSessionJWTValidator(&sessionCfg.Config{Secret: "x", Duration: time.Hour}),
-			expectedErr: errors.New("logout request is nil"),
+			expectedErr: ErrRequestNil,
 		},
 		{
 			name:        "empty token",
 			req:         &LogoutRequest{SessionToken: ""},
 			repo:        setupSessionRepo(t),
 			verifier:    jwt.NewSessionJWTValidator(&sessionCfg.Config{Secret: "x", Duration: time.Hour}),
-			expectedErr: ErrTokenRequired,
+			expectedErr: ErrSessionTokenRequired,
 		},
 		{
 			name: "verification failed",
@@ -88,7 +88,7 @@ func TestLogoutError(t *testing.T) {
 			},
 			repo:        setupSessionRepo(t),
 			verifier:    jwt.NewSessionJWTValidator(&sessionCfg.Config{Secret: "wrong", Duration: time.Hour}),
-			expectedErr: ErrInvalidToken,
+			expectedErr: ErrSessionTokenInvalid,
 		},
 	}
 

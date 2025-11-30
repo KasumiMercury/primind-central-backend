@@ -5,16 +5,10 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
-	"errors"
 	"log/slog"
 
 	domain "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/oidc"
 	"github.com/KasumiMercury/primind-central-backend/internal/auth/infra/clock"
-)
-
-var (
-	ErrOIDCNotConfigured   = errors.New("oidc providers are not configured")
-	ErrProviderUnsupported = errors.New("oidc provider is not configured")
 )
 
 type OIDCParamsGenerator interface {
@@ -66,7 +60,7 @@ func (g *paramsGenerator) Generate(ctx context.Context, provider domain.Provider
 	if !ok {
 		g.logger.Warn("oidc params requested for unsupported provider", slog.String("provider", string(provider)))
 
-		return nil, ErrProviderUnsupported
+		return nil, ErrOIDCProviderUnsupported
 	}
 
 	g.logger.Debug("generating oidc authorization params", slog.String("provider", string(provider)))

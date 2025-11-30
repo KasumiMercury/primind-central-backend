@@ -2,20 +2,12 @@ package session
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 
 	domainsession "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/session"
 	"github.com/KasumiMercury/primind-central-backend/internal/auth/domain/user"
 	"github.com/KasumiMercury/primind-central-backend/internal/auth/infra/clock"
-)
-
-var (
-	ErrTokenRequired   = errors.New("session token is required")
-	ErrInvalidToken    = errors.New("invalid session token")
-	ErrSessionNotFound = errors.New("session not found")
-	ErrSessionExpired  = errors.New("session expired")
 )
 
 type TokenVerifier interface {
@@ -64,33 +56,33 @@ func NewValidateSessionHandler(
 
 func (h *validateSessionHandler) Validate(ctx context.Context, req *ValidateSessionRequest) (*ValidateSessionResult, error) {
 	if req == nil {
-		return nil, fmt.Errorf("%w: request is nil", ErrInvalidToken)
+		return nil, ErrRequestNil
 	}
 
 	if req.SessionToken == "" {
 		h.logger.Warn("validate session called with empty token")
 
-		return nil, ErrTokenRequired
+		return nil, ErrSessionTokenRequired
 	}
 
 	if err := h.tokenVerifier.Verify(req.SessionToken); err != nil {
 		h.logger.Info("session token verification failed", slog.String("error", err.Error()))
 
-		return nil, fmt.Errorf("%w: %v", ErrInvalidToken, err)
+		return nil, fmt.Errorf("%w: %v", ErrSessionTokenInvalid, err)
 	}
 
 	rawSessionID, err := h.tokenVerifier.ExtractSessionID(req.SessionToken)
 	if err != nil {
 		h.logger.Info("session id extraction failed", slog.String("error", err.Error()))
 
-		return nil, fmt.Errorf("%w: %v", ErrInvalidToken, err)
+		return nil, fmt.Errorf("%w: %v", ErrSessionTokenInvalid, err)
 	}
 
 	sessionID, err := domainsession.ParseID(rawSessionID)
 	if err != nil {
 		h.logger.Info("session id in token is invalid", slog.String("error", err.Error()))
 
-		return nil, fmt.Errorf("%w: %v", ErrInvalidToken, err)
+		return nil, fmt.Errorf("%w: %v", ErrSessionTokenInvalid, err)
 	}
 
 	session, err := h.sessionRepo.GetSession(ctx, sessionID)

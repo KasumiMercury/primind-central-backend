@@ -239,13 +239,13 @@ func TestSessionJWTGeneratorGenerateErrors(t *testing.T) {
 			name:        "nil session",
 			session:     nil,
 			user:        validUser,
-			expectedErr: ErrSessionRequired,
+			expectedErr: ErrSessionRequiredForTokenForToken,
 		},
 		{
 			name:        "nil user",
 			session:     validSession,
 			user:        nil,
-			expectedErr: ErrUserRequired,
+			expectedErr: ErrUserRequiredForTokenForToken,
 		},
 	}
 

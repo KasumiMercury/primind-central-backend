@@ -1,6 +1,7 @@
 package jwt
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -14,11 +15,11 @@ import (
 )
 
 var (
-	ErrUserRequired      = fmt.Errorf("user is required for session token generation")
-	ErrSessionRequired   = fmt.Errorf("session is required for token generation")
-	ErrInvalidUserColor  = fmt.Errorf("invalid user color")
-	ErrJWTSignerCreation = fmt.Errorf("failed to create JWT signer")
-	ErrMissingSessionID  = fmt.Errorf("missing session ID in token")
+	ErrUserRequiredForTokenForToken    = errors.New("user is required for session token generation")
+	ErrSessionRequiredForTokenForToken = errors.New("session is required for token generation")
+	ErrUserColorInvalid                = errors.New("user color is invalid")
+	ErrJWTSignerCreationFailedFailed   = errors.New("jwt signer creation failed")
+	ErrSessionIDMissing                = errors.New("session id missing in token")
 )
 
 type SessionClaims struct {
@@ -38,16 +39,16 @@ func NewSessionJWTGenerator(cfg *sessionCfg.Config) *SessionJWTGenerator {
 
 func (g *SessionJWTGenerator) Generate(session *domain.Session, u *user.User) (string, error) {
 	if session == nil {
-		return "", ErrSessionRequired
+		return "", ErrSessionRequiredForTokenForToken
 	}
 
 	if u == nil {
-		return "", ErrUserRequired
+		return "", ErrUserRequiredForTokenForToken
 	}
 
 	userColor := u.Color()
 	if err := userColor.Validate(); err != nil {
-		return "", fmt.Errorf("%w: %v", ErrInvalidUserColor, err)
+		return "", fmt.Errorf("%w: %v", ErrUserColorInvalid, err)
 	}
 
 	key := deriveHMACKey(g.sessionCfg.Secret)
@@ -56,7 +57,7 @@ func (g *SessionJWTGenerator) Generate(session *domain.Session, u *user.User) (s
 		jose.SigningKey{Algorithm: jose.HS256, Key: key}, nil,
 	)
 	if err != nil {
-		return "", fmt.Errorf("%w: %v", ErrJWTSignerCreation, err)
+		return "", fmt.Errorf("%w: %v", ErrJWTSignerCreationFailedFailed, err)
 	}
 
 	now := session.CreatedAt()
@@ -134,7 +135,7 @@ func (v *SessionJWTValidator) ExtractSessionID(token string) (string, error) {
 	}
 
 	if claims == nil || claims.ID == "" {
-		return "", ErrMissingSessionID
+		return "", ErrSessionIDMissing
 	}
 
 	return claims.ID, nil

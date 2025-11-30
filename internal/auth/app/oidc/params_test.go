@@ -98,7 +98,7 @@ func TestParamsGeneratorGenerateErrors(t *testing.T) {
 
 				return make(map[domain.ProviderID]oidc.OIDCProvider), repository.NewOIDCParamsRepository(redisClient)
 			},
-			expectedErrIs: oidc.ErrProviderUnsupported,
+			expectedErrIs: oidc.ErrOIDCProviderUnsupported,
 		},
 		{
 			name:     "repository save fails",
