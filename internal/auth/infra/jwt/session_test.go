@@ -224,6 +224,7 @@ func TestSessionJWTGeneratorGenerateErrors(t *testing.T) {
 	validUser := user.NewUser(userID, color)
 
 	now := time.Now().UTC()
+
 	validSession, err := domain.NewSession(userID, now, now.Add(time.Hour))
 	if err != nil {
 		t.Fatalf("setup failed: %v", err)
@@ -239,20 +240,19 @@ func TestSessionJWTGeneratorGenerateErrors(t *testing.T) {
 			name:        "nil session",
 			session:     nil,
 			user:        validUser,
-			expectedErr: ErrSessionRequiredForTokenForToken,
+			expectedErr: ErrSessionRequiredForToken,
 		},
 		{
 			name:        "nil user",
 			session:     validSession,
 			user:        nil,
-			expectedErr: ErrUserRequiredForTokenForToken,
+			expectedErr: ErrUserRequiredForToken,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			token, err := generator.Generate(tt.session, tt.user)
-
 			if err == nil {
 				t.Fatalf("Generate() expected error %v, got token: %s", tt.expectedErr, token)
 			}
@@ -296,6 +296,7 @@ func TestSessionJWTValidatorVerifySuccess(t *testing.T) {
 			u := user.NewUser(userID, color)
 
 			now := time.Now().UTC().Truncate(time.Second)
+
 			session, err := domain.NewSession(u.ID(), now, now.Add(time.Hour))
 			if err != nil {
 				t.Fatalf("setup failed: %v", err)
@@ -331,6 +332,7 @@ func TestSessionJWTValidatorVerifyErrors(t *testing.T) {
 	u := user.NewUser(userID, color)
 
 	past := time.Now().UTC().Add(-2 * time.Hour)
+
 	expiredSession, err := domain.NewSession(u.ID(), past, past.Add(30*time.Minute))
 	if err != nil {
 		t.Fatalf("setup failed: %v", err)
@@ -409,6 +411,7 @@ func TestSessionJWTExtractSessionIDSuccess(t *testing.T) {
 			u := user.NewUser(userID, color)
 
 			now := time.Now().UTC()
+
 			session, err := domain.NewSession(u.ID(), now, now.Add(time.Hour))
 			if err != nil {
 				t.Fatalf("setup failed: %v", err)
@@ -485,6 +488,7 @@ func ErrorContains(err error, substr string) bool {
 	if err == nil {
 		return false
 	}
+
 	return Contains(err.Error(), substr)
 }
 
@@ -498,5 +502,6 @@ func indexOf(s, substr string) int {
 			return i
 		}
 	}
+
 	return -1
 }

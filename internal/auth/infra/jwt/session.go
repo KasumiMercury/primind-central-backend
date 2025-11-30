@@ -1,7 +1,6 @@
 package jwt
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
@@ -12,14 +11,6 @@ import (
 	sessionCfg "github.com/KasumiMercury/primind-central-backend/internal/auth/config/session"
 	domain "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/session"
 	"github.com/KasumiMercury/primind-central-backend/internal/auth/domain/user"
-)
-
-var (
-	ErrUserRequiredForTokenForToken    = errors.New("user is required for session token generation")
-	ErrSessionRequiredForTokenForToken = errors.New("session is required for token generation")
-	ErrUserColorInvalid                = errors.New("user color is invalid")
-	ErrJWTSignerCreationFailedFailed   = errors.New("jwt signer creation failed")
-	ErrSessionIDMissing                = errors.New("session id missing in token")
 )
 
 type SessionClaims struct {
@@ -39,11 +30,11 @@ func NewSessionJWTGenerator(cfg *sessionCfg.Config) *SessionJWTGenerator {
 
 func (g *SessionJWTGenerator) Generate(session *domain.Session, u *user.User) (string, error) {
 	if session == nil {
-		return "", ErrSessionRequiredForTokenForToken
+		return "", ErrSessionRequiredForToken
 	}
 
 	if u == nil {
-		return "", ErrUserRequiredForTokenForToken
+		return "", ErrUserRequiredForToken
 	}
 
 	userColor := u.Color()
@@ -57,7 +48,7 @@ func (g *SessionJWTGenerator) Generate(session *domain.Session, u *user.User) (s
 		jose.SigningKey{Algorithm: jose.HS256, Key: key}, nil,
 	)
 	if err != nil {
-		return "", fmt.Errorf("%w: %v", ErrJWTSignerCreationFailedFailed, err)
+		return "", fmt.Errorf("%w: %v", ErrJWTSignerCreationFailed, err)
 	}
 
 	now := session.CreatedAt()
