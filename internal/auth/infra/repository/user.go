@@ -6,11 +6,10 @@ import (
 	"time"
 
 	domainuser "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/user"
+	"github.com/KasumiMercury/primind-central-backend/internal/auth/infra/clock"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
-
-var ErrUserRequired = errors.New("user is required")
 
 type UserModel struct {
 	ID        string    `gorm:"type:uuid;primaryKey"`
@@ -23,11 +22,23 @@ func (UserModel) TableName() string {
 }
 
 type userRepository struct {
-	db *gorm.DB
+	db    *gorm.DB
+	clock clock.Clock
+}
+
+func newUserRepository(db *gorm.DB, clk clock.Clock) domainuser.UserRepository {
+	return &userRepository{
+		db:    db,
+		clock: clk,
+	}
 }
 
 func NewUserRepository(db *gorm.DB) domainuser.UserRepository {
-	return &userRepository{db: db}
+	return newUserRepository(db, &clock.RealClock{})
+}
+
+func NewUserRepositoryWithClock(db *gorm.DB, clk clock.Clock) domainuser.UserRepository {
+	return newUserRepository(db, clk)
 }
 
 func (r *userRepository) SaveUser(ctx context.Context, u *domainuser.User) error {
@@ -38,7 +49,7 @@ func (r *userRepository) SaveUser(ctx context.Context, u *domainuser.User) error
 	record := UserModel{
 		ID:        u.ID().String(),
 		Color:     u.Color().String(),
-		CreatedAt: time.Now().UTC(),
+		CreatedAt: r.clock.Now(),
 	}
 
 	return r.db.WithContext(ctx).

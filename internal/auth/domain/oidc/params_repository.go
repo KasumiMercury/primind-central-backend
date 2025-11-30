@@ -1,11 +1,8 @@
 package oidc
 
-import (
-	"context"
-	"errors"
-)
+import "context"
 
-var ErrParamsNotFound = errors.New("params not found")
+//go:generate mockgen -source=params_repository.go -destination=mock_params_repository.go -package=oidc
 
 type ParamsRepository interface {
 	SaveParams(ctx context.Context, params *Params) error

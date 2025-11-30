@@ -23,14 +23,16 @@ func AuthInterceptor() connect.UnaryInterceptorFunc {
 			}
 
 			rawToken := strings.TrimSpace(req.Header().Get(tokenHeader))
-			if rawToken != "" {
-				token := rawToken
-				if len(rawToken) >= len(bearerPrefix) && strings.EqualFold(rawToken[:len(bearerPrefix)], bearerPrefix) {
-					token = strings.TrimSpace(rawToken[len(bearerPrefix):])
-				}
-
-				ctx = context.WithValue(ctx, sessionTokenKey, token)
+			if rawToken == "" {
+				return nil, connect.NewError(connect.CodeUnauthenticated, ErrTokenHeaderNotFound)
 			}
+
+			token := rawToken
+			if len(rawToken) >= len(bearerPrefix) && strings.EqualFold(rawToken[:len(bearerPrefix)], bearerPrefix) {
+				token = strings.TrimSpace(rawToken[len(bearerPrefix):])
+			}
+
+			ctx = context.WithValue(ctx, sessionTokenKey, token)
 
 			return next(ctx, req)
 		}

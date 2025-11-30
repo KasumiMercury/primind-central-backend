@@ -1,11 +1,6 @@
 package user
 
-import (
-	"context"
-	"errors"
-)
-
-var ErrUserNotFound = errors.New("user not found")
+import "context"
 
 type UserRepository interface {
 	SaveUser(ctx context.Context, user *User) error

@@ -5,16 +5,10 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
-	"errors"
 	"log/slog"
-	"time"
 
 	domain "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/oidc"
-)
-
-var (
-	ErrOIDCNotConfigured   = errors.New("oidc providers are not configured")
-	ErrProviderUnsupported = errors.New("oidc provider is not configured")
+	"github.com/KasumiMercury/primind-central-backend/internal/auth/infra/clock"
 )
 
 type OIDCParamsGenerator interface {
@@ -37,18 +31,28 @@ type ParamsResult struct {
 type paramsGenerator struct {
 	providers map[domain.ProviderID]OIDCProvider
 	repo      domain.ParamsRepository
+	clock     clock.Clock
 	logger    *slog.Logger
+}
+
+func newParamsGenerator(
+	providers map[domain.ProviderID]OIDCProvider,
+	repo domain.ParamsRepository,
+	clk clock.Clock,
+) OIDCParamsGenerator {
+	return &paramsGenerator{
+		providers: providers,
+		repo:      repo,
+		clock:     clk,
+		logger:    slog.Default().WithGroup("auth").WithGroup("oidc").WithGroup("params"),
+	}
 }
 
 func NewParamsGenerator(
 	providers map[domain.ProviderID]OIDCProvider,
 	repo domain.ParamsRepository,
 ) OIDCParamsGenerator {
-	return &paramsGenerator{
-		providers: providers,
-		repo:      repo,
-		logger:    slog.Default().WithGroup("auth").WithGroup("oidc").WithGroup("params"),
-	}
+	return newParamsGenerator(providers, repo, &clock.RealClock{})
 }
 
 func (g *paramsGenerator) Generate(ctx context.Context, provider domain.ProviderID) (*ParamsResult, error) {
@@ -56,7 +60,7 @@ func (g *paramsGenerator) Generate(ctx context.Context, provider domain.Provider
 	if !ok {
 		g.logger.Warn("oidc params requested for unsupported provider", slog.String("provider", string(provider)))
 
-		return nil, ErrProviderUnsupported
+		return nil, ErrOIDCProviderUnsupported
 	}
 
 	g.logger.Debug("generating oidc authorization params", slog.String("provider", string(provider)))
@@ -86,7 +90,7 @@ func (g *paramsGenerator) Generate(ctx context.Context, provider domain.Provider
 
 	authURL := rpProvider.BuildAuthorizationURL(state, nonce, codeChallenge)
 
-	params, err := domain.NewParams(provider, state, nonce, codeVerifier, time.Now().UTC())
+	params, err := domain.NewParams(provider, state, nonce, codeVerifier, g.clock.Now())
 	if err != nil {
 		g.logger.Error("failed to build params model", slog.String("error", err.Error()))
 

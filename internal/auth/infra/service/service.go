@@ -63,7 +63,7 @@ func (s *Service) OIDCParams(ctx context.Context, req *authv1.OIDCParamsRequest)
 			s.logger.Warn("oidc not configured during params request")
 
 			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
-		case errors.Is(err, appoidc.ErrProviderUnsupported):
+		case errors.Is(err, appoidc.ErrOIDCProviderUnsupported):
 			s.logger.Warn("oidc params requested for unsupported provider", slog.String("provider", string(providerID)))
 
 			return nil, connect.NewError(connect.CodeInvalidArgument, err)
@@ -111,15 +111,15 @@ func (s *Service) OIDCLogin(ctx context.Context, req *authv1.OIDCLoginRequest) (
 			s.logger.Warn("oidc not configured during login")
 
 			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
-		case errors.Is(err, appoidc.ErrProviderUnsupported):
+		case errors.Is(err, appoidc.ErrOIDCProviderUnsupported):
 			s.logger.Warn("oidc login requested for unsupported provider", slog.String("provider", string(providerID)))
 
 			return nil, connect.NewError(connect.CodeInvalidArgument, err)
-		case errors.Is(err, appoidc.ErrInvalidCode):
+		case errors.Is(err, appoidc.ErrCodeInvalid):
 			s.logger.Warn("login failed due to invalid authorization code", slog.String("provider", string(providerID)))
 
 			return nil, connect.NewError(connect.CodeInvalidArgument, err)
-		case errors.Is(err, appoidc.ErrInvalidState):
+		case errors.Is(err, appoidc.ErrStateInvalid):
 			s.logger.Warn("login failed due to invalid state", slog.String("provider", string(providerID)))
 
 			return nil, connect.NewError(connect.CodeInvalidArgument, err)
@@ -127,7 +127,7 @@ func (s *Service) OIDCLogin(ctx context.Context, req *authv1.OIDCLoginRequest) (
 			s.logger.Warn("login failed due to expired params", slog.String("provider", string(providerID)))
 
 			return nil, connect.NewError(connect.CodeInvalidArgument, err)
-		case errors.Is(err, appoidc.ErrInvalidNonce):
+		case errors.Is(err, appoidc.ErrNonceInvalid):
 			s.logger.Warn("login failed due to nonce mismatch", slog.String("provider", string(providerID)))
 
 			return nil, connect.NewError(connect.CodeInvalidArgument, err)
@@ -159,8 +159,8 @@ func (s *Service) Logout(ctx context.Context, req *authv1.LogoutRequest) (*authv
 	})
 	if err != nil {
 		switch {
-		case errors.Is(err, applogout.ErrTokenRequired),
-			errors.Is(err, applogout.ErrInvalidToken):
+		case errors.Is(err, applogout.ErrSessionTokenRequired),
+			errors.Is(err, applogout.ErrSessionTokenInvalid):
 			s.logger.Info("logout failed", slog.String("error", err.Error()))
 
 			return nil, connect.NewError(connect.CodeInvalidArgument, err)
@@ -188,8 +188,8 @@ func (s *Service) ValidateSession(ctx context.Context, req *authv1.ValidateSessi
 	})
 	if err != nil {
 		switch {
-		case errors.Is(err, appsession.ErrTokenRequired),
-			errors.Is(err, appsession.ErrInvalidToken),
+		case errors.Is(err, appsession.ErrSessionTokenRequired),
+			errors.Is(err, appsession.ErrSessionTokenInvalid),
 			errors.Is(err, appsession.ErrSessionNotFound),
 			errors.Is(err, appsession.ErrSessionExpired):
 			s.logger.Info("session validation failed", slog.String("error", err.Error()))

@@ -2,16 +2,10 @@ package logout
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 
 	domainsession "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/session"
-)
-
-var (
-	ErrTokenRequired = errors.New("session token is required")
-	ErrInvalidToken  = errors.New("invalid session token")
 )
 
 type TokenVerifier interface {
@@ -50,39 +44,39 @@ func NewLogoutHandler(
 
 func (h *logoutHandler) Logout(ctx context.Context, req *LogoutRequest) (*LogoutResponse, error) {
 	if req == nil {
-		return &LogoutResponse{Success: false}, fmt.Errorf("logout request is nil")
+		return &LogoutResponse{Success: false}, ErrRequestNil
 	}
 
 	if req.SessionToken == "" {
 		h.logger.Warn("logout called with empty token")
 
-		return &LogoutResponse{Success: false}, ErrTokenRequired
+		return &LogoutResponse{Success: false}, ErrSessionTokenRequired
 	}
 
 	if err := h.tokenVerifier.Verify(req.SessionToken); err != nil {
 		h.logger.Info("session token verification failed", slog.String("error", err.Error()))
 
-		return nil, fmt.Errorf("%w: %v", ErrInvalidToken, err)
+		return nil, fmt.Errorf("%w: %v", ErrSessionTokenInvalid, err)
 	}
 
 	rawSessionID, err := h.tokenVerifier.ExtractSessionID(req.SessionToken)
 	if err != nil {
 		h.logger.Info("session id extraction failed", slog.String("error", err.Error()))
 
-		return nil, fmt.Errorf("%w: %v", ErrInvalidToken, err)
+		return nil, fmt.Errorf("%w: %v", ErrSessionTokenInvalid, err)
 	}
 
 	sessionID, err := domainsession.ParseID(rawSessionID)
 	if err != nil {
 		h.logger.Info("session id in token is invalid", slog.String("error", err.Error()))
 
-		return nil, fmt.Errorf("%w: %v", ErrInvalidToken, err)
+		return nil, fmt.Errorf("%w: %v", ErrSessionTokenInvalid, err)
 	}
 
 	if err := h.sessionRepo.DeleteSession(ctx, sessionID); err != nil {
 		h.logger.Warn("failed to delete session", slog.String("error", err.Error()))
 
-		return nil, fmt.Errorf("failed to logout: %v", err)
+		return nil, fmt.Errorf("failed to logout: %w", err)
 	}
 
 	return &LogoutResponse{Success: true}, nil

@@ -2,18 +2,9 @@ package user
 
 import (
 	"crypto/rand"
-	"errors"
 	"fmt"
 	"math/big"
 	"strings"
-)
-
-var (
-	ErrColorEmpty         = errors.New("color must be specified")
-	ErrColorInvalidFormat = errors.New("color must be in #RRGGBB hex format")
-	ErrPaletteEmpty       = errors.New("color palette is empty")
-	ErrPaletteChoice      = errors.New("failed to choose color from palette")
-	ErrPaletteInvalid     = errors.New("palette contains invalid color")
 )
 
 type Color struct {

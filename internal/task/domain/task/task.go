@@ -1,26 +1,11 @@
 package task
 
 import (
-	"errors"
 	"fmt"
 	"time"
 	"unicode/utf8"
 
 	"github.com/google/uuid"
-)
-
-var (
-	ErrIDGeneration    = errors.New("failed to generate task ID")
-	ErrIDInvalidFormat = errors.New("task ID must be a valid UUID")
-	ErrIDInvalidV7     = errors.New("task ID must be a UUIDv7")
-
-	ErrUserIDEmpty       = errors.New("user ID cannot be empty")
-	ErrTitleEmpty        = errors.New("task title cannot be empty")
-	ErrTitleTooLong      = errors.New("task title cannot exceed 500 characters")
-	ErrInvalidTaskType   = errors.New("invalid task type")
-	ErrInvalidTaskStatus = errors.New("invalid task status")
-	ErrDueTimeRequired   = errors.New("due time is required for tasks with type HAS_DUE_TIME")
-	ErrTaskNotFound      = errors.New("task not found")
 )
 
 type ID uuid.UUID
@@ -106,6 +91,14 @@ func NewTask(
 	dueTime *time.Time,
 	createdAt time.Time,
 ) (*Task, error) {
+	normalizedCreatedAt := createdAt.UTC().Truncate(time.Microsecond)
+
+	normalizedDueTime := dueTime
+	if dueTime != nil {
+		t := dueTime.UTC().Truncate(time.Microsecond)
+		normalizedDueTime = &t
+	}
+
 	if userID == "" {
 		return nil, ErrUserIDEmpty
 	}
@@ -118,7 +111,7 @@ func NewTask(
 		return nil, ErrTitleTooLong
 	}
 
-	if taskType == TypeHasDueTime && dueTime == nil {
+	if taskType == TypeHasDueTime && normalizedDueTime == nil {
 		return nil, ErrDueTimeRequired
 	}
 
@@ -129,8 +122,8 @@ func NewTask(
 		taskType:    taskType,
 		taskStatus:  taskStatus,
 		description: description,
-		dueTime:     dueTime,
-		createdAt:   createdAt,
+		dueTime:     normalizedDueTime,
+		createdAt:   normalizedCreatedAt,
 	}, nil
 }
 

@@ -1,16 +1,9 @@
 package user
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
-)
-
-var (
-	ErrIDGeneration    = errors.New("failed to generate user ID")
-	ErrIDInvalidFormat = errors.New("user ID must be a valid UUID")
-	ErrIDInvalidV7     = errors.New("user ID must be a UUIDv7")
 )
 
 type ID uuid.UUID

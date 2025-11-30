@@ -9,13 +9,8 @@ import (
 
 	domainsession "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/session"
 	domainuser "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/user"
+	"github.com/KasumiMercury/primind-central-backend/internal/auth/infra/clock"
 	"github.com/redis/go-redis/v9"
-)
-
-var (
-	ErrSessionRequired       = errors.New("session is required")
-	ErrSessionNotFound       = errors.New("session not found")
-	ErrSessionAlreadyExpired = errors.New("session already expired")
 )
 
 type sessionRecord struct {
@@ -27,14 +22,24 @@ type sessionRecord struct {
 
 type sessionRepository struct {
 	client *redis.Client
-	now    func() time.Time
+	clock  clock.Clock
+}
+
+func newSessionRepository(client *redis.Client, clk clock.Clock) domainsession.SessionRepository {
+	return &sessionRepository{
+		client: client,
+		clock:  clk,
+	}
 }
 
 func NewSessionRepository(client *redis.Client) domainsession.SessionRepository {
-	return &sessionRepository{
-		client: client,
-		now:    func() time.Time { return time.Now().UTC() },
-	}
+	return newSessionRepository(client, &clock.RealClock{})
+}
+
+// NewSessionRepositoryWithClock creates a session repository with a custom clock.
+// This is primarily used for testing with deterministic time behavior.
+func NewSessionRepositoryWithClock(client *redis.Client, clk clock.Clock) domainsession.SessionRepository {
+	return newSessionRepository(client, clk)
 }
 
 func (r *sessionRepository) SaveSession(ctx context.Context, session *domainsession.Session) error {
@@ -49,7 +54,7 @@ func (r *sessionRepository) SaveSession(ctx context.Context, session *domainsess
 		ExpiresAt: session.ExpiresAt(),
 	}
 
-	ttl := time.Until(session.ExpiresAt())
+	ttl := session.ExpiresAt().Sub(r.clock.Now())
 	if ttl <= 0 {
 		return ErrSessionAlreadyExpired
 	}

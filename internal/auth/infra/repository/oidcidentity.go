@@ -8,11 +8,10 @@ import (
 	domainoidc "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/oidc"
 	domainidentity "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/oidcidentity"
 	"github.com/KasumiMercury/primind-central-backend/internal/auth/domain/user"
+	"github.com/KasumiMercury/primind-central-backend/internal/auth/infra/clock"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
-
-var ErrIdentityRequired = errors.New("identity is required")
 
 type OIDCIdentityModel struct {
 	UserID    string    `gorm:"type:uuid;not null;index"`
@@ -27,11 +26,23 @@ func (OIDCIdentityModel) TableName() string {
 }
 
 type oidcIdentityRepository struct {
-	db *gorm.DB
+	db    *gorm.DB
+	clock clock.Clock
+}
+
+func newOIDCIdentityRepository(db *gorm.DB, clk clock.Clock) domainidentity.OIDCIdentityRepository {
+	return &oidcIdentityRepository{
+		db:    db,
+		clock: clk,
+	}
 }
 
 func NewOIDCIdentityRepository(db *gorm.DB) domainidentity.OIDCIdentityRepository {
-	return &oidcIdentityRepository{db: db}
+	return newOIDCIdentityRepository(db, &clock.RealClock{})
+}
+
+func NewOIDCIdentityRepositoryWithClock(db *gorm.DB, clk clock.Clock) domainidentity.OIDCIdentityRepository {
+	return newOIDCIdentityRepository(db, clk)
 }
 
 func (r *oidcIdentityRepository) SaveOIDCIdentity(ctx context.Context, identity *domainidentity.OIDCIdentity) error {
@@ -43,7 +54,7 @@ func (r *oidcIdentityRepository) SaveOIDCIdentity(ctx context.Context, identity 
 		UserID:    identity.UserID().String(),
 		Provider:  string(identity.Provider()),
 		Subject:   identity.Subject(),
-		CreatedAt: time.Now().UTC(),
+		CreatedAt: r.clock.Now(),
 	}
 
 	return r.db.WithContext(ctx).

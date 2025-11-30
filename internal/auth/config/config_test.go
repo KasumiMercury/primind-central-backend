@@ -105,6 +105,66 @@ func TestAuthConfigValidateErrors(t *testing.T) {
 	}
 }
 
+func TestLoadSuccessWithoutOIDC(t *testing.T) {
+	t.Setenv("SESSION_SECRET", "secret")
+	t.Setenv("SESSION_DURATION", "1h")
+	clearOIDCEnv(t)
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load returned error: %v", err)
+	}
+
+	if cfg.Session == nil {
+		t.Fatalf("expected session config")
+	}
+
+	if cfg.OIDC != nil {
+		t.Fatalf("expected oidc config to be nil when env vars not set")
+	}
+}
+
+func TestLoadSuccessWithOIDC(t *testing.T) {
+	t.Setenv("SESSION_SECRET", "secret")
+	t.Setenv("SESSION_DURATION", "1h")
+
+	t.Setenv("OIDC_GOOGLE_CLIENT_ID", "client-id")
+	t.Setenv("OIDC_GOOGLE_CLIENT_SECRET", "client-secret")
+	t.Setenv("OIDC_GOOGLE_REDIRECT_URI", "https://example.com/callback")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load returned error: %v", err)
+	}
+
+	if cfg.OIDC == nil {
+		t.Fatalf("expected oidc config to be populated")
+	}
+}
+
+func TestLoadErrors(t *testing.T) {
+	clearOIDCEnv(t)
+	t.Run("missing session secret", func(t *testing.T) {
+		t.Setenv("SESSION_SECRET", "")
+
+		if _, err := Load(); err == nil {
+			t.Fatalf("expected error for missing session secret")
+		}
+	})
+
+	t.Run("incomplete oidc provider", func(t *testing.T) {
+		t.Setenv("SESSION_SECRET", "secret")
+		t.Setenv("SESSION_DURATION", "1h")
+		t.Setenv("OIDC_GOOGLE_CLIENT_ID", "client-id")
+		t.Setenv("OIDC_GOOGLE_REDIRECT_URI", "https://example.com/callback")
+		t.Setenv("OIDC_GOOGLE_CLIENT_SECRET", "")
+
+		if _, err := Load(); err == nil {
+			t.Fatalf("expected oidc load error")
+		}
+	})
+}
+
 var assertError = &expectedError{msg: "assert error"}
 
 type expectedError struct {
@@ -112,3 +172,13 @@ type expectedError struct {
 }
 
 func (e *expectedError) Error() string { return e.msg }
+
+func clearOIDCEnv(t *testing.T) {
+	t.Helper()
+
+	t.Setenv("OIDC_GOOGLE_CLIENT_ID", "")
+	t.Setenv("OIDC_GOOGLE_CLIENT_SECRET", "")
+	t.Setenv("OIDC_GOOGLE_REDIRECT_URI", "")
+	t.Setenv("OIDC_GOOGLE_SCOPES", "")
+	t.Setenv("OIDC_GOOGLE_ISSUER_URL", "")
+}

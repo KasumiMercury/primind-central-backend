@@ -8,11 +8,9 @@ import (
 	"time"
 
 	domainoidc "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/oidc"
+	"github.com/KasumiMercury/primind-central-backend/internal/auth/infra/clock"
 	"github.com/redis/go-redis/v9"
 )
-
-var ErrParamsRequired = errors.New("oidc params required")
-var ErrParamsAlreadyExpired = errors.New("oidc params already expired")
 
 type paramsRecord struct {
 	Provider     string    `json:"provider"`
@@ -24,10 +22,22 @@ type paramsRecord struct {
 
 type oidcParamsRepository struct {
 	client *redis.Client
+	clock  clock.Clock
+}
+
+func newOIDCParamsRepository(client *redis.Client, clk clock.Clock) domainoidc.ParamsRepository {
+	return &oidcParamsRepository{
+		client: client,
+		clock:  clk,
+	}
 }
 
 func NewOIDCParamsRepository(client *redis.Client) domainoidc.ParamsRepository {
-	return &oidcParamsRepository{client: client}
+	return newOIDCParamsRepository(client, &clock.RealClock{})
+}
+
+func NewOIDCParamsRepositoryWithClock(client *redis.Client, clk clock.Clock) domainoidc.ParamsRepository {
+	return newOIDCParamsRepository(client, clk)
 }
 
 func (r *oidcParamsRepository) SaveParams(ctx context.Context, params *domainoidc.Params) error {
@@ -43,7 +53,7 @@ func (r *oidcParamsRepository) SaveParams(ctx context.Context, params *domainoid
 		CreatedAt:    params.CreatedAt(),
 	}
 
-	ttl := time.Until(params.ExpiresAt())
+	ttl := params.ExpiresAt().Sub(r.clock.Now())
 	if ttl <= 0 {
 		return ErrParamsAlreadyExpired
 	}

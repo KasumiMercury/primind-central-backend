@@ -1,7 +1,6 @@
 package config
 
 import (
-	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -11,10 +10,6 @@ import (
 const (
 	authServiceURLEnv     = "AUTH_SERVICE_URL"
 	defaultAuthServiceURL = "http://localhost:8080"
-)
-
-var (
-	ErrAuthServiceURLInvalid = errors.New("auth service URL is invalid")
 )
 
 type Config struct {

@@ -2,20 +2,12 @@ package session
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
-	"time"
 
 	domainsession "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/session"
 	"github.com/KasumiMercury/primind-central-backend/internal/auth/domain/user"
-)
-
-var (
-	ErrTokenRequired   = errors.New("session token is required")
-	ErrInvalidToken    = errors.New("invalid session token")
-	ErrSessionNotFound = errors.New("session not found")
-	ErrSessionExpired  = errors.New("session expired")
+	"github.com/KasumiMercury/primind-central-backend/internal/auth/infra/clock"
 )
 
 type TokenVerifier interface {
@@ -38,51 +30,59 @@ type ValidateSessionUseCase interface {
 type validateSessionHandler struct {
 	sessionRepo   domainsession.SessionRepository
 	tokenVerifier TokenVerifier
-	now           func() time.Time
+	clock         clock.Clock
 	logger        *slog.Logger
+}
+
+func newValidateSessionHandler(
+	sessionRepo domainsession.SessionRepository,
+	tokenVerifier TokenVerifier,
+	clk clock.Clock,
+) ValidateSessionUseCase {
+	return &validateSessionHandler{
+		sessionRepo:   sessionRepo,
+		tokenVerifier: tokenVerifier,
+		clock:         clk,
+		logger:        slog.Default().WithGroup("auth").WithGroup("session").WithGroup("validate"),
+	}
 }
 
 func NewValidateSessionHandler(
 	sessionRepo domainsession.SessionRepository,
 	tokenVerifier TokenVerifier,
 ) ValidateSessionUseCase {
-	return &validateSessionHandler{
-		sessionRepo:   sessionRepo,
-		tokenVerifier: tokenVerifier,
-		now:           func() time.Time { return time.Now().UTC() },
-		logger:        slog.Default().WithGroup("auth").WithGroup("session").WithGroup("validate"),
-	}
+	return newValidateSessionHandler(sessionRepo, tokenVerifier, &clock.RealClock{})
 }
 
 func (h *validateSessionHandler) Validate(ctx context.Context, req *ValidateSessionRequest) (*ValidateSessionResult, error) {
 	if req == nil {
-		return nil, fmt.Errorf("%w: request is nil", ErrInvalidToken)
+		return nil, ErrRequestNil
 	}
 
 	if req.SessionToken == "" {
 		h.logger.Warn("validate session called with empty token")
 
-		return nil, ErrTokenRequired
+		return nil, ErrSessionTokenRequired
 	}
 
 	if err := h.tokenVerifier.Verify(req.SessionToken); err != nil {
 		h.logger.Info("session token verification failed", slog.String("error", err.Error()))
 
-		return nil, fmt.Errorf("%w: %v", ErrInvalidToken, err)
+		return nil, fmt.Errorf("%w: %v", ErrSessionTokenInvalid, err)
 	}
 
 	rawSessionID, err := h.tokenVerifier.ExtractSessionID(req.SessionToken)
 	if err != nil {
 		h.logger.Info("session id extraction failed", slog.String("error", err.Error()))
 
-		return nil, fmt.Errorf("%w: %v", ErrInvalidToken, err)
+		return nil, fmt.Errorf("%w: %v", ErrSessionTokenInvalid, err)
 	}
 
 	sessionID, err := domainsession.ParseID(rawSessionID)
 	if err != nil {
 		h.logger.Info("session id in token is invalid", slog.String("error", err.Error()))
 
-		return nil, fmt.Errorf("%w: %v", ErrInvalidToken, err)
+		return nil, fmt.Errorf("%w: %v", ErrSessionTokenInvalid, err)
 	}
 
 	session, err := h.sessionRepo.GetSession(ctx, sessionID)
@@ -92,7 +92,7 @@ func (h *validateSessionHandler) Validate(ctx context.Context, req *ValidateSess
 		return nil, fmt.Errorf("%w: %v", ErrSessionNotFound, err)
 	}
 
-	now := h.now()
+	now := h.clock.Now()
 	if !session.ExpiresAt().After(now) {
 		h.logger.Info("session has expired")
 

@@ -5,19 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"time"
 
 	sessionCfg "github.com/KasumiMercury/primind-central-backend/internal/auth/config/session"
 	domainoidc "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/oidc"
 	"github.com/KasumiMercury/primind-central-backend/internal/auth/domain/oidcidentity"
 	domain "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/session"
 	"github.com/KasumiMercury/primind-central-backend/internal/auth/domain/user"
-)
-
-var (
-	ErrInvalidCode  = errors.New("invalid authorization code")
-	ErrInvalidState = errors.New("invalid state parameter")
-	ErrInvalidNonce = errors.New("nonce validation failed")
+	"github.com/KasumiMercury/primind-central-backend/internal/auth/infra/clock"
 )
 
 type OIDCLoginUseCase interface {
@@ -62,6 +56,7 @@ type loginHandler struct {
 	userIdentityRepo UserWithOIDCIdentityRepository
 	jwtGenerator     SessionTokenGenerator
 	sessionCfg       *sessionCfg.Config
+	clock            clock.Clock
 	logger           *slog.Logger
 }
 
@@ -75,6 +70,54 @@ func NewLoginHandler(
 	jwtGenerator SessionTokenGenerator,
 	sessionCfg *sessionCfg.Config,
 ) OIDCLoginUseCase {
+	return newLoginHandler(
+		providers,
+		paramsRepo,
+		sessionRepo,
+		userRepo,
+		oidcIdentityRepo,
+		userIdentityRepo,
+		jwtGenerator,
+		sessionCfg,
+		&clock.RealClock{},
+	)
+}
+
+func NewLoginHandlerWithClock(
+	providers map[domainoidc.ProviderID]OIDCProviderWithLogin,
+	paramsRepo domainoidc.ParamsRepository,
+	sessionRepo domain.SessionRepository,
+	userRepo user.UserRepository,
+	oidcIdentityRepo oidcidentity.OIDCIdentityRepository,
+	userIdentityRepo UserWithOIDCIdentityRepository,
+	jwtGenerator SessionTokenGenerator,
+	sessionCfg *sessionCfg.Config,
+	clk clock.Clock,
+) OIDCLoginUseCase {
+	return newLoginHandler(
+		providers,
+		paramsRepo,
+		sessionRepo,
+		userRepo,
+		oidcIdentityRepo,
+		userIdentityRepo,
+		jwtGenerator,
+		sessionCfg,
+		clk,
+	)
+}
+
+func newLoginHandler(
+	providers map[domainoidc.ProviderID]OIDCProviderWithLogin,
+	paramsRepo domainoidc.ParamsRepository,
+	sessionRepo domain.SessionRepository,
+	userRepo user.UserRepository,
+	oidcIdentityRepo oidcidentity.OIDCIdentityRepository,
+	userIdentityRepo UserWithOIDCIdentityRepository,
+	jwtGenerator SessionTokenGenerator,
+	sessionCfg *sessionCfg.Config,
+	clk clock.Clock,
+) OIDCLoginUseCase {
 	return &loginHandler{
 		providers:        providers,
 		paramsRepo:       paramsRepo,
@@ -84,6 +127,7 @@ func NewLoginHandler(
 		userIdentityRepo: userIdentityRepo,
 		jwtGenerator:     jwtGenerator,
 		sessionCfg:       sessionCfg,
+		clock:            clk,
 		logger:           slog.Default().WithGroup("auth").WithGroup("oidc").WithGroup("login"),
 	}
 }
@@ -93,7 +137,7 @@ func (h *loginHandler) Login(ctx context.Context, req *LoginRequest) (*LoginResu
 	if !ok {
 		h.logger.Warn("login attempted with unsupported provider", slog.String("provider", string(req.Provider)))
 
-		return nil, ErrProviderUnsupported
+		return nil, ErrOIDCProviderUnsupported
 	}
 
 	h.logger.Debug("processing oidc login", slog.String("provider", string(req.Provider)))
@@ -113,7 +157,7 @@ func (h *loginHandler) Login(ctx context.Context, req *LoginRequest) (*LoginResu
 		return nil, err
 	}
 
-	now := time.Now().UTC()
+	now := h.clock.Now()
 	expiresAt := now.Add(h.sessionCfg.Duration)
 
 	session, err := domain.NewSession(userID, now, expiresAt)
@@ -149,7 +193,7 @@ func (h *loginHandler) loadAndValidateParams(ctx context.Context, req *LoginRequ
 		if errors.Is(err, domainoidc.ErrParamsNotFound) {
 			h.logger.Warn("state not found during login", slog.String("provider", string(req.Provider)))
 
-			return nil, ErrInvalidState
+			return nil, ErrStateInvalid
 		}
 
 		h.logger.Error("failed to load stored params", slog.String("error", err.Error()), slog.String("provider", string(req.Provider)))
@@ -157,7 +201,7 @@ func (h *loginHandler) loadAndValidateParams(ctx context.Context, req *LoginRequ
 		return nil, err
 	}
 
-	if storedParams.IsExpired(time.Now().UTC()) {
+	if storedParams.IsExpired(h.clock.Now()) {
 		h.logger.Warn("login attempt with expired params", slog.String("provider", string(req.Provider)))
 
 		return nil, domainoidc.ErrParamsExpired
@@ -166,7 +210,7 @@ func (h *loginHandler) loadAndValidateParams(ctx context.Context, req *LoginRequ
 	if storedParams.Provider() != req.Provider {
 		h.logger.Warn("login attempted with mismatched provider", slog.String("provider", string(req.Provider)))
 
-		return nil, ErrInvalidState
+		return nil, ErrStateInvalid
 	}
 
 	return storedParams, nil
@@ -182,13 +226,13 @@ func (h *loginHandler) exchangeAndValidateIDToken(
 	if err != nil {
 		h.logger.Warn("token exchange failed", slog.String("error", err.Error()), slog.String("provider", string(req.Provider)))
 
-		return nil, fmt.Errorf("%w: %v", ErrInvalidCode, err)
+		return nil, fmt.Errorf("%w: %v", ErrCodeInvalid, err)
 	}
 
 	if idToken.Nonce != params.Nonce() {
 		h.logger.Warn("nonce validation failed", slog.String("provider", string(req.Provider)))
 
-		return nil, ErrInvalidNonce
+		return nil, ErrNonceInvalid
 	}
 
 	return idToken, nil

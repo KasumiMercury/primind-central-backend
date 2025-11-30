@@ -15,11 +15,6 @@ type AuthConfig struct {
 	OIDC    *oidc.Config
 }
 
-var (
-	ErrSessionConfigMissing = errors.New("session config missing")
-	ErrOIDCConfigInvalid    = errors.New("oidc config invalid")
-)
-
 func Load() (*AuthConfig, error) {
 	sessionConfig, err := sessioncfg.Load()
 	if err != nil {
