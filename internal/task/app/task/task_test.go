@@ -142,6 +142,7 @@ func TestCreateTaskError(t *testing.T) {
 				mockAuth := NewMockAuthClient(ctrl)
 				mockAuth.EXPECT().ValidateSession(gomock.Any(), "invalid-token").
 					Return("", authclient.ErrUnauthorized)
+
 				return mockAuth
 			},
 			expectedErr: ErrUnauthorized,
@@ -157,6 +158,7 @@ func TestCreateTaskError(t *testing.T) {
 				mockAuth := NewMockAuthClient(ctrl)
 				mockAuth.EXPECT().ValidateSession(gomock.Any(), "token").
 					Return(uuid.NewString(), nil)
+
 				return mockAuth
 			},
 			expectedErr: ErrTitleRequired,
@@ -172,6 +174,7 @@ func TestCreateTaskError(t *testing.T) {
 				mockAuth := NewMockAuthClient(ctrl)
 				mockAuth.EXPECT().ValidateSession(gomock.Any(), "token").
 					Return(uuid.NewString(), nil)
+
 				return mockAuth
 			},
 			expectedErr: domaintask.ErrDueTimeRequired,
@@ -247,6 +250,7 @@ func TestGetTaskSuccess(t *testing.T) {
 				Return(tt.userID, nil)
 
 			handler := NewGetTaskHandler(mockAuth, repo)
+
 			resp, err := handler.GetTask(ctx, &tt.req)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
@@ -326,6 +330,7 @@ func TestGetTaskError(t *testing.T) {
 				mockAuth := NewMockAuthClient(ctrl)
 				mockAuth.EXPECT().ValidateSession(gomock.Any(), "bad-token").
 					Return("", authclient.ErrUnauthorized)
+
 				return mockAuth
 			},
 			expectedErr: ErrUnauthorized,
@@ -340,6 +345,7 @@ func TestGetTaskError(t *testing.T) {
 				mockAuth := NewMockAuthClient(ctrl)
 				mockAuth.EXPECT().ValidateSession(gomock.Any(), "token").
 					Return(uuid.NewString(), nil)
+
 				return mockAuth
 			},
 			expectedErr: ErrTaskIDRequired,
@@ -354,6 +360,7 @@ func TestGetTaskError(t *testing.T) {
 				mockAuth := NewMockAuthClient(ctrl)
 				mockAuth.EXPECT().ValidateSession(gomock.Any(), "token").
 					Return(uuid.NewString(), nil)
+
 				return mockAuth
 			},
 			expectedErr: domaintask.ErrIDInvalidFormat,
@@ -368,6 +375,7 @@ func TestGetTaskError(t *testing.T) {
 				mockAuth := NewMockAuthClient(ctrl)
 				mockAuth.EXPECT().ValidateSession(gomock.Any(), "token").
 					Return(uuid.NewString(), nil)
+
 				return mockAuth
 			},
 			expectedErr: ErrTaskNotFound,

@@ -44,6 +44,7 @@ func TestAuthInterceptorSuccess(t *testing.T) {
 			}
 
 			interceptor := AuthInterceptor()
+
 			var called bool
 
 			next := func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
@@ -103,6 +104,7 @@ func TestAuthInterceptorError(t *testing.T) {
 			}
 
 			interceptor := AuthInterceptor()
+
 			var called bool
 
 			next := func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {

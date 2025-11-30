@@ -36,6 +36,7 @@ func TestLoad(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Load() error = %v, want nil", err)
 			}
+
 			if got.AuthServiceURL != tt.expected.AuthServiceURL {
 				t.Fatalf("Load() AuthServiceURL = %s, want %s", got.AuthServiceURL, tt.expected.AuthServiceURL)
 			}
@@ -65,6 +66,7 @@ func TestLoadError(t *testing.T) {
 			if err == nil {
 				t.Fatalf("Load() error = nil, want %v", tt.expectedErr)
 			}
+
 			if errors.Is(err, tt.expectedErr) == false {
 				t.Fatalf("Load() error = %v, want %v", err, tt.expectedErr)
 			}

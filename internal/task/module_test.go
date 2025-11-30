@@ -59,6 +59,7 @@ func TestNewHTTPHandlerWithRepositoriesError(t *testing.T) {
 			repos: func(t *testing.T) Repositories {
 				ctrl := gomock.NewController(t)
 				t.Cleanup(ctrl.Finish)
+
 				return Repositories{
 					Tasks:      nil,
 					AuthClient: apptask.NewMockAuthClient(ctrl),
@@ -83,6 +84,7 @@ func TestNewHTTPHandlerWithRepositoriesError(t *testing.T) {
 			repos: func(t *testing.T) Repositories {
 				ctrl := gomock.NewController(t)
 				t.Cleanup(ctrl.Finish)
+
 				return Repositories{
 					Tasks:      setupTaskRepo(t),
 					AuthClient: apptask.NewMockAuthClient(ctrl),

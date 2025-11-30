@@ -43,7 +43,6 @@ func TestTaskRepositoryIntegrationSuccess(t *testing.T) {
 		nil,
 		time.Now(),
 	)
-
 	if err != nil {
 		t.Fatalf("failed to create task: %v", err)
 	}
@@ -58,6 +57,7 @@ func TestTaskRepositoryIntegrationSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get task by ID: %v", err)
 	}
+
 	if retrievedTask.Title() != task.Title() {
 		t.Errorf("expected title %q, got %q", task.Title(), retrievedTask.Title())
 	}
@@ -75,6 +75,7 @@ func TestTaskRepositoryIntegrationError(t *testing.T) {
 
 	// Scenario 2: GetTaskByID for non-existent task
 	nonExistentID := domaintask.ID(uuid.Must(uuid.NewV7()))
+
 	userID := uuid.Must(uuid.NewV7()).String()
 	if _, err := repo.GetTaskByID(ctx, nonExistentID, userID); !errors.Is(err, domaintask.ErrTaskNotFound) {
 		t.Fatalf("expected ErrTaskNotFound, got %v", err)
@@ -172,6 +173,7 @@ func TestTaskRepositoryWithFixedClock(t *testing.T) {
 
 	// Scenario 2: Multiple tasks with same timestamp
 	taskID2 := domaintask.ID(uuid.Must(uuid.NewV7()))
+
 	task2, err := domaintask.NewTask(
 		taskID2,
 		userID,

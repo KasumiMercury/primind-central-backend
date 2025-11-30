@@ -391,10 +391,12 @@ func TestNewTaskSuccess(t *testing.T) {
 				status:   taskStatus,
 				description: func() *string {
 					desc := "This is a detailed description."
+
 					return &desc
 				}(),
 				dueTime: func() *time.Time {
 					due := createTime.Add(48 * time.Hour)
+
 					return &due
 				}(),
 				createdAt: createTime,
@@ -407,10 +409,12 @@ func TestNewTaskSuccess(t *testing.T) {
 				taskStatus: taskStatus,
 				description: func() *string {
 					desc := "This is a detailed description."
+
 					return &desc
 				}(),
 				dueTime: func() *time.Time {
 					due := createTime.Add(48 * time.Hour)
+
 					return &due
 				}(),
 				createdAt: createTime,
@@ -426,6 +430,7 @@ func TestNewTaskSuccess(t *testing.T) {
 				status:   taskStatus,
 				description: func() *string {
 					desc := "Just a simple description."
+
 					return &desc
 				}(),
 				dueTime:   nil,
@@ -439,6 +444,7 @@ func TestNewTaskSuccess(t *testing.T) {
 				taskStatus: taskStatus,
 				description: func() *string {
 					desc := "Just a simple description."
+
 					return &desc
 				}(),
 				dueTime:   nil,
@@ -456,6 +462,7 @@ func TestNewTaskSuccess(t *testing.T) {
 				description: nil,
 				dueTime: func() *time.Time {
 					due := createTime.Add(24 * time.Hour)
+
 					return &due
 				}(),
 				createdAt: createTime,
@@ -469,6 +476,7 @@ func TestNewTaskSuccess(t *testing.T) {
 				description: nil,
 				dueTime: func() *time.Time {
 					due := createTime.Add(24 * time.Hour)
+
 					return &due
 				}(),
 				createdAt: createTime,
@@ -507,6 +515,7 @@ func TestNewTaskSuccess(t *testing.T) {
 				status:   taskStatus,
 				description: func() *string {
 					desc := "Description for 500 rune title."
+
 					return &desc
 				}(),
 				dueTime:   nil,
@@ -520,6 +529,7 @@ func TestNewTaskSuccess(t *testing.T) {
 				taskStatus: taskStatus,
 				description: func() *string {
 					desc := "Description for 500 rune title."
+
 					return &desc
 				}(),
 				dueTime:   nil,
@@ -540,7 +550,6 @@ func TestNewTaskSuccess(t *testing.T) {
 				tt.args.dueTime,
 				tt.args.createdAt,
 			)
-
 			if err != nil {
 				t.Fatalf("NewTask() unexpected error: %v", err)
 			}
@@ -693,7 +702,6 @@ func TestNewTaskErrors(t *testing.T) {
 				tt.args.dueTime,
 				tt.args.createdAt,
 			)
-
 			if err == nil {
 				t.Fatalf("NewTask() expected error, got task: %+v", task)
 			}

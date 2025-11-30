@@ -33,20 +33,26 @@ func TestCreateTaskSuccess(t *testing.T) {
 						if req.SessionToken != "token-normal" {
 							t.Fatalf("expected session token token-normal, got %s", req.SessionToken)
 						}
+
 						if req.Title != "task title" {
 							t.Fatalf("expected title task title, got %s", req.Title)
 						}
+
 						if req.TaskType != domaintask.TypeNormal {
 							t.Fatalf("expected task type %s, got %s", domaintask.TypeNormal, req.TaskType)
 						}
+
 						if req.Description != nil {
 							t.Fatalf("expected nil description, got %v", req.Description)
 						}
+
 						if req.DueTime != nil {
 							t.Fatalf("expected nil due time, got %v", req.DueTime)
 						}
+
 						return &apptask.CreateTaskResult{TaskID: "task-id-1"}, nil
 					})
+
 				return mockUseCase
 			},
 		},
@@ -56,6 +62,7 @@ func TestCreateTaskSuccess(t *testing.T) {
 				desc := "desc"
 				dueTime := time.Now().Add(time.Hour).UTC().Truncate(time.Second)
 				dueUnix := dueTime.Unix()
+
 				return &taskv1.CreateTaskRequest{
 					Title:       "task with due",
 					TaskType:    taskv1.TaskType_TASK_TYPE_HAS_DUE_TIME,
@@ -70,23 +77,30 @@ func TestCreateTaskSuccess(t *testing.T) {
 						if req.SessionToken != "token-due" {
 							t.Fatalf("expected session token token-due, got %s", req.SessionToken)
 						}
+
 						if req.Title != "task with due" {
 							t.Fatalf("expected title task with due, got %s", req.Title)
 						}
+
 						if req.TaskType != domaintask.TypeHasDueTime {
 							t.Fatalf("expected task type %s, got %s", domaintask.TypeHasDueTime, req.TaskType)
 						}
+
 						if req.Description == nil || *req.Description != "desc" {
 							t.Fatalf("unexpected description: %v", req.Description)
 						}
+
 						if req.DueTime == nil {
 							t.Fatalf("expected due time to be set")
 						}
+
 						if req.DueTime.UTC().Truncate(time.Second) != req.DueTime.UTC() {
 							t.Fatalf("due time should be utc second precision, got %v", req.DueTime)
 						}
+
 						return &apptask.CreateTaskResult{TaskID: "task-id-2"}, nil
 					})
+
 				return mockUseCase
 			},
 		},
@@ -105,6 +119,7 @@ func TestCreateTaskSuccess(t *testing.T) {
 			if tt.name == "task with description and due time" {
 				token = "token-due"
 			}
+
 			ctx := ctxWithSessionToken(t, token)
 
 			resp, err := svc.CreateTask(ctx, tt.req)
@@ -152,6 +167,7 @@ func TestCreateTaskError(t *testing.T) {
 				mockUseCase.EXPECT().
 					CreateTask(gomock.Any(), gomock.Any()).
 					Return(nil, apptask.ErrUnauthorized)
+
 				return NewService(mockUseCase, nil)
 			},
 			req:          &taskv1.CreateTaskRequest{Title: "title", TaskType: taskv1.TaskType_TASK_TYPE_NORMAL},
@@ -165,6 +181,7 @@ func TestCreateTaskError(t *testing.T) {
 				mockUseCase.EXPECT().
 					CreateTask(gomock.Any(), gomock.Any()).
 					Return(nil, apptask.ErrTitleRequired)
+
 				return NewService(mockUseCase, nil)
 			},
 			req:          &taskv1.CreateTaskRequest{Title: "", TaskType: taskv1.TaskType_TASK_TYPE_NORMAL},
@@ -178,6 +195,7 @@ func TestCreateTaskError(t *testing.T) {
 				mockUseCase.EXPECT().
 					CreateTask(gomock.Any(), gomock.Any()).
 					Return(nil, errors.New("boom"))
+
 				return NewService(mockUseCase, nil)
 			},
 			req:          &taskv1.CreateTaskRequest{Title: "title", TaskType: taskv1.TaskType_TASK_TYPE_NORMAL},
@@ -223,9 +241,11 @@ func TestGetTaskSuccess(t *testing.T) {
 						if req.SessionToken != "token" {
 							t.Fatalf("expected session token token, got %s", req.SessionToken)
 						}
+
 						if req.TaskID != "task-id-1" {
 							t.Fatalf("expected task id task-id-1, got %s", req.TaskID)
 						}
+
 						return &apptask.GetTaskResult{
 							TaskID:     "task-id-1",
 							Title:      "title",
@@ -234,6 +254,7 @@ func TestGetTaskSuccess(t *testing.T) {
 							CreatedAt:  createdAt,
 						}, nil
 					})
+
 				return mockUseCase
 			},
 		},
@@ -248,10 +269,13 @@ func TestGetTaskSuccess(t *testing.T) {
 						if req.SessionToken != "token" {
 							t.Fatalf("expected session token token, got %s", req.SessionToken)
 						}
+
 						if req.TaskID != "task-id-2" {
 							t.Fatalf("expected task id task-id-2, got %s", req.TaskID)
 						}
+
 						desc := "desc"
+
 						return &apptask.GetTaskResult{
 							TaskID:      "task-id-2",
 							Title:       "title 2",
@@ -262,6 +286,7 @@ func TestGetTaskSuccess(t *testing.T) {
 							CreatedAt:   createdAt,
 						}, nil
 					})
+
 				return mockUseCase
 			},
 		},
@@ -285,9 +310,11 @@ func TestGetTaskSuccess(t *testing.T) {
 			if resp.GetTaskId() == "" {
 				t.Fatalf("expected task id")
 			}
+
 			if resp.GetTitle() == "" {
 				t.Fatalf("expected title")
 			}
+
 			if resp.GetCreatedAt() != createdAt.Unix() {
 				t.Fatalf("expected created at %v, got %v", createdAt.Unix(), resp.GetCreatedAt())
 			}
@@ -318,6 +345,7 @@ func TestGetTaskError(t *testing.T) {
 				mockUseCase.EXPECT().
 					GetTask(gomock.Any(), gomock.Any()).
 					Return(nil, apptask.ErrUnauthorized)
+
 				return NewService(nil, mockUseCase)
 			},
 			req:          &taskv1.GetTaskRequest{TaskId: "id"},
@@ -331,6 +359,7 @@ func TestGetTaskError(t *testing.T) {
 				mockUseCase.EXPECT().
 					GetTask(gomock.Any(), gomock.Any()).
 					Return(nil, apptask.ErrTaskNotFound)
+
 				return NewService(nil, mockUseCase)
 			},
 			req:          &taskv1.GetTaskRequest{TaskId: "id"},
@@ -344,6 +373,7 @@ func TestGetTaskError(t *testing.T) {
 				mockUseCase.EXPECT().
 					GetTask(gomock.Any(), gomock.Any()).
 					Return(nil, apptask.ErrTaskIDRequired)
+
 				return NewService(nil, mockUseCase)
 			},
 			req:          &taskv1.GetTaskRequest{TaskId: ""},
@@ -357,6 +387,7 @@ func TestGetTaskError(t *testing.T) {
 				mockUseCase.EXPECT().
 					GetTask(gomock.Any(), gomock.Any()).
 					Return(nil, errors.New("boom"))
+
 				return NewService(nil, mockUseCase)
 			},
 			req:          &taskv1.GetTaskRequest{TaskId: "id"},
@@ -389,8 +420,10 @@ func ctxWithSessionToken(t *testing.T, token string) context.Context {
 	req.Header().Set("Authorization", "Bearer "+token)
 
 	var capturedCtx context.Context
+
 	_, err := interceptor.AuthInterceptor()(func(ctx context.Context, _ connect.AnyRequest) (connect.AnyResponse, error) {
 		capturedCtx = ctx
+
 		return connect.NewResponse(&taskv1.CreateTaskResponse{}), nil
 	})(context.Background(), req)
 	if err != nil {
