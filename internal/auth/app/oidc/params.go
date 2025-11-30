@@ -41,13 +41,6 @@ type paramsGenerator struct {
 	logger    *slog.Logger
 }
 
-func NewParamsGenerator(
-	providers map[domain.ProviderID]OIDCProvider,
-	repo domain.ParamsRepository,
-) OIDCParamsGenerator {
-	return newParamsGenerator(providers, repo, &clock.RealClock{})
-}
-
 func newParamsGenerator(
 	providers map[domain.ProviderID]OIDCProvider,
 	repo domain.ParamsRepository,
@@ -59,6 +52,13 @@ func newParamsGenerator(
 		clock:     clk,
 		logger:    slog.Default().WithGroup("auth").WithGroup("oidc").WithGroup("params"),
 	}
+}
+
+func NewParamsGenerator(
+	providers map[domain.ProviderID]OIDCProvider,
+	repo domain.ParamsRepository,
+) OIDCParamsGenerator {
+	return newParamsGenerator(providers, repo, &clock.RealClock{})
 }
 
 func (g *paramsGenerator) Generate(ctx context.Context, provider domain.ProviderID) (*ParamsResult, error) {

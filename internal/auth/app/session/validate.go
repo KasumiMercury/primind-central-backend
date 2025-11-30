@@ -42,13 +42,6 @@ type validateSessionHandler struct {
 	logger        *slog.Logger
 }
 
-func NewValidateSessionHandler(
-	sessionRepo domainsession.SessionRepository,
-	tokenVerifier TokenVerifier,
-) ValidateSessionUseCase {
-	return newValidateSessionHandler(sessionRepo, tokenVerifier, &clock.RealClock{})
-}
-
 func newValidateSessionHandler(
 	sessionRepo domainsession.SessionRepository,
 	tokenVerifier TokenVerifier,
@@ -60,6 +53,13 @@ func newValidateSessionHandler(
 		clock:         clk,
 		logger:        slog.Default().WithGroup("auth").WithGroup("session").WithGroup("validate"),
 	}
+}
+
+func NewValidateSessionHandler(
+	sessionRepo domainsession.SessionRepository,
+	tokenVerifier TokenVerifier,
+) ValidateSessionUseCase {
+	return newValidateSessionHandler(sessionRepo, tokenVerifier, &clock.RealClock{})
 }
 
 func (h *validateSessionHandler) Validate(ctx context.Context, req *ValidateSessionRequest) (*ValidateSessionResult, error) {

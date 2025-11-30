@@ -89,6 +89,30 @@ func NewLoginHandler(
 	)
 }
 
+func NewLoginHandlerWithClock(
+	providers map[domainoidc.ProviderID]OIDCProviderWithLogin,
+	paramsRepo domainoidc.ParamsRepository,
+	sessionRepo domain.SessionRepository,
+	userRepo user.UserRepository,
+	oidcIdentityRepo oidcidentity.OIDCIdentityRepository,
+	userIdentityRepo UserWithOIDCIdentityRepository,
+	jwtGenerator SessionTokenGenerator,
+	sessionCfg *sessionCfg.Config,
+	clk clock.Clock,
+) OIDCLoginUseCase {
+	return newLoginHandler(
+		providers,
+		paramsRepo,
+		sessionRepo,
+		userRepo,
+		oidcIdentityRepo,
+		userIdentityRepo,
+		jwtGenerator,
+		sessionCfg,
+		clk,
+	)
+}
+
 func newLoginHandler(
 	providers map[domainoidc.ProviderID]OIDCProviderWithLogin,
 	paramsRepo domainoidc.ParamsRepository,
