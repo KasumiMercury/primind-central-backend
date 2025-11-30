@@ -21,7 +21,7 @@ const (
 )
 
 var (
-	ErrEnvVarRequiredMissing = errors.New("required environment variable missing")
+	ErrEnvVarMissing = errors.New("required environment variable missing")
 
 	ErrGoogleClientSecretMissing = errors.New("google oidc client secret missing")
 	ErrGoogleRedirectURIMissing  = errors.New("google oidc redirect uri missing")
@@ -107,7 +107,7 @@ func getEnv(key, defaultVal string) string {
 func getEnvRequired(key string) (string, error) {
 	val := os.Getenv(key)
 	if val == "" {
-		return "", ErrEnvVarRequiredMissing
+		return "", ErrEnvVarMissing
 	}
 
 	return val, nil

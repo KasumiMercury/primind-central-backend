@@ -277,8 +277,8 @@ func TestGetEnvRequiredHelper(t *testing.T) {
 					t.Fatalf("expected error but got nil")
 				}
 
-				if !errors.Is(err, ErrEnvVarRequiredMissing) {
-					t.Fatalf("expected ErrEnvVarRequiredMissing, got %v", err)
+				if !errors.Is(err, ErrEnvVarMissing) {
+					t.Fatalf("expected ErrEnvVarMissing, got %v", err)
 				}
 				return
 			}
