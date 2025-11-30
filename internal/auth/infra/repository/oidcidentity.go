@@ -5,10 +5,10 @@ import (
 	"errors"
 	"time"
 
-	"github.com/KasumiMercury/primind-central-backend/internal/auth/infra/clock"
 	domainoidc "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/oidc"
 	domainidentity "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/oidcidentity"
 	"github.com/KasumiMercury/primind-central-backend/internal/auth/domain/user"
+	"github.com/KasumiMercury/primind-central-backend/internal/auth/infra/clock"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )

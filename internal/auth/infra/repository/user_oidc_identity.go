@@ -5,9 +5,9 @@ import (
 	"errors"
 
 	appoidc "github.com/KasumiMercury/primind-central-backend/internal/auth/app/oidc"
-	"github.com/KasumiMercury/primind-central-backend/internal/auth/infra/clock"
 	domainidentity "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/oidcidentity"
 	domainuser "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/user"
+	"github.com/KasumiMercury/primind-central-backend/internal/auth/infra/clock"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
