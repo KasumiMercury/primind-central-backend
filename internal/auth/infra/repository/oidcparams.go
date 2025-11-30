@@ -12,9 +12,6 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-var ErrParamsRequired = errors.New("oidc params required")
-var ErrParamsAlreadyExpired = errors.New("oidc params already expired")
-
 type paramsRecord struct {
 	Provider     string    `json:"provider"`
 	State        string    `json:"state"`

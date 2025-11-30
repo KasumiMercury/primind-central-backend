@@ -13,6 +13,7 @@ import (
 
 func TestSessionRepositoryIntegrationSuccess(t *testing.T) {
 	ctx := context.Background()
+
 	client, cleanup := testutil.SetupRedisContainer(ctx, t)
 	defer cleanup()
 
@@ -24,6 +25,7 @@ func TestSessionRepositoryIntegrationSuccess(t *testing.T) {
 	}
 
 	now := time.Now().UTC()
+
 	session, err := domainsession.NewSession(userID, now, now.Add(30*time.Minute))
 	if err != nil {
 		t.Fatalf("failed to create session: %v", err)
@@ -49,6 +51,7 @@ func TestSessionRepositoryIntegrationSuccess(t *testing.T) {
 
 func TestSessionRepositoryIntegrationError(t *testing.T) {
 	ctx := context.Background()
+
 	client, cleanup := testutil.SetupRedisContainer(ctx, t)
 	defer cleanup()
 
@@ -60,6 +63,7 @@ func TestSessionRepositoryIntegrationError(t *testing.T) {
 
 	userID, _ := domainuser.NewID()
 	now := time.Now().UTC()
+
 	expiredSession, _ := domainsession.NewSession(userID, now.Add(-time.Hour), now.Add(-30*time.Minute))
 	if err := repo.SaveSession(ctx, expiredSession); !errors.Is(err, ErrSessionAlreadyExpired) {
 		t.Fatalf("expected ErrSessionAlreadyExpired, got %v", err)

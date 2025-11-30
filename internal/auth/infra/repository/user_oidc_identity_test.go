@@ -88,6 +88,7 @@ func TestUserWithIdentityRepositoryWithFixedClock(t *testing.T) {
 	userID, _ := domainuser.NewID()
 	color := domainuser.MustColor("#fedcba")
 	u := domainuser.NewUser(userID, color)
+
 	identity, err := domainidentity.NewOIDCIdentity(userID, domainoidc.ProviderGoogle, "subject-456")
 	if err != nil {
 		t.Fatalf("failed to create identity: %v", err)

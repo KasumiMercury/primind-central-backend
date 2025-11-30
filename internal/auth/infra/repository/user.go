@@ -11,8 +11,6 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-var ErrUserRequired = errors.New("user is required")
-
 type UserModel struct {
 	ID        string    `gorm:"type:uuid;primaryKey"`
 	Color     string    `gorm:"type:varchar(7);not null"`

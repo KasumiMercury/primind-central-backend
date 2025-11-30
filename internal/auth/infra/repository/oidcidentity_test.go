@@ -41,6 +41,7 @@ func TestOIDCIdentityRepositoryIntegrationSuccess(t *testing.T) {
 
 	userID, _ := domainuser.NewID()
 	color := domainuser.MustColor("#abcdef")
+
 	u := domainuser.NewUser(userID, color)
 	if err := userRepo.SaveUser(context.Background(), u); err != nil {
 		t.Fatalf("SaveUser returned error: %v", err)
@@ -83,6 +84,7 @@ func TestOIDCIdentityRepositoryWithFixedClock(t *testing.T) {
 
 	userID, _ := domainuser.NewID()
 	color := domainuser.MustColor("#123456")
+
 	u := domainuser.NewUser(userID, color)
 	if err := userRepo.SaveUser(context.Background(), u); err != nil {
 		t.Fatalf("SaveUser failed: %v", err)

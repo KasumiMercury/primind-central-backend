@@ -13,6 +13,7 @@ import (
 
 func TestOIDCParamsRepositoryIntegrationSuccess(t *testing.T) {
 	ctx := context.Background()
+
 	client, cleanup := testutil.SetupRedisContainer(ctx, t)
 	defer cleanup()
 
@@ -39,6 +40,7 @@ func TestOIDCParamsRepositoryIntegrationSuccess(t *testing.T) {
 
 func TestOIDCParamsRepositoryIntegrationError(t *testing.T) {
 	ctx := context.Background()
+
 	client, cleanup := testutil.SetupRedisContainer(ctx, t)
 	defer cleanup()
 
@@ -60,6 +62,7 @@ func TestOIDCParamsRepositoryIntegrationError(t *testing.T) {
 
 func TestOIDCParamsRepositoryWithFixedClock(t *testing.T) {
 	ctx := context.Background()
+
 	client, cleanup := testutil.SetupRedisContainer(ctx, t)
 	defer cleanup()
 

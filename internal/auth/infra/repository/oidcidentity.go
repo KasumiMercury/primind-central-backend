@@ -13,8 +13,6 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-var ErrIdentityRequired = errors.New("identity is required")
-
 type OIDCIdentityModel struct {
 	UserID    string    `gorm:"type:uuid;not null;index"`
 	User      UserModel `gorm:"constraint:OnDelete:CASCADE,OnUpdate:CASCADE;foreignKey:UserID;references:ID"`

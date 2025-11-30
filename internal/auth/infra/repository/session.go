@@ -13,12 +13,6 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-var (
-	ErrSessionRequired       = errors.New("session is required")
-	ErrSessionNotFound       = errors.New("session not found")
-	ErrSessionAlreadyExpired = errors.New("session already expired")
-)
-
 type sessionRecord struct {
 	ID        string    `json:"id"`
 	UserID    string    `json:"user_id"`

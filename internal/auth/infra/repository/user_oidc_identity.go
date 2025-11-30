@@ -12,8 +12,6 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-var ErrOIDCIdentityConflict = errors.New("oidc identity belongs to a different user")
-
 type userWithIdentityRepository struct {
 	db    *gorm.DB
 	clock clock.Clock
