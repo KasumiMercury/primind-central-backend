@@ -1,12 +1,13 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/KasumiMercury/primind-central-backend/internal/config/persistence"
 )
 
-var ErrPersistenceLoad = fmt.Errorf("failed to load persistence config")
+var ErrPersistenceLoad = errors.New("persistence config load failed")
 
 type Config struct {
 	Persistence *persistence.Config
