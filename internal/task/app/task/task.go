@@ -10,13 +10,6 @@ import (
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/authclient"
 )
 
-var (
-	ErrUnauthorized   = authclient.ErrUnauthorized
-	ErrTitleRequired  = errors.New("task title is required")
-	ErrTaskNotFound   = domaintask.ErrTaskNotFound
-	ErrTaskIDRequired = errors.New("task ID is required")
-)
-
 type CreateTaskRequest struct {
 	SessionToken string
 	Title        string

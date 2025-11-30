@@ -9,8 +9,6 @@ import (
 	"gorm.io/gorm"
 )
 
-var ErrTaskRequired = errors.New("task is required")
-
 type TaskModel struct {
 	ID          string     `gorm:"type:uuid;primaryKey"`
 	UserID      string     `gorm:"type:uuid;not null;index:idx_tasks_user_id"`

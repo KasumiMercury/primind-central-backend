@@ -11,11 +11,6 @@ import (
 	authv1connect "github.com/KasumiMercury/primind-central-backend/internal/gen/auth/v1/authv1connect"
 )
 
-var (
-	ErrUnauthorized           = errors.New("unauthorized: invalid or missing session token")
-	ErrAuthServiceUnavailable = errors.New("authentication service unavailable")
-)
-
 type AuthClient interface {
 	ValidateSession(ctx context.Context, sessionToken string) (userID string, err error)
 }
