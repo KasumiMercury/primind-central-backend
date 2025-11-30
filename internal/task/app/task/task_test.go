@@ -7,10 +7,10 @@ import (
 	"time"
 
 	domaintask "github.com/KasumiMercury/primind-central-backend/internal/task/domain/task"
+	domainuser "github.com/KasumiMercury/primind-central-backend/internal/task/domain/user"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/authclient"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/repository"
 	"github.com/KasumiMercury/primind-central-backend/internal/testutil"
-	"github.com/google/uuid"
 	"go.uber.org/mock/gomock"
 )
 
@@ -18,10 +18,15 @@ func TestCreateTaskSuccess(t *testing.T) {
 	repo := setupTaskRepository(t)
 	ctx := context.Background()
 
+	userID, err := domainuser.NewID()
+	if err != nil {
+		t.Fatalf("failed to generate user id: %v", err)
+	}
+
 	tests := []struct {
 		name   string
 		req    CreateTaskRequest
-		userID string
+		userID domainuser.ID
 	}{
 		{
 			name: "create normal task without due time",
@@ -30,7 +35,7 @@ func TestCreateTaskSuccess(t *testing.T) {
 				Title:        "Test Task",
 				TaskType:     domaintask.TypeNormal,
 			},
-			userID: uuid.NewString(),
+			userID: userID,
 		},
 		{
 			name: "create task with due time and description",
@@ -46,7 +51,7 @@ func TestCreateTaskSuccess(t *testing.T) {
 					DueTime:      &due,
 				}
 			}(),
-			userID: uuid.NewString(),
+			userID: userID,
 		},
 	}
 
@@ -55,7 +60,7 @@ func TestCreateTaskSuccess(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			mockAuth := NewMockAuthClient(ctrl)
-			mockAuth.EXPECT().ValidateSession(gomock.Any(), tt.req.SessionToken).Return(tt.userID, nil)
+			mockAuth.EXPECT().ValidateSession(gomock.Any(), tt.req.SessionToken).Return(tt.userID.String(), nil)
 
 			handler := NewCreateTaskHandler(mockAuth, repo)
 
@@ -119,6 +124,11 @@ func TestCreateTaskError(t *testing.T) {
 	repo := setupTaskRepository(t)
 	ctx := context.Background()
 
+	validUserID, err := domainuser.NewID()
+	if err != nil {
+		t.Fatalf("failed to generate user id: %v", err)
+	}
+
 	tests := []struct {
 		name        string
 		req         *CreateTaskRequest
@@ -157,7 +167,7 @@ func TestCreateTaskError(t *testing.T) {
 			setupAuth: func(ctrl *gomock.Controller) authclient.AuthClient {
 				mockAuth := NewMockAuthClient(ctrl)
 				mockAuth.EXPECT().ValidateSession(gomock.Any(), "token").
-					Return(uuid.NewString(), nil)
+					Return(validUserID.String(), nil)
 
 				return mockAuth
 			},
@@ -173,7 +183,7 @@ func TestCreateTaskError(t *testing.T) {
 			setupAuth: func(ctrl *gomock.Controller) authclient.AuthClient {
 				mockAuth := NewMockAuthClient(ctrl)
 				mockAuth.EXPECT().ValidateSession(gomock.Any(), "token").
-					Return(uuid.NewString(), nil)
+					Return(validUserID.String(), nil)
 
 				return mockAuth
 			},
@@ -207,8 +217,14 @@ func TestGetTaskSuccess(t *testing.T) {
 	desc := "stored task"
 	due := time.Now().Add(3 * time.Hour).UTC().Truncate(time.Second)
 
-	userIDNormal := uuid.NewString()
-	userIDWithDue := uuid.NewString()
+	userIDNormal, err := domainuser.NewID()
+	if err != nil {
+		t.Fatalf("failed to generate user id: %v", err)
+	}
+	userIDWithDue, err := domainuser.NewID()
+	if err != nil {
+		t.Fatalf("failed to generate user id: %v", err)
+	}
 
 	now := time.Now().UTC()
 
@@ -218,7 +234,7 @@ func TestGetTaskSuccess(t *testing.T) {
 	tests := []struct {
 		name         string
 		req          GetTaskRequest
-		userID       string
+		userID       domainuser.ID
 		expectedTask *domaintask.Task
 	}{
 		{
@@ -247,7 +263,7 @@ func TestGetTaskSuccess(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			mockAuth := NewMockAuthClient(ctrl)
 			mockAuth.EXPECT().ValidateSession(gomock.Any(), tt.req.SessionToken).
-				Return(tt.userID, nil)
+				Return(tt.userID.String(), nil)
 
 			handler := NewGetTaskHandler(mockAuth, repo)
 
@@ -303,6 +319,11 @@ func TestGetTaskError(t *testing.T) {
 	repo := setupTaskRepository(t)
 	ctx := context.Background()
 
+	validUserID, err := domainuser.NewID()
+	if err != nil {
+		t.Fatalf("failed to generate user id: %v", err)
+	}
+
 	missingID, err := domaintask.NewID()
 	if err != nil {
 		t.Fatalf("failed to generate id: %v", err)
@@ -344,7 +365,7 @@ func TestGetTaskError(t *testing.T) {
 			setupAuth: func(ctrl *gomock.Controller) authclient.AuthClient {
 				mockAuth := NewMockAuthClient(ctrl)
 				mockAuth.EXPECT().ValidateSession(gomock.Any(), "token").
-					Return(uuid.NewString(), nil)
+					Return(validUserID.String(), nil)
 
 				return mockAuth
 			},
@@ -359,7 +380,7 @@ func TestGetTaskError(t *testing.T) {
 			setupAuth: func(ctrl *gomock.Controller) authclient.AuthClient {
 				mockAuth := NewMockAuthClient(ctrl)
 				mockAuth.EXPECT().ValidateSession(gomock.Any(), "token").
-					Return(uuid.NewString(), nil)
+					Return(validUserID.String(), nil)
 
 				return mockAuth
 			},
@@ -374,7 +395,7 @@ func TestGetTaskError(t *testing.T) {
 			setupAuth: func(ctrl *gomock.Controller) authclient.AuthClient {
 				mockAuth := NewMockAuthClient(ctrl)
 				mockAuth.EXPECT().ValidateSession(gomock.Any(), "token").
-					Return(uuid.NewString(), nil)
+					Return(validUserID.String(), nil)
 
 				return mockAuth
 			},
@@ -418,7 +439,7 @@ func setupTaskRepository(t *testing.T) domaintask.TaskRepository {
 func createPersistedTask(
 	t *testing.T,
 	repo domaintask.TaskRepository,
-	userID string,
+	userID domainuser.ID,
 	title string,
 	taskType domaintask.Type,
 	description *string,

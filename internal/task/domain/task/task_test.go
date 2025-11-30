@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/KasumiMercury/primind-central-backend/internal/task/domain/user"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/uuid"
 )
@@ -325,6 +326,11 @@ func TestNewTaskSuccess(t *testing.T) {
 		t.Fatalf("setup failed: %v", err)
 	}
 
+	validUserID, err := user.NewID()
+	if err != nil {
+		t.Fatalf("setup failed: %v", err)
+	}
+
 	taskNormalType, err := NewType("normal")
 	if err != nil {
 		t.Fatalf("setup failed: %v", err)
@@ -344,7 +350,7 @@ func TestNewTaskSuccess(t *testing.T) {
 
 	type args struct {
 		id          ID
-		userID      string
+		userID      user.ID
 		title       string
 		taskType    Type
 		status      Status
@@ -362,7 +368,7 @@ func TestNewTaskSuccess(t *testing.T) {
 			name: "creates non-due task without optional fields",
 			args: args{
 				id:          validID,
-				userID:      "user123",
+				userID:      validUserID,
 				title:       "Test Task",
 				taskType:    taskNormalType,
 				status:      taskStatus,
@@ -372,7 +378,7 @@ func TestNewTaskSuccess(t *testing.T) {
 			},
 			expected: &Task{
 				id:          validID,
-				userID:      "user123",
+				userID:      validUserID,
 				title:       "Test Task",
 				taskType:    taskNormalType,
 				taskStatus:  taskStatus,
@@ -385,7 +391,7 @@ func TestNewTaskSuccess(t *testing.T) {
 			name: "creates due task with all fields",
 			args: args{
 				id:       validID,
-				userID:   "user456",
+				userID:   validUserID,
 				title:    "Another Task",
 				taskType: taskDueType,
 				status:   taskStatus,
@@ -403,7 +409,7 @@ func TestNewTaskSuccess(t *testing.T) {
 			},
 			expected: &Task{
 				id:         validID,
-				userID:     "user456",
+				userID:     validUserID,
 				title:      "Another Task",
 				taskType:   taskDueType,
 				taskStatus: taskStatus,
@@ -424,7 +430,7 @@ func TestNewTaskSuccess(t *testing.T) {
 			name: "creates task with description",
 			args: args{
 				id:       validID,
-				userID:   "user789",
+				userID:   validUserID,
 				title:    "Task with Description",
 				taskType: taskNormalType,
 				status:   taskStatus,
@@ -438,7 +444,7 @@ func TestNewTaskSuccess(t *testing.T) {
 			},
 			expected: &Task{
 				id:         validID,
-				userID:     "user789",
+				userID:     validUserID,
 				title:      "Task with Description",
 				taskType:   taskNormalType,
 				taskStatus: taskStatus,
@@ -455,7 +461,7 @@ func TestNewTaskSuccess(t *testing.T) {
 			name: "creates task with due time",
 			args: args{
 				id:          validID,
-				userID:      "user101",
+				userID:      validUserID,
 				title:       "Task with Due Time",
 				taskType:    taskDueType,
 				status:      taskStatus,
@@ -469,7 +475,7 @@ func TestNewTaskSuccess(t *testing.T) {
 			},
 			expected: &Task{
 				id:          validID,
-				userID:      "user101",
+				userID:      validUserID,
 				title:       "Task with Due Time",
 				taskType:    taskDueType,
 				taskStatus:  taskStatus,
@@ -486,7 +492,7 @@ func TestNewTaskSuccess(t *testing.T) {
 			name: "1 rune title",
 			args: args{
 				id:          validID,
-				userID:      "user102",
+				userID:      validUserID,
 				title:       "A",
 				taskType:    taskNormalType,
 				status:      taskStatus,
@@ -496,7 +502,7 @@ func TestNewTaskSuccess(t *testing.T) {
 			},
 			expected: &Task{
 				id:          validID,
-				userID:      "user102",
+				userID:      validUserID,
 				title:       "A",
 				taskType:    taskNormalType,
 				taskStatus:  taskStatus,
@@ -509,7 +515,7 @@ func TestNewTaskSuccess(t *testing.T) {
 			name: "500 rune title",
 			args: args{
 				id:       validID,
-				userID:   "user103",
+				userID:   validUserID,
 				title:    strings.Repeat("T", 500),
 				taskType: taskNormalType,
 				status:   taskStatus,
@@ -523,7 +529,7 @@ func TestNewTaskSuccess(t *testing.T) {
 			},
 			expected: &Task{
 				id:         validID,
-				userID:     "user103",
+				userID:     validUserID,
 				title:      strings.Repeat("T", 500),
 				taskType:   taskNormalType,
 				taskStatus: taskStatus,
@@ -606,6 +612,11 @@ func TestNewTaskErrors(t *testing.T) {
 		t.Fatalf("setup failed: %v", err)
 	}
 
+	validUserID, err := user.NewID()
+	if err != nil {
+		t.Fatalf("setup failed: %v", err)
+	}
+
 	taskNormalType, err := NewType("normal")
 	if err != nil {
 		t.Fatalf("setup failed: %v", err)
@@ -625,7 +636,7 @@ func TestNewTaskErrors(t *testing.T) {
 
 	type args struct {
 		id          ID
-		userID      string
+		userID      user.ID
 		title       string
 		taskType    Type
 		status      Status
@@ -640,22 +651,10 @@ func TestNewTaskErrors(t *testing.T) {
 		expectedErr error
 	}{
 		{
-			name: "empty userID",
-			args: args{
-				id:        validID,
-				userID:    "",
-				title:     "Test Task",
-				taskType:  taskNormalType,
-				status:    taskStatus,
-				createdAt: createTime,
-			},
-			expectedErr: ErrUserIDEmpty,
-		},
-		{
 			name: "empty title",
 			args: args{
 				id:        validID,
-				userID:    "user123",
+				userID:    validUserID,
 				title:     "",
 				taskType:  taskNormalType,
 				status:    taskStatus,
@@ -667,7 +666,7 @@ func TestNewTaskErrors(t *testing.T) {
 			name: "501 rune title is too long",
 			args: args{
 				id:        validID,
-				userID:    "user123",
+				userID:    validUserID,
 				title:     strings.Repeat("T", 501),
 				taskType:  taskNormalType,
 				status:    taskStatus,
@@ -679,7 +678,7 @@ func TestNewTaskErrors(t *testing.T) {
 			name: "nil due time for due type",
 			args: args{
 				id:        validID,
-				userID:    "user123",
+				userID:    validUserID,
 				title:     "Test Task",
 				taskType:  taskDueType,
 				status:    taskStatus,
