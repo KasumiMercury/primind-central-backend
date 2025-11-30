@@ -45,7 +45,7 @@ func NewCreateTaskHandler(
 
 func (h *createTaskHandler) CreateTask(ctx context.Context, req *CreateTaskRequest) (*CreateTaskResult, error) {
 	if req == nil {
-		return nil, errors.New("create task request is nil")
+		return nil, ErrCreateTaskRequestRequired
 	}
 
 	userID, err := h.authClient.ValidateSession(ctx, req.SessionToken)
@@ -125,7 +125,7 @@ func NewGetTaskHandler(
 
 func (h *getTaskHandler) GetTask(ctx context.Context, req *GetTaskRequest) (*GetTaskResult, error) {
 	if req == nil {
-		return nil, errors.New("get task request is nil")
+		return nil, ErrGetTaskRequestRequired
 	}
 
 	userID, err := h.authClient.ValidateSession(ctx, req.SessionToken)
