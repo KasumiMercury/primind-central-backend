@@ -91,6 +91,14 @@ func NewTask(
 	dueTime *time.Time,
 	createdAt time.Time,
 ) (*Task, error) {
+	normalizedCreatedAt := createdAt.UTC().Truncate(time.Microsecond)
+
+	normalizedDueTime := dueTime
+	if dueTime != nil {
+		t := dueTime.UTC().Truncate(time.Microsecond)
+		normalizedDueTime = &t
+	}
+
 	if userID == "" {
 		return nil, ErrUserIDEmpty
 	}
@@ -103,7 +111,7 @@ func NewTask(
 		return nil, ErrTitleTooLong
 	}
 
-	if taskType == TypeHasDueTime && dueTime == nil {
+	if taskType == TypeHasDueTime && normalizedDueTime == nil {
 		return nil, ErrDueTimeRequired
 	}
 
@@ -114,8 +122,8 @@ func NewTask(
 		taskType:    taskType,
 		taskStatus:  taskStatus,
 		description: description,
-		dueTime:     dueTime,
-		createdAt:   createdAt,
+		dueTime:     normalizedDueTime,
+		createdAt:   normalizedCreatedAt,
 	}, nil
 }
 
