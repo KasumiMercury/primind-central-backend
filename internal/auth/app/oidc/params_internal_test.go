@@ -19,6 +19,7 @@ func TestGenerateCodeChallenge(t *testing.T) {
 			verifier: "test-verifier-12345678901234567890123456",
 			wantChallenge: func() string {
 				hash := sha256.Sum256([]byte("test-verifier-12345678901234567890123456"))
+
 				return base64.RawURLEncoding.EncodeToString(hash[:])
 			}(),
 		},
@@ -56,7 +57,6 @@ func TestRandomToken(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			token, err := randomToken()
-
 			if err != nil {
 				t.Fatalf("randomToken() error: %v", err)
 			}

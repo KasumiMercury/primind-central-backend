@@ -18,6 +18,7 @@ import (
 
 func TestValidateSessionSuccess(t *testing.T) {
 	now := time.Now().UTC()
+
 	userID, err := user.NewID()
 	if err != nil {
 		t.Fatalf("failed to create user id: %v", err)
@@ -36,6 +37,7 @@ func TestValidateSessionSuccess(t *testing.T) {
 	cfg := &sessionCfg.Config{Duration: time.Hour, Secret: "test-secret"}
 	jwtGen := jwt.NewSessionJWTGenerator(cfg)
 	jwtValidator := jwt.NewSessionJWTValidator(cfg)
+
 	token, err := jwtGen.Generate(session, user.NewUser(userID, user.MustColor("#000000")))
 	if err != nil {
 		t.Fatalf("failed to generate token: %v", err)

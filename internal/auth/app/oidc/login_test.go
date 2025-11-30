@@ -112,6 +112,7 @@ func TestLoginError(t *testing.T) {
 				t.Cleanup(repos.cleanup)
 
 				provider := oidc.NewMockOIDCProviderWithLogin(ctrl)
+
 				return oidc.NewLoginHandler(
 					map[domainoidc.ProviderID]oidc.OIDCProviderWithLogin{
 						domainoidc.ProviderGoogle: provider,
@@ -198,6 +199,7 @@ func TestLoginError(t *testing.T) {
 			setup: func(ctrl *gomock.Controller) oidc.OIDCLoginUseCase {
 				repos := setupLoginReposWithClock(t, clock.NewFixedClock(now))
 				t.Cleanup(repos.cleanup)
+
 				if err := repos.paramsRepo.SaveParams(context.Background(), defaultParams); err != nil {
 					t.Fatalf("failed to save params: %v", err)
 				}
@@ -233,6 +235,7 @@ func TestLoginError(t *testing.T) {
 			setup: func(ctrl *gomock.Controller) oidc.OIDCLoginUseCase {
 				repos := setupLoginReposWithClock(t, clock.NewFixedClock(now))
 				t.Cleanup(repos.cleanup)
+
 				if err := repos.paramsRepo.SaveParams(context.Background(), defaultParams); err != nil {
 					t.Fatalf("failed to save params: %v", err)
 				}
@@ -271,6 +274,7 @@ func TestLoginError(t *testing.T) {
 			setup: func(ctrl *gomock.Controller) oidc.OIDCLoginUseCase {
 				repos := setupLoginReposWithClock(t, clock.NewFixedClock(now))
 				t.Cleanup(repos.cleanup)
+
 				if err := repos.paramsRepo.SaveParams(context.Background(), defaultParams); err != nil {
 					t.Fatalf("failed to save params: %v", err)
 				}
@@ -314,6 +318,7 @@ func TestLoginError(t *testing.T) {
 			setup: func(ctrl *gomock.Controller) oidc.OIDCLoginUseCase {
 				repos := setupLoginReposWithClock(t, clock.NewFixedClock(now))
 				t.Cleanup(repos.cleanup)
+
 				if err := repos.paramsRepo.SaveParams(context.Background(), defaultParams); err != nil {
 					t.Fatalf("failed to save params: %v", err)
 				}
@@ -365,6 +370,7 @@ func TestLoginError(t *testing.T) {
 			setup: func(ctrl *gomock.Controller) oidc.OIDCLoginUseCase {
 				repos := setupLoginReposWithClock(t, clock.NewFixedClock(now))
 				t.Cleanup(repos.cleanup)
+
 				if err := repos.paramsRepo.SaveParams(context.Background(), defaultParams); err != nil {
 					t.Fatalf("failed to save params: %v", err)
 				}
@@ -408,6 +414,7 @@ func TestLoginError(t *testing.T) {
 			setup: func(ctrl *gomock.Controller) oidc.OIDCLoginUseCase {
 				repos := setupLoginReposWithClock(t, clock.NewFixedClock(now))
 				t.Cleanup(repos.cleanup)
+
 				if err := repos.paramsRepo.SaveParams(context.Background(), defaultParams); err != nil {
 					t.Fatalf("failed to save params: %v", err)
 				}
@@ -506,11 +513,14 @@ func setupLoginReposWithClock(t *testing.T, clk clock.Clock) loginRepos {
 
 	cfg := &sessionCfg.Config{Duration: time.Hour, Secret: "integration-secret"}
 
-	var paramsRepo domainoidc.ParamsRepository
-	var sessionRepo domainsession.SessionRepository
-	var userRepo user.UserRepository
-	var identityRepo oidcidentity.OIDCIdentityRepository
-	var userIdentityRepo oidc.UserWithOIDCIdentityRepository
+	var (
+		paramsRepo       domainoidc.ParamsRepository
+		sessionRepo      domainsession.SessionRepository
+		userRepo         user.UserRepository
+		identityRepo     oidcidentity.OIDCIdentityRepository
+		userIdentityRepo oidc.UserWithOIDCIdentityRepository
+	)
+
 	if clk != nil {
 		paramsRepo = repository.NewOIDCParamsRepositoryWithClock(redisClient, clk)
 		sessionRepo = repository.NewSessionRepositoryWithClock(redisClient, clk)

@@ -39,6 +39,7 @@ func TestParamsGeneratorGenerateSuccess(t *testing.T) {
 
 			redisClient, cleanupRedis := testutil.SetupRedisContainer(ctx, t)
 			t.Cleanup(cleanupRedis)
+
 			repo := repository.NewOIDCParamsRepository(redisClient)
 
 			mockProvider := oidc.NewMockOIDCProvider(ctrl)
@@ -55,7 +56,6 @@ func TestParamsGeneratorGenerateSuccess(t *testing.T) {
 			generator := oidc.NewParamsGenerator(providers, repo)
 
 			result, err := generator.Generate(ctx, tt.provider)
-
 			if err != nil {
 				t.Fatalf("Generate() unexpected error: %v", err)
 			}
@@ -137,7 +137,6 @@ func TestParamsGeneratorGenerateErrors(t *testing.T) {
 			generator := oidc.NewParamsGenerator(providers, repo)
 
 			result, err := generator.Generate(ctx, tt.provider)
-
 			if err == nil {
 				t.Fatalf("Generate() expected error, got result: %+v", result)
 			}
