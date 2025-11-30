@@ -197,6 +197,7 @@ func TestGoogleConfigValidateErrors(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
+
 			if err := tt.cfg.Validate(); err == nil {
 				t.Fatalf("expected error but got nil")
 			} else if !errors.Is(err, tt.wantErr) {
@@ -233,6 +234,7 @@ func TestGetEnvHelpter(t *testing.T) {
 			if tt.envValue != "" {
 				t.Setenv(tt.envVar, tt.envValue)
 			}
+
 			got := getEnv(tt.envVar, "default-value")
 			if got != tt.want {
 				t.Fatalf("getEnv(%s) = %s, want %s", tt.envVar, got, tt.want)
@@ -271,6 +273,7 @@ func TestGetEnvRequiredHelper(t *testing.T) {
 			if tt.envValue != "" {
 				t.Setenv(tt.envVar, tt.envValue)
 			}
+
 			got, err := getEnvRequired(tt.envVar)
 			if tt.expectErr {
 				if err == nil {
@@ -280,11 +283,14 @@ func TestGetEnvRequiredHelper(t *testing.T) {
 				if !errors.Is(err, ErrEnvVarMissing) {
 					t.Fatalf("expected ErrEnvVarMissing, got %v", err)
 				}
+
 				return
 			}
+
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
+
 			if got != tt.want {
 				t.Fatalf("getEnvRequired(%s) = %s, want %s", tt.envVar, got, tt.want)
 			}
@@ -319,10 +325,12 @@ func TestGetEnvSliceHelper(t *testing.T) {
 			if tt.envValue != "" {
 				t.Setenv(tt.envVar, tt.envValue)
 			}
+
 			got := getEnvSlice(tt.envVar, ",", "default-scope1", "default-scope2")
 			if len(got) != len(tt.want) {
 				t.Fatalf("getEnvSlice(%s) = %v, want %v", tt.envVar, got, tt.want)
 			}
+
 			for i := range got {
 				if got[i] != tt.want[i] {
 					t.Fatalf("getEnvSlice(%s)[%d] = %s, want %s", tt.envVar, i, got[i], tt.want[i])

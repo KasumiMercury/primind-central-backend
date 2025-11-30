@@ -146,6 +146,7 @@ func TestLoadErrors(t *testing.T) {
 	clearOIDCEnv(t)
 	t.Run("missing session secret", func(t *testing.T) {
 		t.Setenv("SESSION_SECRET", "")
+
 		if _, err := Load(); err == nil {
 			t.Fatalf("expected error for missing session secret")
 		}

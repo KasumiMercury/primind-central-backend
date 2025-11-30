@@ -1,7 +1,6 @@
 package google
 
 import (
-	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -18,14 +17,6 @@ const (
 	redirectURIEnv  = "OIDC_GOOGLE_REDIRECT_URI"
 	scopesEnv       = "OIDC_GOOGLE_SCOPES"
 	issuerURLEnv    = "OIDC_GOOGLE_ISSUER_URL"
-)
-
-var (
-	ErrEnvVarMissing = errors.New("required environment variable missing")
-
-	ErrGoogleClientSecretMissing = errors.New("google oidc client secret missing")
-	ErrGoogleRedirectURIMissing  = errors.New("google oidc redirect uri missing")
-	ErrGoogleIssuerInvalid       = errors.New("issuer URL host should contain 'google.com'")
 )
 
 func init() {

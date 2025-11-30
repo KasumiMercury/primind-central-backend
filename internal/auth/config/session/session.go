@@ -1,7 +1,6 @@
 package session
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -12,11 +11,6 @@ const (
 	sessionDurationEnv = "SESSION_DURATION"
 
 	defaultSessionDuration = 24 * time.Hour
-)
-
-var (
-	ErrSessionSecretMissing   = errors.New("session secret is required")
-	ErrSessionDurationInvalid = errors.New("session duration must be positive")
 )
 
 // Config contains session management settings.
