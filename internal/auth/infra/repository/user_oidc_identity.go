@@ -19,11 +19,19 @@ type userWithIdentityRepository struct {
 	clock clock.Clock
 }
 
-func NewUserWithIdentityRepository(db *gorm.DB) appoidc.UserWithOIDCIdentityRepository {
+func newUserWithIdentityRepository(db *gorm.DB, clk clock.Clock) appoidc.UserWithOIDCIdentityRepository {
 	return &userWithIdentityRepository{
 		db:    db,
-		clock: &clock.RealClock{},
+		clock: clk,
 	}
+}
+
+func NewUserWithIdentityRepository(db *gorm.DB) appoidc.UserWithOIDCIdentityRepository {
+	return newUserWithIdentityRepository(db, &clock.RealClock{})
+}
+
+func NewUserWithIdentityRepositoryWithClock(db *gorm.DB, clk clock.Clock) appoidc.UserWithOIDCIdentityRepository {
+	return newUserWithIdentityRepository(db, clk)
 }
 
 func (r *userWithIdentityRepository) SaveUserWithOIDCIdentity(

@@ -32,11 +32,19 @@ type oidcIdentityRepository struct {
 	clock clock.Clock
 }
 
-func NewOIDCIdentityRepository(db *gorm.DB) domainidentity.OIDCIdentityRepository {
+func newOIDCIdentityRepository(db *gorm.DB, clk clock.Clock) domainidentity.OIDCIdentityRepository {
 	return &oidcIdentityRepository{
 		db:    db,
-		clock: &clock.RealClock{},
+		clock: clk,
 	}
+}
+
+func NewOIDCIdentityRepository(db *gorm.DB) domainidentity.OIDCIdentityRepository {
+	return newOIDCIdentityRepository(db, &clock.RealClock{})
+}
+
+func NewOIDCIdentityRepositoryWithClock(db *gorm.DB, clk clock.Clock) domainidentity.OIDCIdentityRepository {
+	return newOIDCIdentityRepository(db, clk)
 }
 
 func (r *oidcIdentityRepository) SaveOIDCIdentity(ctx context.Context, identity *domainidentity.OIDCIdentity) error {

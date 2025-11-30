@@ -28,11 +28,19 @@ type userRepository struct {
 	clock clock.Clock
 }
 
-func NewUserRepository(db *gorm.DB) domainuser.UserRepository {
+func newUserRepository(db *gorm.DB, clk clock.Clock) domainuser.UserRepository {
 	return &userRepository{
 		db:    db,
-		clock: &clock.RealClock{},
+		clock: clk,
 	}
+}
+
+func NewUserRepository(db *gorm.DB) domainuser.UserRepository {
+	return newUserRepository(db, &clock.RealClock{})
+}
+
+func NewUserRepositoryWithClock(db *gorm.DB, clk clock.Clock) domainuser.UserRepository {
+	return newUserRepository(db, clk)
 }
 
 func (r *userRepository) SaveUser(ctx context.Context, u *domainuser.User) error {

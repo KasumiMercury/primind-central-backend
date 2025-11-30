@@ -66,3 +66,27 @@ func TestUserRepositoryIntegrationError(t *testing.T) {
 		t.Fatalf("expected ErrUserNotFound, got %v", err)
 	}
 }
+
+func TestUserRepositoryWithFixedClock(t *testing.T) {
+	db := setupUserDB(t)
+
+	fixedTime := time.Date(2024, 1, 1, 10, 0, 0, 0, time.UTC)
+	repo := NewUserRepositoryWithClock(db, clock.NewFixedClock(fixedTime))
+
+	userID, _ := domainuser.NewID()
+	color := domainuser.MustColor("#abcdef")
+	u := domainuser.NewUser(userID, color)
+
+	if err := repo.SaveUser(context.Background(), u); err != nil {
+		t.Fatalf("SaveUser with fixed clock failed: %v", err)
+	}
+
+	var record UserModel
+	if err := db.First(&record, "id = ?", userID.String()).Error; err != nil {
+		t.Fatalf("failed to query user record: %v", err)
+	}
+
+	if !record.CreatedAt.Equal(fixedTime) {
+		t.Fatalf("expected CreatedAt to be %v, got %v", fixedTime, record.CreatedAt)
+	}
+}

@@ -73,3 +73,36 @@ func TestOIDCIdentityRepositoryIntegrationError(t *testing.T) {
 		t.Fatalf("expected ErrOIDCIdentityNotFound, got %v", err)
 	}
 }
+
+func TestOIDCIdentityRepositoryWithFixedClock(t *testing.T) {
+	db := setupIdentityDB(t)
+
+	fixedTime := time.Date(2024, 1, 1, 10, 0, 0, 0, time.UTC)
+	identityRepo := NewOIDCIdentityRepositoryWithClock(db, clock.NewFixedClock(fixedTime))
+	userRepo := NewUserRepositoryWithClock(db, clock.NewFixedClock(fixedTime))
+
+	userID, _ := domainuser.NewID()
+	color := domainuser.MustColor("#123456")
+	u := domainuser.NewUser(userID, color)
+	if err := userRepo.SaveUser(context.Background(), u); err != nil {
+		t.Fatalf("SaveUser failed: %v", err)
+	}
+
+	identity, err := domainidentity.NewOIDCIdentity(userID, domainoidc.ProviderGoogle, "subject-123")
+	if err != nil {
+		t.Fatalf("failed to create identity: %v", err)
+	}
+
+	if err := identityRepo.SaveOIDCIdentity(context.Background(), identity); err != nil {
+		t.Fatalf("SaveOIDCIdentity with fixed clock failed: %v", err)
+	}
+
+	var record OIDCIdentityModel
+	if err := db.First(&record, "provider = ? AND subject = ?", domainoidc.ProviderGoogle, "subject-123").Error; err != nil {
+		t.Fatalf("failed to query identity record: %v", err)
+	}
+
+	if !record.CreatedAt.Equal(fixedTime) {
+		t.Fatalf("expected CreatedAt to be %v, got %v", fixedTime, record.CreatedAt)
+	}
+}
