@@ -47,3 +47,5 @@ linters:
                   - exhaustruct
                   - gosec
                   - staticcheck
+                  - fatcontext
+                  - containedctx
