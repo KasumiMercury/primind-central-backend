@@ -180,6 +180,7 @@ func TestServiceOIDCLoginError(t *testing.T) {
 				mockLogin.EXPECT().
 					Login(gomock.Any(), gomock.Any()).
 					Return(nil, appoidc.ErrOIDCNotConfigured)
+
 				return NewService(nil, mockLogin, nil, nil)
 			},
 			req:          &authv1.OIDCLoginRequest{Provider: authv1.OIDCProvider_OIDC_PROVIDER_GOOGLE},
@@ -192,6 +193,7 @@ func TestServiceOIDCLoginError(t *testing.T) {
 				mockLogin.EXPECT().
 					Login(gomock.Any(), gomock.Any()).
 					Return(nil, appoidc.ErrOIDCProviderUnsupported)
+
 				return NewService(nil, mockLogin, nil, nil)
 			},
 			req:          &authv1.OIDCLoginRequest{Provider: authv1.OIDCProvider_OIDC_PROVIDER_GOOGLE},
@@ -204,6 +206,7 @@ func TestServiceOIDCLoginError(t *testing.T) {
 				mockLogin.EXPECT().
 					Login(gomock.Any(), gomock.Any()).
 					Return(nil, appoidc.ErrCodeInvalid)
+
 				return NewService(nil, mockLogin, nil, nil)
 			},
 			req:          &authv1.OIDCLoginRequest{Provider: authv1.OIDCProvider_OIDC_PROVIDER_GOOGLE},
@@ -216,6 +219,7 @@ func TestServiceOIDCLoginError(t *testing.T) {
 				mockLogin.EXPECT().
 					Login(gomock.Any(), gomock.Any()).
 					Return(nil, appoidc.ErrStateInvalid)
+
 				return NewService(nil, mockLogin, nil, nil)
 			},
 			req:          &authv1.OIDCLoginRequest{Provider: authv1.OIDCProvider_OIDC_PROVIDER_GOOGLE},
@@ -228,6 +232,7 @@ func TestServiceOIDCLoginError(t *testing.T) {
 				mockLogin.EXPECT().
 					Login(gomock.Any(), gomock.Any()).
 					Return(nil, domainoidc.ErrParamsExpired)
+
 				return NewService(nil, mockLogin, nil, nil)
 			},
 			req:          &authv1.OIDCLoginRequest{Provider: authv1.OIDCProvider_OIDC_PROVIDER_GOOGLE},
@@ -240,6 +245,7 @@ func TestServiceOIDCLoginError(t *testing.T) {
 				mockLogin.EXPECT().
 					Login(gomock.Any(), gomock.Any()).
 					Return(nil, appoidc.ErrNonceInvalid)
+
 				return NewService(nil, mockLogin, nil, nil)
 			},
 			req:          &authv1.OIDCLoginRequest{Provider: authv1.OIDCProvider_OIDC_PROVIDER_GOOGLE},
@@ -252,6 +258,7 @@ func TestServiceOIDCLoginError(t *testing.T) {
 				mockLogin.EXPECT().
 					Login(gomock.Any(), gomock.Any()).
 					Return(nil, errors.New("boom"))
+
 				return NewService(nil, mockLogin, nil, nil)
 			},
 			req:          &authv1.OIDCLoginRequest{Provider: authv1.OIDCProvider_OIDC_PROVIDER_GOOGLE},
@@ -320,6 +327,7 @@ func TestServiceLogoutError(t *testing.T) {
 				mockLogout.EXPECT().
 					Logout(gomock.Any(), gomock.Any()).
 					Return(nil, applogout.ErrSessionTokenRequired)
+
 				return NewService(nil, nil, nil, mockLogout)
 			},
 			req:          &authv1.LogoutRequest{},
@@ -332,6 +340,7 @@ func TestServiceLogoutError(t *testing.T) {
 				mockLogout.EXPECT().
 					Logout(gomock.Any(), gomock.Any()).
 					Return(nil, applogout.ErrSessionTokenInvalid)
+
 				return NewService(nil, nil, nil, mockLogout)
 			},
 			req:          &authv1.LogoutRequest{SessionToken: "bad"},
@@ -344,6 +353,7 @@ func TestServiceLogoutError(t *testing.T) {
 				mockLogout.EXPECT().
 					Logout(gomock.Any(), gomock.Any()).
 					Return(nil, errors.New("boom"))
+
 				return NewService(nil, nil, nil, mockLogout)
 			},
 			req:          &authv1.LogoutRequest{SessionToken: "token"},
@@ -413,6 +423,7 @@ func TestServiceValidateSessionError(t *testing.T) {
 				mockValidate.EXPECT().
 					Validate(gomock.Any(), gomock.Any()).
 					Return(nil, appsession.ErrSessionTokenRequired)
+
 				return NewService(nil, nil, mockValidate, nil)
 			},
 			req:          &authv1.ValidateSessionRequest{SessionToken: ""},
@@ -425,6 +436,7 @@ func TestServiceValidateSessionError(t *testing.T) {
 				mockValidate.EXPECT().
 					Validate(gomock.Any(), gomock.Any()).
 					Return(nil, appsession.ErrSessionTokenInvalid)
+
 				return NewService(nil, nil, mockValidate, nil)
 			},
 			req:          &authv1.ValidateSessionRequest{SessionToken: "bad"},
@@ -437,6 +449,7 @@ func TestServiceValidateSessionError(t *testing.T) {
 				mockValidate.EXPECT().
 					Validate(gomock.Any(), gomock.Any()).
 					Return(nil, appsession.ErrSessionNotFound)
+
 				return NewService(nil, nil, mockValidate, nil)
 			},
 			req:          &authv1.ValidateSessionRequest{SessionToken: "token"},
@@ -449,6 +462,7 @@ func TestServiceValidateSessionError(t *testing.T) {
 				mockValidate.EXPECT().
 					Validate(gomock.Any(), gomock.Any()).
 					Return(nil, appsession.ErrSessionExpired)
+
 				return NewService(nil, nil, mockValidate, nil)
 			},
 			req:          &authv1.ValidateSessionRequest{SessionToken: "token"},
@@ -461,6 +475,7 @@ func TestServiceValidateSessionError(t *testing.T) {
 				mockValidate.EXPECT().
 					Validate(gomock.Any(), gomock.Any()).
 					Return(nil, errors.New("boom"))
+
 				return NewService(nil, nil, mockValidate, nil)
 			},
 			req:          &authv1.ValidateSessionRequest{SessionToken: "token"},

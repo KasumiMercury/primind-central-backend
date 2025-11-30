@@ -237,6 +237,7 @@ func TestAuthE2EValidateInvalidSession(t *testing.T) {
 	}
 
 	expiredToken, _ := jwtGenerator.Generate(session, user.NewUser(userID, user.MustColor("#000000")))
+
 	_, err = service.ValidateSession(ctx, &authv1.ValidateSessionRequest{
 		SessionToken: expiredToken,
 	})
