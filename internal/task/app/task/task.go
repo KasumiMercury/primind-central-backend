@@ -61,7 +61,7 @@ func (h *createTaskHandler) CreateTask(ctx context.Context, req *CreateTaskReque
 	if err != nil {
 		h.logger.Warn("invalid user ID format", slog.String("error", err.Error()))
 
-		return nil, fmt.Errorf("%w: %s", ErrUnauthorized, err.Error())
+		return nil, err
 	}
 
 	if req.Title == "" {
