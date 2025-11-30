@@ -8,7 +8,7 @@ import (
 
 	domainsession "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/session"
 	domainuser "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/user"
-	"github.com/KasumiMercury/primind-central-backend/internal/auth/testutil"
+	"github.com/KasumiMercury/primind-central-backend/internal/testutil"
 )
 
 func TestSessionRepositoryIntegrationSuccess(t *testing.T) {

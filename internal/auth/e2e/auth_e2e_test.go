@@ -16,8 +16,8 @@ import (
 	"github.com/KasumiMercury/primind-central-backend/internal/auth/infra/jwt"
 	"github.com/KasumiMercury/primind-central-backend/internal/auth/infra/repository"
 	authsvc "github.com/KasumiMercury/primind-central-backend/internal/auth/infra/service"
-	"github.com/KasumiMercury/primind-central-backend/internal/auth/testutil"
 	authv1 "github.com/KasumiMercury/primind-central-backend/internal/gen/auth/v1"
+	"github.com/KasumiMercury/primind-central-backend/internal/testutil"
 	"go.uber.org/mock/gomock"
 )
 

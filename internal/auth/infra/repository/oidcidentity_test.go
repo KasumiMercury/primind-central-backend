@@ -10,7 +10,7 @@ import (
 	domainidentity "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/oidcidentity"
 	domainuser "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/user"
 	"github.com/KasumiMercury/primind-central-backend/internal/auth/infra/clock"
-	"github.com/KasumiMercury/primind-central-backend/internal/auth/testutil"
+	"github.com/KasumiMercury/primind-central-backend/internal/testutil"
 	"gorm.io/gorm"
 )
 

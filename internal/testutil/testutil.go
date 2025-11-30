@@ -16,13 +16,13 @@ func SetupRedisContainer(ctx context.Context, t *testing.T) (*redis.Client, func
 
 	defer func() {
 		if r := recover(); r != nil {
-			t.Skipf("failed to start redis container (docker unavailable?): %v", r)
+			t.Skipf("failed to start redis container: %v", r)
 		}
 	}()
 
 	container, err := redismodule.Run(ctx, "redis:8-alpine")
 	if err != nil {
-		t.Skipf("failed to start redis container (docker unavailable?): %v", err)
+		t.Skipf("failed to start redis container: %v", err)
 	}
 
 	endpoint, err := container.Endpoint(ctx, "")
@@ -52,7 +52,7 @@ func SetupPostgresContainer(ctx context.Context, t *testing.T) (*gorm.DB, func()
 
 	defer func() {
 		if r := recover(); r != nil {
-			t.Skipf("failed to start postgres container (docker unavailable?): %v", r)
+			t.Skipf("failed to start postgres container: %v", r)
 		}
 	}()
 
@@ -64,7 +64,7 @@ func SetupPostgresContainer(ctx context.Context, t *testing.T) (*gorm.DB, func()
 		postgresmodule.BasicWaitStrategies(),
 	)
 	if err != nil {
-		t.Skipf("failed to start postgres container (docker unavailable?): %v", err)
+		t.Skipf("failed to start postgres container: %v", err)
 	}
 
 	connStr, err := container.ConnectionString(ctx)

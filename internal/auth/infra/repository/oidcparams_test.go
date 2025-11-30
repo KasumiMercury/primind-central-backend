@@ -8,7 +8,7 @@ import (
 
 	domainoidc "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/oidc"
 	"github.com/KasumiMercury/primind-central-backend/internal/auth/infra/clock"
-	"github.com/KasumiMercury/primind-central-backend/internal/auth/testutil"
+	"github.com/KasumiMercury/primind-central-backend/internal/testutil"
 )
 
 func TestOIDCParamsRepositoryIntegrationSuccess(t *testing.T) {

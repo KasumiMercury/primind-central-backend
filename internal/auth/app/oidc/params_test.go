@@ -8,7 +8,7 @@ import (
 	oidc "github.com/KasumiMercury/primind-central-backend/internal/auth/app/oidc"
 	domain "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/oidc"
 	"github.com/KasumiMercury/primind-central-backend/internal/auth/infra/repository"
-	"github.com/KasumiMercury/primind-central-backend/internal/auth/testutil"
+	"github.com/KasumiMercury/primind-central-backend/internal/testutil"
 	"go.uber.org/mock/gomock"
 )
 

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/KasumiMercury/primind-central-backend/internal/auth/infra/repository"
-	"github.com/KasumiMercury/primind-central-backend/internal/auth/testutil"
+	"github.com/KasumiMercury/primind-central-backend/internal/testutil"
 )
 
 func setupTestRepositories(t *testing.T) Repositories {
