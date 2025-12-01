@@ -47,7 +47,7 @@ func TestCreateTaskSuccess(t *testing.T) {
 					SessionToken: "token-due",
 					Title:        "Task with due time",
 					TaskType:     domaintask.TypeHasDueTime,
-					Description:  &desc,
+					Description:  desc,
 					DueTime:      &due,
 				}
 			}(),
@@ -95,12 +95,8 @@ func TestCreateTaskSuccess(t *testing.T) {
 				t.Fatalf("expected task status %q, got %q", domaintask.StatusActive, saved.TaskStatus())
 			}
 
-			if tt.req.Description == nil && saved.Description() != nil {
-				t.Fatalf("expected nil description, got %v", saved.Description())
-			}
-
-			if tt.req.Description != nil && (saved.Description() == nil || *saved.Description() != *tt.req.Description) {
-				t.Fatalf("expected description %q, got %v", *tt.req.Description, saved.Description())
+			if saved.Description() != tt.req.Description {
+				t.Fatalf("expected description %v, got %v", tt.req.Description, saved.Description())
 			}
 
 			if tt.req.DueTime == nil && saved.DueTime() != nil {
@@ -229,8 +225,8 @@ func TestGetTaskSuccess(t *testing.T) {
 
 	now := time.Now().UTC()
 
-	taskWithNoDue := createPersistedTask(t, repo, userIDNormal, "stored", domaintask.TypeNormal, nil, nil, now)
-	taskWithDue := createPersistedTask(t, repo, userIDWithDue, "stored with due", domaintask.TypeHasDueTime, &desc, &due, now)
+	taskWithNoDue := createPersistedTask(t, repo, userIDNormal, "stored", domaintask.TypeNormal, desc, nil, now)
+	taskWithDue := createPersistedTask(t, repo, userIDWithDue, "stored with due", domaintask.TypeHasDueTime, desc, &due, now)
 
 	tests := []struct {
 		name         string
@@ -289,14 +285,8 @@ func TestGetTaskSuccess(t *testing.T) {
 				t.Fatalf("expected status %q, got %q", tt.expectedTask.TaskStatus(), resp.TaskStatus)
 			}
 
-			if tt.expectedTask.Description() == nil && resp.Description != nil {
-				t.Fatalf("expected nil description, got %v", resp.Description)
-			}
-
-			if tt.expectedTask.Description() != nil {
-				if resp.Description == nil || *resp.Description != *tt.expectedTask.Description() {
-					t.Fatalf("expected description %q, got %v", *tt.expectedTask.Description(), resp.Description)
-				}
+			if resp.Description != tt.expectedTask.Description() {
+				t.Fatalf("expected description %v, got %v", tt.expectedTask.Description(), resp.Description)
 			}
 
 			if tt.expectedTask.DueTime() == nil && resp.DueTime != nil {
@@ -443,7 +433,7 @@ func createPersistedTask(
 	userID domainuser.ID,
 	title string,
 	taskType domaintask.Type,
-	description *string,
+	description string,
 	dueTime *time.Time,
 	createdAt time.Time,
 ) *domaintask.Task {

@@ -44,7 +44,7 @@ func TestTaskRepositoryIntegrationSuccess(t *testing.T) {
 		"Test Task",
 		"normal",
 		"active",
-		nil,
+		"",
 		nil,
 		time.Now(),
 	)
@@ -109,7 +109,7 @@ func TestTaskRepositoryIntegrationError(t *testing.T) {
 		"User1's Task",
 		"normal",
 		"active",
-		nil,
+		"",
 		nil,
 		time.Now(),
 	)
@@ -170,7 +170,7 @@ func TestTaskRepositoryWithFixedClock(t *testing.T) {
 		"Fixed Time Task",
 		"normal",
 		"active",
-		nil,
+		"",
 		nil,
 		fixedTime,
 	)
@@ -201,7 +201,7 @@ func TestTaskRepositoryWithFixedClock(t *testing.T) {
 		"Fixed Time Task 2",
 		"urgent",
 		"active",
-		nil,
+		"",
 		nil,
 		fixedTime,
 	)

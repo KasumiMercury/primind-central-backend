@@ -12,6 +12,7 @@ import (
 	domaintask "github.com/KasumiMercury/primind-central-backend/internal/task/domain/task"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/interceptor"
 	"go.uber.org/mock/gomock"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func TestCreateTaskSuccess(t *testing.T) {
@@ -42,8 +43,8 @@ func TestCreateTaskSuccess(t *testing.T) {
 							t.Fatalf("expected task type %s, got %s", domaintask.TypeNormal, req.TaskType)
 						}
 
-						if req.Description != nil {
-							t.Fatalf("expected nil description, got %v", req.Description)
+						if req.Description != "" {
+							t.Fatalf("expected empty description, got %v", req.Description)
 						}
 
 						if req.DueTime != nil {
@@ -60,14 +61,13 @@ func TestCreateTaskSuccess(t *testing.T) {
 			name: "task with description and due time",
 			req: func() *taskv1.CreateTaskRequest {
 				desc := "desc"
-				dueTime := time.Now().Add(time.Hour).UTC().Truncate(time.Second)
-				dueUnix := dueTime.Unix()
+				dueTime := timestamppb.New(time.Now().Add(time.Hour).UTC().Truncate(time.Second))
 
 				return &taskv1.CreateTaskRequest{
 					Title:       "task with due",
 					TaskType:    taskv1.TaskType_TASK_TYPE_HAS_DUE_TIME,
-					Description: &desc,
-					DueTime:     &dueUnix,
+					Description: desc,
+					DueTime:     dueTime,
 				}
 			}(),
 			expectedCall: func(t *testing.T, ctrl *gomock.Controller) apptask.CreateTaskUseCase {
@@ -86,7 +86,7 @@ func TestCreateTaskSuccess(t *testing.T) {
 							t.Fatalf("expected task type %s, got %s", domaintask.TypeHasDueTime, req.TaskType)
 						}
 
-						if req.Description == nil || *req.Description != "desc" {
+						if req.Description != "desc" {
 							t.Fatalf("unexpected description: %v", req.Description)
 						}
 
@@ -127,7 +127,7 @@ func TestCreateTaskSuccess(t *testing.T) {
 				t.Fatalf("unexpected error: %v", err)
 			}
 
-			if resp.GetTaskId() == "" {
+			if resp.GetTask().GetTaskId() == "" {
 				t.Fatalf("expected task id to be set")
 			}
 		})
@@ -281,7 +281,7 @@ func TestGetTaskSuccess(t *testing.T) {
 							Title:       "title 2",
 							TaskType:    domaintask.TypeHasDueTime,
 							TaskStatus:  domaintask.StatusCompleted,
-							Description: &desc,
+							Description: desc,
 							DueTime:     &dueTime,
 							CreatedAt:   createdAt,
 						}, nil
@@ -307,16 +307,16 @@ func TestGetTaskSuccess(t *testing.T) {
 				t.Fatalf("unexpected error: %v", err)
 			}
 
-			if resp.GetTaskId() == "" {
+			if resp.GetTask().GetTaskId() == "" {
 				t.Fatalf("expected task id")
 			}
 
-			if resp.GetTitle() == "" {
+			if resp.GetTask().GetTitle() == "" {
 				t.Fatalf("expected title")
 			}
 
-			if resp.GetCreatedAt() != createdAt.Unix() {
-				t.Fatalf("expected created at %v, got %v", createdAt.Unix(), resp.GetCreatedAt())
+			if resp.GetTask().GetCreatedAt().AsTime() != createdAt {
+				t.Fatalf("expected created at %v, got %v", createdAt, resp.GetTask().GetCreatedAt().AsTime())
 			}
 		})
 	}

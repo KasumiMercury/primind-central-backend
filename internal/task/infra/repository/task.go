@@ -16,7 +16,7 @@ type TaskModel struct {
 	Title       string     `gorm:"type:varchar(500);not null"`
 	TaskType    string     `gorm:"type:varchar(50);not null;index:idx_tasks_task_type"`
 	TaskStatus  string     `gorm:"type:varchar(50);not null;index:idx_tasks_task_status"`
-	Description *string    `gorm:"type:text"`
+	Description string     `gorm:"type:text"`
 	DueTime     *time.Time `gorm:"type:timestamptz"`
 	CreatedAt   time.Time  `gorm:"not null;autoCreateTime"`
 }
@@ -38,11 +38,6 @@ func (r *taskRepository) SaveTask(ctx context.Context, task *domaintask.Task) er
 		return ErrTaskRequired
 	}
 
-	var description *string
-	if task.Description() != nil {
-		description = task.Description()
-	}
-
 	var dueTime *time.Time
 	if task.DueTime() != nil {
 		dueTime = task.DueTime()
@@ -54,7 +49,7 @@ func (r *taskRepository) SaveTask(ctx context.Context, task *domaintask.Task) er
 		Title:       task.Title(),
 		TaskType:    string(task.TaskType()),
 		TaskStatus:  string(task.TaskStatus()),
-		Description: description,
+		Description: task.Description(),
 		DueTime:     dueTime,
 		CreatedAt:   task.CreatedAt(),
 	}
