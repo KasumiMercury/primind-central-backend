@@ -12,6 +12,7 @@ import (
 	apptask "github.com/KasumiMercury/primind-central-backend/internal/task/app/task"
 	domaintask "github.com/KasumiMercury/primind-central-backend/internal/task/domain/task"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/interceptor"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type Service struct {
@@ -51,17 +52,10 @@ func (s *Service) CreateTask(
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	var description *string
-
-	if req.Description != nil {
-		desc := req.GetDescription()
-		description = &desc
-	}
-
 	var dueTime *time.Time
 
 	if req.DueTime != nil {
-		dt := time.Unix(req.GetDueTime(), 0).UTC()
+		dt := req.GetDueTime().AsTime()
 		dueTime = &dt
 	}
 
@@ -69,7 +63,7 @@ func (s *Service) CreateTask(
 		SessionToken: token,
 		Title:        req.GetTitle(),
 		TaskType:     taskType,
-		Description:  description,
+		Description:  req.GetDescription(),
 		DueTime:      dueTime,
 	})
 	if err != nil {
@@ -79,7 +73,6 @@ func (s *Service) CreateTask(
 
 			return nil, connect.NewError(connect.CodeUnauthenticated, err)
 		case errors.Is(err, apptask.ErrTitleRequired),
-			errors.Is(err, domaintask.ErrTitleEmpty),
 			errors.Is(err, domaintask.ErrTitleTooLong),
 			errors.Is(err, domaintask.ErrDueTimeRequired),
 			errors.Is(err, domaintask.ErrInvalidTaskType):
@@ -96,7 +89,20 @@ func (s *Service) CreateTask(
 	s.logger.Info("task created", slog.String("task_id", result.TaskID))
 
 	return &taskv1.CreateTaskResponse{
-		TaskId: result.TaskID,
+		Task: &taskv1.Task{
+			TaskId:      result.TaskID,
+			Title:       result.Title,
+			TaskType:    stringToProtoTaskType(string(result.TaskType)),
+			TaskStatus:  stringToProtoTaskStatus(string(result.TaskStatus)),
+			Description: result.Description,
+			DueTime: func() *timestamppb.Timestamp {
+				if result.DueTime != nil {
+					return timestamppb.New(*result.DueTime)
+				}
+				return nil
+			}(),
+			CreatedAt: timestamppb.New(result.CreatedAt),
+		},
 	}, nil
 }
 
@@ -141,19 +147,21 @@ func (s *Service) GetTask(
 	protoTaskType := stringToProtoTaskType(string(result.TaskType))
 	protoTaskStatus := stringToProtoTaskStatus(string(result.TaskStatus))
 
-	response := &taskv1.GetTaskResponse{
-		TaskId:      result.TaskID,
-		Title:       result.Title,
-		TaskType:    protoTaskType,
-		TaskStatus:  protoTaskStatus,
-		Description: result.Description,
-		DueTime:     nil,
-		CreatedAt:   result.CreatedAt.Unix(),
+	var dueTime *timestamppb.Timestamp
+	if result.DueTime != nil {
+		dueTime = timestamppb.New(*result.DueTime)
 	}
 
-	if result.DueTime != nil {
-		dueTime := result.DueTime.Unix()
-		response.DueTime = &dueTime
+	response := &taskv1.GetTaskResponse{
+		Task: &taskv1.Task{
+			TaskId:      result.TaskID,
+			Title:       result.Title,
+			TaskType:    protoTaskType,
+			TaskStatus:  protoTaskStatus,
+			Description: result.Description,
+			DueTime:     dueTime,
+			CreatedAt:   timestamppb.New(result.CreatedAt),
+		},
 	}
 
 	s.logger.Info("task retrieved", slog.String("task_id", result.TaskID))
