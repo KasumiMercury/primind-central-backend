@@ -44,7 +44,7 @@ func TestCreateTaskSuccess(t *testing.T) {
 						}
 
 						if req.Description != "" {
-							t.Fatalf("expected nil description, got %v", req.Description)
+							t.Fatalf("expected empty description, got %v", req.Description)
 						}
 
 						if req.DueTime != nil {
