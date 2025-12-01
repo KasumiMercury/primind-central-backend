@@ -16,12 +16,18 @@ type CreateTaskRequest struct {
 	SessionToken string
 	Title        string
 	TaskType     domaintask.Type
-	Description  *string
+	Description  string
 	DueTime      *time.Time
 }
 
 type CreateTaskResult struct {
-	TaskID string
+	TaskID      string
+	Title       string
+	TaskType    string
+	TaskStatus  string
+	Description string
+	DueTime     *time.Time
+	CreatedAt   time.Time
 }
 
 type CreateTaskUseCase interface {
@@ -92,7 +98,13 @@ func (h *createTaskHandler) CreateTask(ctx context.Context, req *CreateTaskReque
 	h.logger.Info("task created successfully", slog.String("task_id", task.ID().String()))
 
 	return &CreateTaskResult{
-		TaskID: task.ID().String(),
+		TaskID:      task.ID().String(),
+		Title:       task.Title(),
+		TaskType:    string(task.TaskType()),
+		TaskStatus:  string(task.TaskStatus()),
+		Description: task.Description(),
+		DueTime:     task.DueTime(),
+		CreatedAt:   task.CreatedAt(),
 	}, nil
 }
 
@@ -106,7 +118,7 @@ type GetTaskResult struct {
 	Title       string
 	TaskType    domaintask.Type
 	TaskStatus  domaintask.Status
-	Description *string
+	Description string
 	DueTime     *time.Time
 	CreatedAt   time.Time
 }
