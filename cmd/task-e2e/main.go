@@ -123,20 +123,20 @@ func run() error {
 		return fmt.Errorf("create task via connectrpc: %w", err)
 	}
 
-	log.Printf("task created with id %s", createResp.GetTaskId())
+	log.Printf("task created with id %s", createResp.GetTask().GetTaskId())
 
 	getResp, err := taskClientWithAuth.GetTask(ctx, &taskv1.GetTaskRequest{
-		TaskId: createResp.GetTaskId(),
+		TaskId: createResp.GetTask().GetTaskId(),
 	})
 	if err != nil {
 		return fmt.Errorf("get task via connectrpc: %w", err)
 	}
 
 	log.Println("task retrieved successfully:")
-	log.Printf("  title: %s", getResp.GetTitle())
-	log.Printf("  type: %s", getResp.GetTaskType().String())
-	log.Printf("  status: %s", getResp.GetTaskStatus().String())
-	log.Printf("  description: %s", getResp.GetDescription())
+	log.Printf("  title: %s", getResp.GetTask().GetTitle())
+	log.Printf("  type: %s", getResp.GetTask().GetTaskType().String())
+	log.Printf("  status: %s", getResp.GetTask().GetTaskStatus().String())
+	log.Printf("  description: %s", getResp.GetTask().GetDescription())
 
 	return nil
 }
@@ -296,6 +296,6 @@ func buildCreateTaskRequest(title string) *taskv1.CreateTaskRequest {
 	return &taskv1.CreateTaskRequest{
 		Title:       title,
 		TaskType:    taskv1.TaskType_TASK_TYPE_NORMAL,
-		Description: &description,
+		Description: description,
 	}
 }
