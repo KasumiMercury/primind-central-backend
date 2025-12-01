@@ -99,6 +99,7 @@ func (s *Service) CreateTask(
 				if result.DueTime != nil {
 					return timestamppb.New(*result.DueTime)
 				}
+
 				return nil
 			}(),
 			CreatedAt: timestamppb.New(result.CreatedAt),
