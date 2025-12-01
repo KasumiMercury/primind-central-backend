@@ -354,7 +354,7 @@ func TestNewTaskSuccess(t *testing.T) {
 		title       string
 		taskType    Type
 		status      Status
-		description *string
+		description string
 		dueTime     *time.Time
 		createdAt   time.Time
 	}
@@ -369,20 +369,20 @@ func TestNewTaskSuccess(t *testing.T) {
 			args: args{
 				id:          validID,
 				userID:      validUserID,
-				title:       "Test Task",
+				title:       "",
 				taskType:    taskNormalType,
 				status:      taskStatus,
-				description: nil,
+				description: "",
 				dueTime:     nil,
 				createdAt:   createTime,
 			},
 			expected: &Task{
 				id:          validID,
 				userID:      validUserID,
-				title:       "Test Task",
+				title:       "",
 				taskType:    taskNormalType,
 				taskStatus:  taskStatus,
-				description: nil,
+				description: "",
 				dueTime:     nil,
 				createdAt:   createTime,
 			},
@@ -390,16 +390,12 @@ func TestNewTaskSuccess(t *testing.T) {
 		{
 			name: "creates due task with all fields",
 			args: args{
-				id:       validID,
-				userID:   validUserID,
-				title:    "Another Task",
-				taskType: taskDueType,
-				status:   taskStatus,
-				description: func() *string {
-					desc := "This is a detailed description."
-
-					return &desc
-				}(),
+				id:          validID,
+				userID:      validUserID,
+				title:       "Another Task",
+				taskType:    taskDueType,
+				status:      taskStatus,
+				description: "This is a detailed description.",
 				dueTime: func() *time.Time {
 					due := createTime.Add(48 * time.Hour)
 
@@ -408,16 +404,12 @@ func TestNewTaskSuccess(t *testing.T) {
 				createdAt: createTime,
 			},
 			expected: &Task{
-				id:         validID,
-				userID:     validUserID,
-				title:      "Another Task",
-				taskType:   taskDueType,
-				taskStatus: taskStatus,
-				description: func() *string {
-					desc := "This is a detailed description."
-
-					return &desc
-				}(),
+				id:          validID,
+				userID:      validUserID,
+				title:       "Another Task",
+				taskType:    taskDueType,
+				taskStatus:  taskStatus,
+				description: "This is a detailed description.",
 				dueTime: func() *time.Time {
 					due := createTime.Add(48 * time.Hour)
 
@@ -429,32 +421,24 @@ func TestNewTaskSuccess(t *testing.T) {
 		{
 			name: "creates task with description",
 			args: args{
-				id:       validID,
-				userID:   validUserID,
-				title:    "Task with Description",
-				taskType: taskNormalType,
-				status:   taskStatus,
-				description: func() *string {
-					desc := "Just a simple description."
-
-					return &desc
-				}(),
-				dueTime:   nil,
-				createdAt: createTime,
+				id:          validID,
+				userID:      validUserID,
+				title:       "Task with Description",
+				taskType:    taskNormalType,
+				status:      taskStatus,
+				description: "Just a simple description.",
+				dueTime:     nil,
+				createdAt:   createTime,
 			},
 			expected: &Task{
-				id:         validID,
-				userID:     validUserID,
-				title:      "Task with Description",
-				taskType:   taskNormalType,
-				taskStatus: taskStatus,
-				description: func() *string {
-					desc := "Just a simple description."
-
-					return &desc
-				}(),
-				dueTime:   nil,
-				createdAt: createTime,
+				id:          validID,
+				userID:      validUserID,
+				title:       "Task with Description",
+				taskType:    taskNormalType,
+				taskStatus:  taskStatus,
+				description: "Just a simple description.",
+				dueTime:     nil,
+				createdAt:   createTime,
 			},
 		},
 		{
@@ -465,7 +449,7 @@ func TestNewTaskSuccess(t *testing.T) {
 				title:       "Task with Due Time",
 				taskType:    taskDueType,
 				status:      taskStatus,
-				description: nil,
+				description: "",
 				dueTime: func() *time.Time {
 					due := createTime.Add(24 * time.Hour)
 
@@ -479,7 +463,7 @@ func TestNewTaskSuccess(t *testing.T) {
 				title:       "Task with Due Time",
 				taskType:    taskDueType,
 				taskStatus:  taskStatus,
-				description: nil,
+				description: "",
 				dueTime: func() *time.Time {
 					due := createTime.Add(24 * time.Hour)
 
@@ -489,24 +473,24 @@ func TestNewTaskSuccess(t *testing.T) {
 			},
 		},
 		{
-			name: "1 rune title",
+			name: "empty title",
 			args: args{
 				id:          validID,
 				userID:      validUserID,
-				title:       "A",
+				title:       "",
 				taskType:    taskNormalType,
 				status:      taskStatus,
-				description: nil,
+				description: "",
 				dueTime:     nil,
 				createdAt:   createTime,
 			},
 			expected: &Task{
 				id:          validID,
 				userID:      validUserID,
-				title:       "A",
+				title:       "",
 				taskType:    taskNormalType,
 				taskStatus:  taskStatus,
-				description: nil,
+				description: "",
 				dueTime:     nil,
 				createdAt:   createTime,
 			},
@@ -514,32 +498,24 @@ func TestNewTaskSuccess(t *testing.T) {
 		{
 			name: "500 rune title",
 			args: args{
-				id:       validID,
-				userID:   validUserID,
-				title:    strings.Repeat("T", 500),
-				taskType: taskNormalType,
-				status:   taskStatus,
-				description: func() *string {
-					desc := "Description for 500 rune title."
-
-					return &desc
-				}(),
-				dueTime:   nil,
-				createdAt: createTime,
+				id:          validID,
+				userID:      validUserID,
+				title:       strings.Repeat("T", 500),
+				taskType:    taskNormalType,
+				status:      taskStatus,
+				description: "Description for 500 rune title.",
+				dueTime:     nil,
+				createdAt:   createTime,
 			},
 			expected: &Task{
-				id:         validID,
-				userID:     validUserID,
-				title:      strings.Repeat("T", 500),
-				taskType:   taskNormalType,
-				taskStatus: taskStatus,
-				description: func() *string {
-					desc := "Description for 500 rune title."
-
-					return &desc
-				}(),
-				dueTime:   nil,
-				createdAt: createTime,
+				id:          validID,
+				userID:      validUserID,
+				title:       strings.Repeat("T", 500),
+				taskType:    taskNormalType,
+				taskStatus:  taskStatus,
+				description: "Description for 500 rune title.",
+				dueTime:     nil,
+				createdAt:   createTime,
 			},
 		},
 	}
@@ -587,8 +563,7 @@ func TestNewTaskSuccess(t *testing.T) {
 				t.Errorf("Task.Status() = %v, want %v", task.TaskStatus(), tt.expected.taskStatus)
 			}
 
-			if (task.Description() == nil) != (tt.expected.description == nil) ||
-				(task.Description() != nil && *task.Description() != *tt.expected.description) {
+			if task.Description() != tt.expected.description {
 				t.Errorf("Task.Description() = %v, want %v", task.Description(), tt.expected.description)
 			}
 
@@ -640,7 +615,7 @@ func TestNewTaskErrors(t *testing.T) {
 		title       string
 		taskType    Type
 		status      Status
-		description *string
+		description string
 		dueTime     *time.Time
 		createdAt   time.Time
 	}
@@ -650,18 +625,6 @@ func TestNewTaskErrors(t *testing.T) {
 		args        args
 		expectedErr error
 	}{
-		{
-			name: "empty title",
-			args: args{
-				id:        validID,
-				userID:    validUserID,
-				title:     "",
-				taskType:  taskNormalType,
-				status:    taskStatus,
-				createdAt: createTime,
-			},
-			expectedErr: ErrTitleEmpty,
-		},
 		{
 			name: "501 rune title is too long",
 			args: args{

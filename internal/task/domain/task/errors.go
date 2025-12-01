@@ -8,7 +8,6 @@ var (
 	ErrIDInvalidV7     = errors.New("task ID must be a UUIDv7")
 
 	ErrUserIDEmpty       = errors.New("user ID cannot be empty")
-	ErrTitleEmpty        = errors.New("task title cannot be empty")
 	ErrTitleTooLong      = errors.New("task title cannot exceed 500 characters")
 	ErrInvalidTaskType   = errors.New("invalid task type")
 	ErrInvalidTaskStatus = errors.New("invalid task status")

@@ -77,7 +77,7 @@ type Task struct {
 	title       string
 	taskType    Type
 	taskStatus  Status
-	description *string
+	description string
 	dueTime     *time.Time
 	createdAt   time.Time
 }
@@ -88,7 +88,7 @@ func NewTask(
 	title string,
 	taskType Type,
 	taskStatus Status,
-	description *string,
+	description string,
 	dueTime *time.Time,
 	createdAt time.Time,
 ) (*Task, error) {
@@ -98,10 +98,6 @@ func NewTask(
 	if dueTime != nil {
 		t := dueTime.UTC().Truncate(time.Microsecond)
 		normalizedDueTime = &t
-	}
-
-	if title == "" {
-		return nil, ErrTitleEmpty
 	}
 
 	if utf8.RuneCountInString(title) > 500 {
@@ -128,7 +124,7 @@ func CreateTask(
 	userID user.ID,
 	title string,
 	taskType Type,
-	description *string,
+	description string,
 	dueTime *time.Time,
 ) (*Task, error) {
 	id, err := NewID()
@@ -168,7 +164,7 @@ func (t *Task) TaskStatus() Status {
 	return t.taskStatus
 }
 
-func (t *Task) Description() *string {
+func (t *Task) Description() string {
 	return t.description
 }
 
