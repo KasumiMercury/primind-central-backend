@@ -12,5 +12,6 @@ var (
 	ErrInvalidTaskType   = errors.New("invalid task type")
 	ErrInvalidTaskStatus = errors.New("invalid task status")
 	ErrDueTimeRequired   = errors.New("due time is required for tasks with type HAS_DUE_TIME")
+	ErrDueTimeNotAllowed = errors.New("due time is not allowed for tasks not having type HAS_DUE_TIME")
 	ErrTaskNotFound      = errors.New("task not found")
 )

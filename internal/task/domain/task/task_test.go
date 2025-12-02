@@ -592,7 +592,17 @@ func TestNewTaskErrors(t *testing.T) {
 		t.Fatalf("setup failed: %v", err)
 	}
 
+	taskUrgentType, err := NewType("urgent")
+	if err != nil {
+		t.Fatalf("setup failed: %v", err)
+	}
+
 	taskNormalType, err := NewType("normal")
+	if err != nil {
+		t.Fatalf("setup failed: %v", err)
+	}
+
+	taskLowType, err := NewType("low")
 	if err != nil {
 		t.Fatalf("setup failed: %v", err)
 	}
@@ -649,6 +659,54 @@ func TestNewTaskErrors(t *testing.T) {
 				createdAt: createTime,
 			},
 			expectedErr: ErrDueTimeRequired,
+		},
+		{
+			name: "due time provided for urgent type",
+			args: args{
+				id:       validID,
+				userID:   validUserID,
+				title:    "Test Task",
+				taskType: taskUrgentType,
+				status:   taskStatus,
+				dueTime: func() *time.Time {
+					due := createTime.Add(24 * time.Hour)
+					return &due
+				}(),
+				createdAt: createTime,
+			},
+			expectedErr: ErrDueTimeNotAllowed,
+		},
+		{
+			name: "due time provided for normal type",
+			args: args{
+				id:       validID,
+				userID:   validUserID,
+				title:    "Test Task",
+				taskType: taskNormalType,
+				status:   taskStatus,
+				dueTime: func() *time.Time {
+					due := createTime.Add(24 * time.Hour)
+					return &due
+				}(),
+				createdAt: createTime,
+			},
+			expectedErr: ErrDueTimeNotAllowed,
+		},
+		{
+			name: "due time provided for low type",
+			args: args{
+				id:       validID,
+				userID:   validUserID,
+				title:    "Test Task",
+				taskType: taskLowType,
+				status:   taskStatus,
+				dueTime: func() *time.Time {
+					due := createTime.Add(24 * time.Hour)
+					return &due
+				}(),
+				createdAt: createTime,
+			},
+			expectedErr: ErrDueTimeNotAllowed,
 		},
 	}
 
