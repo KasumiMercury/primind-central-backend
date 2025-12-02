@@ -1,4 +1,4 @@
-FROM golang:1.25.4-alpine AS builder
+FROM golang:1.25.5-alpine AS builder
 
 RUN apk update
 
@@ -9,7 +9,7 @@ RUN go mod download
 
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /app/main cmd/main.go
 
-FROM golang:1.25.4-alpine AS dev
+FROM golang:1.25.5-alpine AS dev
 
 ENV CGO_ENABLED=0
 ENV GO111MODULE=auto
