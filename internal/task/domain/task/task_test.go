@@ -670,6 +670,7 @@ func TestNewTaskErrors(t *testing.T) {
 				status:   taskStatus,
 				dueTime: func() *time.Time {
 					due := createTime.Add(24 * time.Hour)
+
 					return &due
 				}(),
 				createdAt: createTime,
@@ -686,6 +687,7 @@ func TestNewTaskErrors(t *testing.T) {
 				status:   taskStatus,
 				dueTime: func() *time.Time {
 					due := createTime.Add(24 * time.Hour)
+
 					return &due
 				}(),
 				createdAt: createTime,
@@ -702,6 +704,7 @@ func TestNewTaskErrors(t *testing.T) {
 				status:   taskStatus,
 				dueTime: func() *time.Time {
 					due := createTime.Add(24 * time.Hour)
+
 					return &due
 				}(),
 				createdAt: createTime,
@@ -718,6 +721,7 @@ func TestNewTaskErrors(t *testing.T) {
 				status:   taskStatus,
 				dueTime: func() *time.Time {
 					due := createTime.Add(-1 * time.Hour)
+
 					return &due
 				}(),
 				createdAt: createTime,
