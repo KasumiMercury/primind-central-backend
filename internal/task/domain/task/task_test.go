@@ -708,6 +708,22 @@ func TestNewTaskErrors(t *testing.T) {
 			},
 			expectedErr: ErrDueTimeNotAllowed,
 		},
+		{
+			name: "due time before created at",
+			args: args{
+				id:       validID,
+				userID:   validUserID,
+				title:    "Test Task",
+				taskType: taskDueType,
+				status:   taskStatus,
+				dueTime: func() *time.Time {
+					due := createTime.Add(-1 * time.Hour)
+					return &due
+				}(),
+				createdAt: createTime,
+			},
+			expectedErr: ErrDueTimeBeforeCreatedAt,
+		},
 	}
 
 	for _, tt := range tests {
