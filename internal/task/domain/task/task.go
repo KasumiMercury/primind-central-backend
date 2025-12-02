@@ -104,8 +104,18 @@ func NewTask(
 		return nil, ErrTitleTooLong
 	}
 
-	if taskType == TypeHasDueTime && normalizedDueTime == nil {
-		return nil, ErrDueTimeRequired
+	if taskType == TypeHasDueTime {
+		if normalizedDueTime == nil {
+			return nil, ErrDueTimeRequired
+		}
+
+		if normalizedDueTime.Before(normalizedCreatedAt) {
+			return nil, ErrDueTimeBeforeCreatedAt
+		}
+	}
+
+	if taskType != TypeHasDueTime && normalizedDueTime != nil {
+		return nil, ErrDueTimeNotAllowed
 	}
 
 	return &Task{
