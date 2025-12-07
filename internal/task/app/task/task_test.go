@@ -11,6 +11,7 @@ import (
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/authclient"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/repository"
 	"github.com/KasumiMercury/primind-central-backend/internal/testutil"
+	"github.com/google/uuid"
 	"go.uber.org/mock/gomock"
 )
 
@@ -49,6 +50,24 @@ func TestCreateTaskSuccess(t *testing.T) {
 					TaskType:     domaintask.TypeHasDueTime,
 					Description:  desc,
 					DueTime:      &due,
+				}
+			}(),
+			userID: userID,
+		},
+		{
+			name: "create task with predefined valid task ID",
+			req: func() CreateTaskRequest {
+				validTaskID, err := domaintask.NewID()
+				if err != nil {
+					t.Fatalf("failed to generate task ID: %v", err)
+				}
+
+				return CreateTaskRequest{
+					TaskID:       validTaskID.String(),
+					SessionToken: "token-with-id",
+					Title:        "Task with predefined ID",
+					TaskType:     domaintask.TypeNormal,
+					Description:  "This task has a predefined ID",
 				}
 			}(),
 			userID: userID,
@@ -184,6 +203,105 @@ func TestCreateTaskError(t *testing.T) {
 				return mockAuth
 			},
 			expectedErr: domaintask.ErrDueTimeRequired,
+		},
+		{
+			name: "invalid task ID format",
+			req: &CreateTaskRequest{
+				TaskID:       "not-a-uuid",
+				SessionToken: "token",
+				Title:        "Task with invalid ID",
+				TaskType:     domaintask.TypeNormal,
+			},
+			setupAuth: func(ctrl *gomock.Controller) authclient.AuthClient {
+				mockAuth := NewMockAuthClient(ctrl)
+				mockAuth.EXPECT().ValidateSession(gomock.Any(), "token").
+					Return(validUserID.String(), nil)
+
+				return mockAuth
+			},
+			expectedErr: domaintask.ErrIDInvalidFormat,
+		},
+		{
+			name: "task ID is UUIDv4 not v7",
+			req: func() *CreateTaskRequest {
+				uuidv4 := uuid.New()
+
+				return &CreateTaskRequest{
+					TaskID:       uuidv4.String(),
+					SessionToken: "token",
+					Title:        "Task with UUIDv4",
+					TaskType:     domaintask.TypeNormal,
+				}
+			}(),
+			setupAuth: func(ctrl *gomock.Controller) authclient.AuthClient {
+				mockAuth := NewMockAuthClient(ctrl)
+				mockAuth.EXPECT().ValidateSession(gomock.Any(), "token").
+					Return(validUserID.String(), nil)
+
+				return mockAuth
+			},
+			expectedErr: domaintask.ErrIDInvalidV7,
+		},
+		{
+			name: "duplicate task ID from same user",
+			req: func() *CreateTaskRequest {
+				existingTaskID, _ := domaintask.NewID()
+				existingTask, _ := domaintask.CreateTask(
+					&existingTaskID,
+					validUserID,
+					"Existing Task",
+					domaintask.TypeNormal,
+					"",
+					nil,
+				)
+				_ = repo.SaveTask(context.Background(), existingTask)
+
+				return &CreateTaskRequest{
+					TaskID:       existingTaskID.String(),
+					SessionToken: "token",
+					Title:        "Duplicate Task",
+					TaskType:     domaintask.TypeNormal,
+				}
+			}(),
+			setupAuth: func(ctrl *gomock.Controller) authclient.AuthClient {
+				mockAuth := NewMockAuthClient(ctrl)
+				mockAuth.EXPECT().ValidateSession(gomock.Any(), "token").
+					Return(validUserID.String(), nil)
+
+				return mockAuth
+			},
+			expectedErr: domaintask.ErrTaskIDAlreadyExists,
+		},
+		{
+			name: "duplicate task ID from different user",
+			req: func() *CreateTaskRequest {
+				user1ID, _ := domainuser.NewID()
+				existingTaskID, _ := domaintask.NewID()
+				existingTask, _ := domaintask.CreateTask(
+					&existingTaskID,
+					user1ID,
+					"User1's Task",
+					domaintask.TypeNormal,
+					"",
+					nil,
+				)
+				_ = repo.SaveTask(context.Background(), existingTask)
+
+				return &CreateTaskRequest{
+					TaskID:       existingTaskID.String(),
+					SessionToken: "token",
+					Title:        "User2's Task with same ID",
+					TaskType:     domaintask.TypeNormal,
+				}
+			}(),
+			setupAuth: func(ctrl *gomock.Controller) authclient.AuthClient {
+				mockAuth := NewMockAuthClient(ctrl)
+				mockAuth.EXPECT().ValidateSession(gomock.Any(), "token").
+					Return(validUserID.String(), nil)
+
+				return mockAuth
+			},
+			expectedErr: domaintask.ErrTaskIDAlreadyExists,
 		},
 	}
 

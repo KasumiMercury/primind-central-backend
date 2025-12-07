@@ -11,6 +11,7 @@ import (
 	apptask "github.com/KasumiMercury/primind-central-backend/internal/task/app/task"
 	domaintask "github.com/KasumiMercury/primind-central-backend/internal/task/domain/task"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/interceptor"
+	"github.com/google/uuid"
 	"go.uber.org/mock/gomock"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -104,6 +105,46 @@ func TestCreateTaskSuccess(t *testing.T) {
 				return mockUseCase
 			},
 		},
+		{
+			name: "create task with predefined task ID",
+			req: func() *taskv1.CreateTaskRequest {
+				validTaskID, _ := domaintask.NewID()
+				taskIDStr := validTaskID.String()
+
+				return &taskv1.CreateTaskRequest{
+					TaskId:   &taskIDStr,
+					Title:    "Task with predefined ID",
+					TaskType: taskv1.TaskType_TASK_TYPE_NORMAL,
+				}
+			}(),
+			expectedCall: func(t *testing.T, ctrl *gomock.Controller) apptask.CreateTaskUseCase {
+				mockUseCase := NewMockCreateTaskUseCase(ctrl)
+				mockUseCase.EXPECT().CreateTask(gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, req *apptask.CreateTaskRequest) (*apptask.CreateTaskResult, error) {
+						if req.SessionToken != "token-with-id" {
+							t.Fatalf("expected session token token-with-id, got %s", req.SessionToken)
+						}
+
+						if req.TaskID == "" {
+							t.Fatal("expected TaskID to be set")
+						}
+
+						// Verify TaskID is valid UUIDv7
+						_, err := domaintask.NewIDFromString(req.TaskID)
+						if err != nil {
+							t.Fatalf("expected valid TaskID, got error: %v", err)
+						}
+
+						if req.Title != "Task with predefined ID" {
+							t.Fatalf("expected title Task with predefined ID, got %s", req.Title)
+						}
+
+						return &apptask.CreateTaskResult{TaskID: req.TaskID}, nil
+					})
+
+				return mockUseCase
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -118,6 +159,10 @@ func TestCreateTaskSuccess(t *testing.T) {
 			token := "token-normal"
 			if tt.name == "task with description and due time" {
 				token = "token-due"
+			}
+
+			if tt.name == "create task with predefined task ID" {
+				token = "token-with-id"
 			}
 
 			ctx := ctxWithSessionToken(t, token)
@@ -200,6 +245,70 @@ func TestCreateTaskError(t *testing.T) {
 			},
 			req:          &taskv1.CreateTaskRequest{Title: "title", TaskType: taskv1.TaskType_TASK_TYPE_NORMAL},
 			expectedCode: connect.CodeInternal,
+		},
+		{
+			name: "invalid task ID format returns InvalidArgument",
+			ctx:  ctxWithSessionToken(t, "token"),
+			service: func(ctrl *gomock.Controller) *Service {
+				mockUseCase := NewMockCreateTaskUseCase(ctrl)
+				mockUseCase.EXPECT().
+					CreateTask(gomock.Any(), gomock.Any()).
+					Return(nil, domaintask.ErrIDInvalidFormat)
+
+				return NewService(mockUseCase, nil)
+			},
+			req: func() *taskv1.CreateTaskRequest {
+				invalidUUID := "invalid-uuid"
+
+				return &taskv1.CreateTaskRequest{TaskId: &invalidUUID, Title: "title", TaskType: taskv1.TaskType_TASK_TYPE_NORMAL}
+			}(),
+			expectedCode: connect.CodeInvalidArgument,
+		},
+		{
+			name: "task ID not v7 returns InvalidArgument",
+			ctx:  ctxWithSessionToken(t, "token"),
+			service: func(ctrl *gomock.Controller) *Service {
+				mockUseCase := NewMockCreateTaskUseCase(ctrl)
+				mockUseCase.EXPECT().
+					CreateTask(gomock.Any(), gomock.Any()).
+					Return(nil, domaintask.ErrIDInvalidV7)
+
+				return NewService(mockUseCase, nil)
+			},
+			req: func() *taskv1.CreateTaskRequest {
+				uuidv4 := uuid.New()
+				uuidv4Str := uuidv4.String()
+
+				return &taskv1.CreateTaskRequest{
+					TaskId:   &uuidv4Str,
+					Title:    "title",
+					TaskType: taskv1.TaskType_TASK_TYPE_NORMAL,
+				}
+			}(),
+			expectedCode: connect.CodeInvalidArgument,
+		},
+		{
+			name: "duplicate task ID returns AlreadyExists",
+			ctx:  ctxWithSessionToken(t, "token"),
+			service: func(ctrl *gomock.Controller) *Service {
+				mockUseCase := NewMockCreateTaskUseCase(ctrl)
+				mockUseCase.EXPECT().
+					CreateTask(gomock.Any(), gomock.Any()).
+					Return(nil, apptask.ErrTaskIDAlreadyExists)
+
+				return NewService(mockUseCase, nil)
+			},
+			req: func() *taskv1.CreateTaskRequest {
+				existingID, _ := domaintask.NewID()
+				existingIDStr := existingID.String()
+
+				return &taskv1.CreateTaskRequest{
+					TaskId:   &existingIDStr,
+					Title:    "title",
+					TaskType: taskv1.TaskType_TASK_TYPE_NORMAL,
+				}
+			}(),
+			expectedCode: connect.CodeAlreadyExists,
 		},
 	}
 

@@ -3,9 +3,10 @@ package task
 import "errors"
 
 var (
-	ErrIDGeneration    = errors.New("failed to generate task ID")
-	ErrIDInvalidFormat = errors.New("task ID must be a valid UUID")
-	ErrIDInvalidV7     = errors.New("task ID must be a UUIDv7")
+	ErrIDGeneration        = errors.New("failed to generate task ID")
+	ErrIDInvalidFormat     = errors.New("task ID must be a valid UUID")
+	ErrIDInvalidV7         = errors.New("task ID must be a UUIDv7")
+	ErrTaskIDAlreadyExists = errors.New("task ID already exists")
 
 	ErrUserIDEmpty            = errors.New("user ID cannot be empty")
 	ErrTitleTooLong           = errors.New("task title cannot exceed 500 characters")

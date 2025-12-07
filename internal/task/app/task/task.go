@@ -13,6 +13,7 @@ import (
 )
 
 type CreateTaskRequest struct {
+	TaskID       string
 	SessionToken string
 	Title        string
 	TaskType     domaintask.Type
@@ -76,7 +77,36 @@ func (h *createTaskHandler) CreateTask(ctx context.Context, req *CreateTaskReque
 		return nil, ErrTitleRequired
 	}
 
+	var taskID *domaintask.ID
+
+	if req.TaskID != "" {
+		tid, err := domaintask.NewIDFromString(req.TaskID)
+		if err != nil {
+			h.logger.Warn("invalid task ID format", slog.String("error", err.Error()))
+
+			return nil, err
+		}
+
+		taskID = &tid
+	}
+
+	if taskID != nil {
+		exists, err := h.taskRepo.ExistsTaskByID(ctx, *taskID)
+		if err != nil {
+			h.logger.Error("failed to check task ID existence", slog.String("error", err.Error()))
+
+			return nil, err
+		}
+
+		if exists {
+			h.logger.Warn("attempted to create task with duplicate ID", slog.String("task_id", taskID.String()))
+
+			return nil, domaintask.ErrTaskIDAlreadyExists
+		}
+	}
+
 	task, err := domaintask.CreateTask(
+		taskID,
 		userID,
 		req.Title,
 		req.TaskType,

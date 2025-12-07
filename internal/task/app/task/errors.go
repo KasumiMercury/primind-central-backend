@@ -14,4 +14,5 @@ var (
 	ErrTitleRequired             = errors.New("task title is required")
 	ErrTaskNotFound              = domaintask.ErrTaskNotFound
 	ErrTaskIDRequired            = errors.New("task ID is required")
+	ErrTaskIDAlreadyExists       = domaintask.ErrTaskIDAlreadyExists
 )

@@ -131,15 +131,24 @@ func NewTask(
 }
 
 func CreateTask(
+	taskID *ID,
 	userID user.ID,
 	title string,
 	taskType Type,
 	description string,
 	dueTime *time.Time,
 ) (*Task, error) {
-	id, err := NewID()
-	if err != nil {
-		return nil, err
+	var id ID
+
+	if taskID != nil {
+		id = *taskID
+	} else {
+		newID, err := NewID()
+		if err != nil {
+			return nil, err
+		}
+
+		id = newID
 	}
 
 	return NewTask(

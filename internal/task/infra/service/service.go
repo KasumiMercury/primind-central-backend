@@ -60,6 +60,7 @@ func (s *Service) CreateTask(
 	}
 
 	result, err := s.createTask.CreateTask(ctx, &apptask.CreateTaskRequest{
+		TaskID:       req.GetTaskId(),
 		SessionToken: token,
 		Title:        req.GetTitle(),
 		TaskType:     taskType,
@@ -75,10 +76,17 @@ func (s *Service) CreateTask(
 		case errors.Is(err, apptask.ErrTitleRequired),
 			errors.Is(err, domaintask.ErrTitleTooLong),
 			errors.Is(err, domaintask.ErrDueTimeRequired),
-			errors.Is(err, domaintask.ErrInvalidTaskType):
+			errors.Is(err, domaintask.ErrDueTimeNotAllowed),
+			errors.Is(err, domaintask.ErrInvalidTaskType),
+			errors.Is(err, domaintask.ErrIDInvalidFormat),
+			errors.Is(err, domaintask.ErrIDInvalidV7):
 			s.logger.Warn("invalid create task request", slog.String("error", err.Error()))
 
 			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		case errors.Is(err, apptask.ErrTaskIDAlreadyExists):
+			s.logger.Warn("task ID already exists", slog.String("error", err.Error()))
+
+			return nil, connect.NewError(connect.CodeAlreadyExists, err)
 		default:
 			s.logger.Error("unexpected create task error", slog.String("error", err.Error()))
 
