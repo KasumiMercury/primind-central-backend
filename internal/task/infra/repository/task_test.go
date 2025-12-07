@@ -227,3 +227,160 @@ func TestTaskRepositoryWithFixedClock(t *testing.T) {
 		t.Fatalf("expected both tasks to have identical CreatedAt, got %v and %v", record.CreatedAt, record2.CreatedAt)
 	}
 }
+
+func TestExistsTaskByID(t *testing.T) {
+	db := setupTaskDB(t)
+	repo := NewTaskRepository(db)
+
+	userID, err := domainuser.NewID()
+	if err != nil {
+		t.Fatalf("failed to create user ID: %v", err)
+	}
+
+	taskID1 := domaintask.ID(uuid.Must(uuid.NewV7()))
+
+	task, err := domaintask.NewTask(
+		taskID1,
+		userID,
+		"Existing Task",
+		"normal",
+		"active",
+		"",
+		nil,
+		time.Now(),
+	)
+	if err != nil {
+		t.Fatalf("failed to create task: %v", err)
+	}
+
+	if err := repo.SaveTask(context.Background(), task); err != nil {
+		t.Fatalf("SaveTask failed: %v", err)
+	}
+
+	tests := []struct {
+		name     string
+		taskID   domaintask.ID
+		expected bool
+	}{
+		{
+			name:     "task exists returns true",
+			taskID:   taskID1,
+			expected: true,
+		},
+		{
+			name:     "task does not exist returns false",
+			taskID:   domaintask.ID(uuid.Must(uuid.NewV7())),
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			exists, err := repo.ExistsTaskByID(context.Background(), tt.taskID)
+			if err != nil {
+				t.Fatalf("ExistsTaskByID failed: %v", err)
+			}
+
+			if exists != tt.expected {
+				t.Errorf("ExistsTaskByID(%s) = %v, want %v", tt.taskID.String(), exists, tt.expected)
+			}
+		})
+	}
+}
+
+func TestSaveTaskWithPredefinedID(t *testing.T) {
+	db := setupTaskDB(t)
+	repo := NewTaskRepository(db)
+
+	userID, err := domainuser.NewID()
+	if err != nil {
+		t.Fatalf("failed to create user ID: %v", err)
+	}
+
+	predefinedID := domaintask.ID(uuid.Must(uuid.NewV7()))
+
+	task, err := domaintask.NewTask(
+		predefinedID,
+		userID,
+		"Task with predefined ID",
+		"normal",
+		"active",
+		"This task has a predefined ID",
+		nil,
+		time.Now(),
+	)
+	if err != nil {
+		t.Fatalf("failed to create task: %v", err)
+	}
+
+	if err := repo.SaveTask(context.Background(), task); err != nil {
+		t.Fatalf("SaveTask failed: %v", err)
+	}
+
+	retrievedTask, err := repo.GetTaskByID(context.Background(), predefinedID, userID)
+	if err != nil {
+		t.Fatalf("GetTaskByID failed: %v", err)
+	}
+
+	if retrievedTask.ID().String() != predefinedID.String() {
+		t.Errorf("Retrieved task ID = %s, want %s", retrievedTask.ID().String(), predefinedID.String())
+	}
+
+	if retrievedTask.Title() != task.Title() {
+		t.Errorf("Retrieved task title = %s, want %s", retrievedTask.Title(), task.Title())
+	}
+}
+
+func TestSaveTaskDuplicateID(t *testing.T) {
+	db := setupTaskDB(t)
+	repo := NewTaskRepository(db)
+
+	user1ID, err := domainuser.NewID()
+	if err != nil {
+		t.Fatalf("failed to create user1 ID: %v", err)
+	}
+
+	user2ID, err := domainuser.NewID()
+	if err != nil {
+		t.Fatalf("failed to create user2 ID: %v", err)
+	}
+
+	sharedTaskID := domaintask.ID(uuid.Must(uuid.NewV7()))
+
+	task1, err := domaintask.NewTask(
+		sharedTaskID,
+		user1ID,
+		"Task 1",
+		"normal",
+		"active",
+		"",
+		nil,
+		time.Now(),
+	)
+	if err != nil {
+		t.Fatalf("failed to create task1: %v", err)
+	}
+
+	if err := repo.SaveTask(context.Background(), task1); err != nil {
+		t.Fatalf("SaveTask for task1 failed: %v", err)
+	}
+
+	task2, err := domaintask.NewTask(
+		sharedTaskID,
+		user2ID,
+		"Task 2",
+		"normal",
+		"active",
+		"",
+		nil,
+		time.Now(),
+	)
+	if err != nil {
+		t.Fatalf("failed to create task2: %v", err)
+	}
+
+	err = repo.SaveTask(context.Background(), task2)
+	if err == nil {
+		t.Fatal("SaveTask for duplicate ID should have failed, but succeeded")
+	}
+}

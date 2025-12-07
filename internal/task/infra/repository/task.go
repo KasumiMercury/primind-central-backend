@@ -100,3 +100,17 @@ func (r *taskRepository) GetTaskByID(ctx context.Context, id domaintask.ID, user
 		record.CreatedAt,
 	)
 }
+
+func (r *taskRepository) ExistsTaskByID(ctx context.Context, id domaintask.ID) (bool, error) {
+	var count int64
+
+	err := r.db.WithContext(ctx).
+		Model(&TaskModel{}).
+		Where("id = ?", id.String()).
+		Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
+}

@@ -9,4 +9,5 @@ import (
 type TaskRepository interface {
 	SaveTask(ctx context.Context, task *Task) error
 	GetTaskByID(ctx context.Context, id ID, userID user.ID) (*Task, error)
+	ExistsTaskByID(ctx context.Context, id ID) (bool, error)
 }

@@ -752,3 +752,136 @@ func TestNewTaskErrors(t *testing.T) {
 		})
 	}
 }
+
+func TestCreateTaskWithPreGeneratedID(t *testing.T) {
+	t.Parallel()
+
+	validUserID, err := user.NewID()
+	if err != nil {
+		t.Fatalf("setup failed: %v", err)
+	}
+
+	taskNormalType, err := NewType("normal")
+	if err != nil {
+		t.Fatalf("setup failed: %v", err)
+	}
+
+	taskDueType, err := NewType("has_due_time")
+	if err != nil {
+		t.Fatalf("setup failed: %v", err)
+	}
+
+	tests := []struct {
+		name        string
+		taskID      *ID
+		userID      user.ID
+		title       string
+		taskType    Type
+		description string
+		dueTime     *time.Time
+	}{
+		{
+			name: "create task with valid predefined UUIDv7",
+			taskID: func() *ID {
+				id, _ := NewID()
+
+				return &id
+			}(),
+			userID:      validUserID,
+			title:       "Task with predefined ID",
+			taskType:    taskNormalType,
+			description: "This task has a predefined ID",
+			dueTime:     nil,
+		},
+		{
+			name:        "create task without ID",
+			taskID:      nil,
+			userID:      validUserID,
+			title:       "Task without ID",
+			taskType:    taskNormalType,
+			description: "This task will get an auto-generated ID",
+			dueTime:     nil,
+		},
+		{
+			name: "create due task with predefined ID",
+			taskID: func() *ID {
+				id, _ := NewID()
+
+				return &id
+			}(),
+			userID:      validUserID,
+			title:       "Due Task with predefined ID",
+			taskType:    taskDueType,
+			description: "",
+			dueTime: func() *time.Time {
+				due := time.Now().Add(24 * time.Hour).UTC().Truncate(time.Microsecond)
+
+				return &due
+			}(),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			task, err := CreateTask(
+				tt.taskID,
+				tt.userID,
+				tt.title,
+				tt.taskType,
+				tt.description,
+				tt.dueTime,
+			)
+			if err != nil {
+				t.Fatalf("CreateTask() unexpected error: %v", err)
+			}
+
+			if task == nil {
+				t.Fatal("CreateTask() returned nil task")
+			}
+
+			if tt.taskID != nil {
+				if task.ID().String() != tt.taskID.String() {
+					t.Errorf("CreateTask() task ID = %v, want %v", task.ID().String(), tt.taskID.String())
+				}
+			} else {
+				if task.ID().String() == "" {
+					t.Error("CreateTask() auto-generated ID is empty")
+				}
+
+				parsedID, err := NewIDFromString(task.ID().String())
+				if err != nil {
+					t.Errorf("CreateTask() auto-generated ID is invalid: %v", err)
+				}
+
+				if parsedID.String() != task.ID().String() {
+					t.Errorf("CreateTask() ID round-trip failed: got %v, want %v", parsedID.String(), task.ID().String())
+				}
+			}
+
+			if task.UserID() != tt.userID {
+				t.Errorf("CreateTask() userID = %v, want %v", task.UserID(), tt.userID)
+			}
+
+			if task.Title() != tt.title {
+				t.Errorf("CreateTask() title = %v, want %v", task.Title(), tt.title)
+			}
+
+			if task.TaskType() != tt.taskType {
+				t.Errorf("CreateTask() taskType = %v, want %v", task.TaskType(), tt.taskType)
+			}
+
+			if task.TaskStatus() != StatusActive {
+				t.Errorf("CreateTask() taskStatus = %v, want %v", task.TaskStatus(), StatusActive)
+			}
+
+			if task.Description() != tt.description {
+				t.Errorf("CreateTask() description = %v, want %v", task.Description(), tt.description)
+			}
+
+			if (task.DueTime() == nil) != (tt.dueTime == nil) ||
+				(task.DueTime() != nil && !task.DueTime().Equal(*tt.dueTime)) {
+				t.Errorf("CreateTask() dueTime = %v, want %v", task.DueTime(), tt.dueTime)
+			}
+		})
+	}
+}
