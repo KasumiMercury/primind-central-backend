@@ -196,9 +196,9 @@ func TestNewTypeSuccess(t *testing.T) {
 			expected: TypeLow,
 		},
 		{
-			name:     "has_due_time",
-			typeStr:  "has_due_time",
-			expected: TypeHasDueTime,
+			name:     "scheduled",
+			typeStr:  "scheduled",
+			expected: TypeScheduled,
 		},
 	}
 
@@ -336,7 +336,7 @@ func TestNewTaskSuccess(t *testing.T) {
 		t.Fatalf("setup failed: %v", err)
 	}
 
-	taskDueType, err := NewType("has_due_time")
+	taskscheduledType, err := NewType("scheduled")
 	if err != nil {
 		t.Fatalf("setup failed: %v", err)
 	}
@@ -355,7 +355,7 @@ func TestNewTaskSuccess(t *testing.T) {
 		taskType    Type
 		status      Status
 		description string
-		dueTime     *time.Time
+		scheduledAt *time.Time
 		createdAt   time.Time
 	}
 
@@ -365,7 +365,7 @@ func TestNewTaskSuccess(t *testing.T) {
 		expected *Task
 	}{
 		{
-			name: "creates non-due task without optional fields",
+			name: "creates non-scheduled task without optional fields",
 			args: args{
 				id:          validID,
 				userID:      validUserID,
@@ -373,7 +373,7 @@ func TestNewTaskSuccess(t *testing.T) {
 				taskType:    taskNormalType,
 				status:      taskStatus,
 				description: "",
-				dueTime:     nil,
+				scheduledAt: nil,
 				createdAt:   createTime,
 			},
 			expected: &Task{
@@ -383,23 +383,23 @@ func TestNewTaskSuccess(t *testing.T) {
 				taskType:    taskNormalType,
 				taskStatus:  taskStatus,
 				description: "",
-				dueTime:     nil,
+				scheduledAt: nil,
 				createdAt:   createTime,
 			},
 		},
 		{
-			name: "creates due task with all fields",
+			name: "creates scheduled task with all fields",
 			args: args{
 				id:          validID,
 				userID:      validUserID,
 				title:       "Another Task",
-				taskType:    taskDueType,
+				taskType:    taskscheduledType,
 				status:      taskStatus,
 				description: "This is a detailed description.",
-				dueTime: func() *time.Time {
-					due := createTime.Add(48 * time.Hour)
+				scheduledAt: func() *time.Time {
+					scheduled := createTime.Add(48 * time.Hour)
 
-					return &due
+					return &scheduled
 				}(),
 				createdAt: createTime,
 			},
@@ -407,13 +407,13 @@ func TestNewTaskSuccess(t *testing.T) {
 				id:          validID,
 				userID:      validUserID,
 				title:       "Another Task",
-				taskType:    taskDueType,
+				taskType:    taskscheduledType,
 				taskStatus:  taskStatus,
 				description: "This is a detailed description.",
-				dueTime: func() *time.Time {
-					due := createTime.Add(48 * time.Hour)
+				scheduledAt: func() *time.Time {
+					scheduled := createTime.Add(48 * time.Hour)
 
-					return &due
+					return &scheduled
 				}(),
 				createdAt: createTime,
 			},
@@ -427,7 +427,7 @@ func TestNewTaskSuccess(t *testing.T) {
 				taskType:    taskNormalType,
 				status:      taskStatus,
 				description: "Just a simple description.",
-				dueTime:     nil,
+				scheduledAt: nil,
 				createdAt:   createTime,
 			},
 			expected: &Task{
@@ -437,37 +437,37 @@ func TestNewTaskSuccess(t *testing.T) {
 				taskType:    taskNormalType,
 				taskStatus:  taskStatus,
 				description: "Just a simple description.",
-				dueTime:     nil,
+				scheduledAt: nil,
 				createdAt:   createTime,
 			},
 		},
 		{
-			name: "creates task with due time",
+			name: "creates task with scheduled time",
 			args: args{
 				id:          validID,
 				userID:      validUserID,
-				title:       "Task with Due Time",
-				taskType:    taskDueType,
+				title:       "Task with scheduled Time",
+				taskType:    taskscheduledType,
 				status:      taskStatus,
 				description: "",
-				dueTime: func() *time.Time {
-					due := createTime.Add(24 * time.Hour)
+				scheduledAt: func() *time.Time {
+					scheduled := createTime.Add(24 * time.Hour)
 
-					return &due
+					return &scheduled
 				}(),
 				createdAt: createTime,
 			},
 			expected: &Task{
 				id:          validID,
 				userID:      validUserID,
-				title:       "Task with Due Time",
-				taskType:    taskDueType,
+				title:       "Task with scheduled Time",
+				taskType:    taskscheduledType,
 				taskStatus:  taskStatus,
 				description: "",
-				dueTime: func() *time.Time {
-					due := createTime.Add(24 * time.Hour)
+				scheduledAt: func() *time.Time {
+					scheduled := createTime.Add(24 * time.Hour)
 
-					return &due
+					return &scheduled
 				}(),
 				createdAt: createTime,
 			},
@@ -481,7 +481,7 @@ func TestNewTaskSuccess(t *testing.T) {
 				taskType:    taskNormalType,
 				status:      taskStatus,
 				description: "",
-				dueTime:     nil,
+				scheduledAt: nil,
 				createdAt:   createTime,
 			},
 			expected: &Task{
@@ -491,7 +491,7 @@ func TestNewTaskSuccess(t *testing.T) {
 				taskType:    taskNormalType,
 				taskStatus:  taskStatus,
 				description: "",
-				dueTime:     nil,
+				scheduledAt: nil,
 				createdAt:   createTime,
 			},
 		},
@@ -504,7 +504,7 @@ func TestNewTaskSuccess(t *testing.T) {
 				taskType:    taskNormalType,
 				status:      taskStatus,
 				description: "Description for 500 rune title.",
-				dueTime:     nil,
+				scheduledAt: nil,
 				createdAt:   createTime,
 			},
 			expected: &Task{
@@ -514,7 +514,7 @@ func TestNewTaskSuccess(t *testing.T) {
 				taskType:    taskNormalType,
 				taskStatus:  taskStatus,
 				description: "Description for 500 rune title.",
-				dueTime:     nil,
+				scheduledAt: nil,
 				createdAt:   createTime,
 			},
 		},
@@ -529,7 +529,7 @@ func TestNewTaskSuccess(t *testing.T) {
 				tt.args.taskType,
 				tt.args.status,
 				tt.args.description,
-				tt.args.dueTime,
+				tt.args.scheduledAt,
 				tt.args.createdAt,
 			)
 			if err != nil {
@@ -567,9 +567,9 @@ func TestNewTaskSuccess(t *testing.T) {
 				t.Errorf("Task.Description() = %v, want %v", task.Description(), tt.expected.description)
 			}
 
-			if (task.DueTime() == nil) != (tt.expected.dueTime == nil) ||
-				(task.DueTime() != nil && !task.DueTime().Equal(*tt.expected.dueTime)) {
-				t.Errorf("Task.DueTime() = %v, want %v", task.DueTime(), tt.expected.dueTime)
+			if (task.ScheduledAt() == nil) != (tt.expected.scheduledAt == nil) ||
+				(task.ScheduledAt() != nil && !task.ScheduledAt().Equal(*tt.expected.scheduledAt)) {
+				t.Errorf("Task.ScheduledAt() = %v, want %v", task.ScheduledAt(), tt.expected.scheduledAt)
 			}
 
 			if !task.CreatedAt().Equal(tt.expected.createdAt) {
@@ -607,7 +607,7 @@ func TestNewTaskErrors(t *testing.T) {
 		t.Fatalf("setup failed: %v", err)
 	}
 
-	taskDueType, err := NewType("has_due_time")
+	taskscheduledType, err := NewType("scheduled")
 	if err != nil {
 		t.Fatalf("setup failed: %v", err)
 	}
@@ -626,7 +626,7 @@ func TestNewTaskErrors(t *testing.T) {
 		taskType    Type
 		status      Status
 		description string
-		dueTime     *time.Time
+		scheduledAt *time.Time
 		createdAt   time.Time
 	}
 
@@ -648,85 +648,85 @@ func TestNewTaskErrors(t *testing.T) {
 			expectedErr: ErrTitleTooLong,
 		},
 		{
-			name: "nil due time for due type",
+			name: "nil scheduled time for scheduled type",
 			args: args{
-				id:        validID,
-				userID:    validUserID,
-				title:     "Test Task",
-				taskType:  taskDueType,
-				status:    taskStatus,
-				dueTime:   nil,
-				createdAt: createTime,
+				id:          validID,
+				userID:      validUserID,
+				title:       "Test Task",
+				taskType:    taskscheduledType,
+				status:      taskStatus,
+				scheduledAt: nil,
+				createdAt:   createTime,
 			},
-			expectedErr: ErrDueTimeRequired,
+			expectedErr: ErrScheduledAtRequired,
 		},
 		{
-			name: "due time provided for urgent type",
+			name: "scheduled time provided for urgent type",
 			args: args{
 				id:       validID,
 				userID:   validUserID,
 				title:    "Test Task",
 				taskType: taskUrgentType,
 				status:   taskStatus,
-				dueTime: func() *time.Time {
-					due := createTime.Add(24 * time.Hour)
+				scheduledAt: func() *time.Time {
+					scheduled := createTime.Add(24 * time.Hour)
 
-					return &due
+					return &scheduled
 				}(),
 				createdAt: createTime,
 			},
-			expectedErr: ErrDueTimeNotAllowed,
+			expectedErr: ErrScheduledAtNotAllowed,
 		},
 		{
-			name: "due time provided for normal type",
+			name: "scheduled time provided for normal type",
 			args: args{
 				id:       validID,
 				userID:   validUserID,
 				title:    "Test Task",
 				taskType: taskNormalType,
 				status:   taskStatus,
-				dueTime: func() *time.Time {
-					due := createTime.Add(24 * time.Hour)
+				scheduledAt: func() *time.Time {
+					scheduled := createTime.Add(24 * time.Hour)
 
-					return &due
+					return &scheduled
 				}(),
 				createdAt: createTime,
 			},
-			expectedErr: ErrDueTimeNotAllowed,
+			expectedErr: ErrScheduledAtNotAllowed,
 		},
 		{
-			name: "due time provided for low type",
+			name: "scheduled time provided for low type",
 			args: args{
 				id:       validID,
 				userID:   validUserID,
 				title:    "Test Task",
 				taskType: taskLowType,
 				status:   taskStatus,
-				dueTime: func() *time.Time {
-					due := createTime.Add(24 * time.Hour)
+				scheduledAt: func() *time.Time {
+					scheduled := createTime.Add(24 * time.Hour)
 
-					return &due
+					return &scheduled
 				}(),
 				createdAt: createTime,
 			},
-			expectedErr: ErrDueTimeNotAllowed,
+			expectedErr: ErrScheduledAtNotAllowed,
 		},
 		{
-			name: "due time before created at",
+			name: "scheduled time before created at",
 			args: args{
 				id:       validID,
 				userID:   validUserID,
 				title:    "Test Task",
-				taskType: taskDueType,
+				taskType: taskscheduledType,
 				status:   taskStatus,
-				dueTime: func() *time.Time {
-					due := createTime.Add(-1 * time.Hour)
+				scheduledAt: func() *time.Time {
+					scheduled := createTime.Add(-1 * time.Hour)
 
-					return &due
+					return &scheduled
 				}(),
 				createdAt: createTime,
 			},
-			expectedErr: ErrDueTimeBeforeCreatedAt,
+			expectedErr: ErrScheduledAtBeforeCreatedAt,
 		},
 	}
 
@@ -739,7 +739,7 @@ func TestNewTaskErrors(t *testing.T) {
 				tt.args.taskType,
 				tt.args.status,
 				tt.args.description,
-				tt.args.dueTime,
+				tt.args.scheduledAt,
 				tt.args.createdAt,
 			)
 			if err == nil {
@@ -766,7 +766,7 @@ func TestCreateTaskWithPreGeneratedID(t *testing.T) {
 		t.Fatalf("setup failed: %v", err)
 	}
 
-	taskDueType, err := NewType("has_due_time")
+	taskscheduledType, err := NewType("scheduled")
 	if err != nil {
 		t.Fatalf("setup failed: %v", err)
 	}
@@ -778,7 +778,7 @@ func TestCreateTaskWithPreGeneratedID(t *testing.T) {
 		title       string
 		taskType    Type
 		description string
-		dueTime     *time.Time
+		scheduledAt *time.Time
 	}{
 		{
 			name: "create task with valid predefined UUIDv7",
@@ -791,7 +791,7 @@ func TestCreateTaskWithPreGeneratedID(t *testing.T) {
 			title:       "Task with predefined ID",
 			taskType:    taskNormalType,
 			description: "This task has a predefined ID",
-			dueTime:     nil,
+			scheduledAt: nil,
 		},
 		{
 			name:        "create task without ID",
@@ -800,23 +800,23 @@ func TestCreateTaskWithPreGeneratedID(t *testing.T) {
 			title:       "Task without ID",
 			taskType:    taskNormalType,
 			description: "This task will get an auto-generated ID",
-			dueTime:     nil,
+			scheduledAt: nil,
 		},
 		{
-			name: "create due task with predefined ID",
+			name: "create scheduled task with predefined ID",
 			taskID: func() *ID {
 				id, _ := NewID()
 
 				return &id
 			}(),
 			userID:      validUserID,
-			title:       "Due Task with predefined ID",
-			taskType:    taskDueType,
+			title:       "scheduled Task with predefined ID",
+			taskType:    taskscheduledType,
 			description: "",
-			dueTime: func() *time.Time {
-				due := time.Now().Add(24 * time.Hour).UTC().Truncate(time.Microsecond)
+			scheduledAt: func() *time.Time {
+				scheduled := time.Now().Add(24 * time.Hour).UTC().Truncate(time.Microsecond)
 
-				return &due
+				return &scheduled
 			}(),
 		},
 	}
@@ -829,7 +829,7 @@ func TestCreateTaskWithPreGeneratedID(t *testing.T) {
 				tt.title,
 				tt.taskType,
 				tt.description,
-				tt.dueTime,
+				tt.scheduledAt,
 			)
 			if err != nil {
 				t.Fatalf("CreateTask() unexpected error: %v", err)
@@ -878,9 +878,9 @@ func TestCreateTaskWithPreGeneratedID(t *testing.T) {
 				t.Errorf("CreateTask() description = %v, want %v", task.Description(), tt.description)
 			}
 
-			if (task.DueTime() == nil) != (tt.dueTime == nil) ||
-				(task.DueTime() != nil && !task.DueTime().Equal(*tt.dueTime)) {
-				t.Errorf("CreateTask() dueTime = %v, want %v", task.DueTime(), tt.dueTime)
+			if (task.ScheduledAt() == nil) != (tt.scheduledAt == nil) ||
+				(task.ScheduledAt() != nil && !task.ScheduledAt().Equal(*tt.scheduledAt)) {
+				t.Errorf("CreateTask() scheduledAt = %v, want %v", task.ScheduledAt(), tt.scheduledAt)
 			}
 		})
 	}

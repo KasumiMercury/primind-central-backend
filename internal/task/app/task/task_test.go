@@ -30,7 +30,7 @@ func TestCreateTaskSuccess(t *testing.T) {
 		userID domainuser.ID
 	}{
 		{
-			name: "create normal task without due time",
+			name: "create normal task without scheduled time",
 			req: CreateTaskRequest{
 				SessionToken: "token-normal",
 				Title:        "Test Task",
@@ -39,17 +39,17 @@ func TestCreateTaskSuccess(t *testing.T) {
 			userID: userID,
 		},
 		{
-			name: "create task with due time and description",
+			name: "create task with scheduled time and description",
 			req: func() CreateTaskRequest {
 				desc := "task description"
-				due := time.Now().Add(2 * time.Hour).UTC().Truncate(time.Second)
+				scheduled := time.Now().Add(2 * time.Hour).UTC().Truncate(time.Second)
 
 				return CreateTaskRequest{
-					SessionToken: "token-due",
-					Title:        "Task with due time",
-					TaskType:     domaintask.TypeHasDueTime,
+					SessionToken: "token-scheduled",
+					Title:        "Task with scheduled time",
+					TaskType:     domaintask.TypeScheduled,
 					Description:  desc,
-					DueTime:      &due,
+					ScheduledAt:  &scheduled,
 				}
 			}(),
 			userID: userID,
@@ -118,17 +118,17 @@ func TestCreateTaskSuccess(t *testing.T) {
 				t.Fatalf("expected description %v, got %v", tt.req.Description, saved.Description())
 			}
 
-			if tt.req.DueTime == nil && saved.DueTime() != nil {
-				t.Fatalf("expected nil due time, got %v", saved.DueTime())
+			if tt.req.ScheduledAt == nil && saved.ScheduledAt() != nil {
+				t.Fatalf("expected nil scheduled time, got %v", saved.ScheduledAt())
 			}
 
-			if tt.req.DueTime != nil {
-				if saved.DueTime() == nil {
-					t.Fatalf("expected due time, got nil")
+			if tt.req.ScheduledAt != nil {
+				if saved.ScheduledAt() == nil {
+					t.Fatalf("expected scheduled time, got nil")
 				}
 
-				if !saved.DueTime().Equal(*tt.req.DueTime) {
-					t.Fatalf("expected due time %v, got %v", tt.req.DueTime, saved.DueTime())
+				if !saved.ScheduledAt().Equal(*tt.req.ScheduledAt) {
+					t.Fatalf("expected scheduled time %v, got %v", tt.req.ScheduledAt, saved.ScheduledAt())
 				}
 			}
 		})
@@ -189,11 +189,11 @@ func TestCreateTaskError(t *testing.T) {
 			expectedErr: ErrTitleRequired,
 		},
 		{
-			name: "due time required for has_due_time",
+			name: "scheduled time required for has_scheduled_time",
 			req: &CreateTaskRequest{
 				SessionToken: "token",
-				Title:        "task without due time",
-				TaskType:     domaintask.TypeHasDueTime,
+				Title:        "task without scheduled time",
+				TaskType:     domaintask.TypeScheduled,
 			},
 			setupAuth: func(ctrl *gomock.Controller) authclient.AuthClient {
 				mockAuth := NewMockAuthClient(ctrl)
@@ -202,7 +202,7 @@ func TestCreateTaskError(t *testing.T) {
 
 				return mockAuth
 			},
-			expectedErr: domaintask.ErrDueTimeRequired,
+			expectedErr: domaintask.ErrScheduledAtRequired,
 		},
 		{
 			name: "invalid task ID format",
@@ -329,22 +329,22 @@ func TestGetTaskSuccess(t *testing.T) {
 	ctx := context.Background()
 
 	desc := "stored task"
-	due := time.Now().Add(3 * time.Hour).UTC().Truncate(time.Second)
+	scheduled := time.Now().Add(3 * time.Hour).UTC().Truncate(time.Second)
 
 	userIDNormal, err := domainuser.NewID()
 	if err != nil {
 		t.Fatalf("failed to generate user id: %v", err)
 	}
 
-	userIDWithDue, err := domainuser.NewID()
+	userIDWithscheduled, err := domainuser.NewID()
 	if err != nil {
 		t.Fatalf("failed to generate user id: %v", err)
 	}
 
 	now := time.Now().UTC()
 
-	taskWithNoDue := createPersistedTask(t, repo, userIDNormal, "stored", domaintask.TypeNormal, desc, nil, now)
-	taskWithDue := createPersistedTask(t, repo, userIDWithDue, "stored with due", domaintask.TypeHasDueTime, desc, &due, now)
+	taskWithNoscheduled := createPersistedTask(t, repo, userIDNormal, "stored", domaintask.TypeNormal, desc, nil, now)
+	taskWithscheduled := createPersistedTask(t, repo, userIDWithscheduled, "stored with scheduled", domaintask.TypeScheduled, desc, &scheduled, now)
 
 	tests := []struct {
 		name         string
@@ -356,19 +356,19 @@ func TestGetTaskSuccess(t *testing.T) {
 			name: "get normal task",
 			req: GetTaskRequest{
 				SessionToken: "token-normal",
-				TaskID:       taskWithNoDue.ID().String(),
+				TaskID:       taskWithNoscheduled.ID().String(),
 			},
 			userID:       userIDNormal,
-			expectedTask: taskWithNoDue,
+			expectedTask: taskWithNoscheduled,
 		},
 		{
-			name: "get task with due time",
+			name: "get task with scheduled time",
 			req: GetTaskRequest{
-				SessionToken: "token-due",
-				TaskID:       taskWithDue.ID().String(),
+				SessionToken: "token-scheduled",
+				TaskID:       taskWithscheduled.ID().String(),
 			},
-			userID:       userIDWithDue,
-			expectedTask: taskWithDue,
+			userID:       userIDWithscheduled,
+			expectedTask: taskWithscheduled,
 		},
 	}
 
@@ -407,13 +407,13 @@ func TestGetTaskSuccess(t *testing.T) {
 				t.Fatalf("expected description %v, got %v", tt.expectedTask.Description(), resp.Description)
 			}
 
-			if tt.expectedTask.DueTime() == nil && resp.DueTime != nil {
-				t.Fatalf("expected nil due time, got %v", resp.DueTime)
+			if tt.expectedTask.ScheduledAt() == nil && resp.ScheduledAt != nil {
+				t.Fatalf("expected nil scheduled time, got %v", resp.ScheduledAt)
 			}
 
-			if tt.expectedTask.DueTime() != nil {
-				if resp.DueTime == nil || !resp.DueTime.Equal(*tt.expectedTask.DueTime()) {
-					t.Fatalf("expected due time %v, got %v", tt.expectedTask.DueTime(), resp.DueTime)
+			if tt.expectedTask.ScheduledAt() != nil {
+				if resp.ScheduledAt == nil || !resp.ScheduledAt.Equal(*tt.expectedTask.ScheduledAt()) {
+					t.Fatalf("expected scheduled time %v, got %v", tt.expectedTask.ScheduledAt(), resp.ScheduledAt)
 				}
 			}
 
@@ -552,7 +552,7 @@ func createPersistedTask(
 	title string,
 	taskType domaintask.Type,
 	description string,
-	dueTime *time.Time,
+	scheduledAt *time.Time,
 	createdAt time.Time,
 ) *domaintask.Task {
 	t.Helper()
@@ -569,7 +569,7 @@ func createPersistedTask(
 		taskType,
 		domaintask.StatusActive,
 		description,
-		dueTime,
+		scheduledAt,
 		createdAt,
 	)
 	if err != nil {

@@ -18,7 +18,7 @@ type CreateTaskRequest struct {
 	Title        string
 	TaskType     domaintask.Type
 	Description  string
-	DueTime      *time.Time
+	ScheduledAt  *time.Time
 }
 
 type CreateTaskResult struct {
@@ -27,7 +27,7 @@ type CreateTaskResult struct {
 	TaskType    string
 	TaskStatus  string
 	Description string
-	DueTime     *time.Time
+	ScheduledAt *time.Time
 	CreatedAt   time.Time
 }
 
@@ -111,7 +111,7 @@ func (h *createTaskHandler) CreateTask(ctx context.Context, req *CreateTaskReque
 		req.Title,
 		req.TaskType,
 		req.Description,
-		req.DueTime,
+		req.ScheduledAt,
 	)
 	if err != nil {
 		h.logger.Warn("failed to create task entity", slog.String("error", err.Error()))
@@ -133,7 +133,7 @@ func (h *createTaskHandler) CreateTask(ctx context.Context, req *CreateTaskReque
 		TaskType:    string(task.TaskType()),
 		TaskStatus:  string(task.TaskStatus()),
 		Description: task.Description(),
-		DueTime:     task.DueTime(),
+		ScheduledAt: task.ScheduledAt(),
 		CreatedAt:   task.CreatedAt(),
 	}, nil
 }
@@ -149,7 +149,7 @@ type GetTaskResult struct {
 	TaskType    domaintask.Type
 	TaskStatus  domaintask.Status
 	Description string
-	DueTime     *time.Time
+	ScheduledAt *time.Time
 	CreatedAt   time.Time
 }
 
@@ -225,7 +225,7 @@ func (h *getTaskHandler) GetTask(ctx context.Context, req *GetTaskRequest) (*Get
 		TaskType:    task.TaskType(),
 		TaskStatus:  task.TaskStatus(),
 		Description: task.Description(),
-		DueTime:     task.DueTime(),
+		ScheduledAt: task.ScheduledAt(),
 		CreatedAt:   task.CreatedAt(),
 	}, nil
 }
