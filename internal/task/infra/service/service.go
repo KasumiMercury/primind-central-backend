@@ -52,11 +52,11 @@ func (s *Service) CreateTask(
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	var dueTime *time.Time
+	var scheduledAt *time.Time
 
-	if req.DueTime != nil {
-		dt := req.GetDueTime().AsTime()
-		dueTime = &dt
+	if req.ScheduledAt != nil {
+		dt := req.GetScheduledAt().AsTime()
+		scheduledAt = &dt
 	}
 
 	result, err := s.createTask.CreateTask(ctx, &apptask.CreateTaskRequest{
@@ -65,7 +65,7 @@ func (s *Service) CreateTask(
 		Title:        req.GetTitle(),
 		TaskType:     taskType,
 		Description:  req.GetDescription(),
-		DueTime:      dueTime,
+		ScheduledAt:  scheduledAt,
 	})
 	if err != nil {
 		switch {
@@ -75,8 +75,8 @@ func (s *Service) CreateTask(
 			return nil, connect.NewError(connect.CodeUnauthenticated, err)
 		case errors.Is(err, apptask.ErrTitleRequired),
 			errors.Is(err, domaintask.ErrTitleTooLong),
-			errors.Is(err, domaintask.ErrDueTimeRequired),
-			errors.Is(err, domaintask.ErrDueTimeNotAllowed),
+			errors.Is(err, domaintask.ErrScheduledAtRequired),
+			errors.Is(err, domaintask.ErrScheduledAtNotAllowed),
 			errors.Is(err, domaintask.ErrInvalidTaskType),
 			errors.Is(err, domaintask.ErrIDInvalidFormat),
 			errors.Is(err, domaintask.ErrIDInvalidV7):
@@ -103,9 +103,9 @@ func (s *Service) CreateTask(
 			TaskType:    stringToProtoTaskType(string(result.TaskType)),
 			TaskStatus:  stringToProtoTaskStatus(string(result.TaskStatus)),
 			Description: result.Description,
-			DueTime: func() *timestamppb.Timestamp {
-				if result.DueTime != nil {
-					return timestamppb.New(*result.DueTime)
+			ScheduledAt: func() *timestamppb.Timestamp {
+				if result.ScheduledAt != nil {
+					return timestamppb.New(*result.ScheduledAt)
 				}
 
 				return nil
@@ -156,9 +156,9 @@ func (s *Service) GetTask(
 	protoTaskType := stringToProtoTaskType(string(result.TaskType))
 	protoTaskStatus := stringToProtoTaskStatus(string(result.TaskStatus))
 
-	var dueTime *timestamppb.Timestamp
-	if result.DueTime != nil {
-		dueTime = timestamppb.New(*result.DueTime)
+	var scheduledAt *timestamppb.Timestamp
+	if result.ScheduledAt != nil {
+		scheduledAt = timestamppb.New(*result.ScheduledAt)
 	}
 
 	response := &taskv1.GetTaskResponse{
@@ -168,7 +168,7 @@ func (s *Service) GetTask(
 			TaskType:    protoTaskType,
 			TaskStatus:  protoTaskStatus,
 			Description: result.Description,
-			DueTime:     dueTime,
+			ScheduledAt: scheduledAt,
 			CreatedAt:   timestamppb.New(result.CreatedAt),
 		},
 	}
@@ -190,8 +190,8 @@ func protoTaskTypeToString(taskType taskv1.TaskType) (domaintask.Type, error) {
 		return domaintask.TypeNormal, nil
 	case taskv1.TaskType_TASK_TYPE_LOW:
 		return domaintask.TypeLow, nil
-	case taskv1.TaskType_TASK_TYPE_HAS_DUE_TIME:
-		return domaintask.TypeHasDueTime, nil
+	case taskv1.TaskType_TASK_TYPE_SCHEDULED:
+		return domaintask.TypeScheduled, nil
 	case taskv1.TaskType_TASK_TYPE_UNSPECIFIED:
 		return "", errors.New("task type is required")
 	default:
@@ -207,8 +207,8 @@ func stringToProtoTaskType(taskType string) taskv1.TaskType {
 		return taskv1.TaskType_TASK_TYPE_NORMAL
 	case string(domaintask.TypeLow):
 		return taskv1.TaskType_TASK_TYPE_LOW
-	case string(domaintask.TypeHasDueTime):
-		return taskv1.TaskType_TASK_TYPE_HAS_DUE_TIME
+	case string(domaintask.TypeScheduled):
+		return taskv1.TaskType_TASK_TYPE_SCHEDULED
 	default:
 		return taskv1.TaskType_TASK_TYPE_UNSPECIFIED
 	}

@@ -40,15 +40,15 @@ func (id ID) String() string {
 type Type string
 
 const (
-	TypeUrgent     Type = "urgent"
-	TypeNormal     Type = "normal"
-	TypeLow        Type = "low"
-	TypeHasDueTime Type = "has_due_time"
+	TypeUrgent    Type = "urgent"
+	TypeNormal    Type = "normal"
+	TypeLow       Type = "low"
+	TypeScheduled Type = "scheduled"
 )
 
 func NewType(t string) (Type, error) {
 	switch t {
-	case string(TypeUrgent), string(TypeNormal), string(TypeLow), string(TypeHasDueTime):
+	case string(TypeUrgent), string(TypeNormal), string(TypeLow), string(TypeScheduled):
 		return Type(t), nil
 	default:
 		return "", fmt.Errorf("%w: %s", ErrInvalidTaskType, t)
@@ -78,7 +78,7 @@ type Task struct {
 	taskType    Type
 	taskStatus  Status
 	description string
-	dueTime     *time.Time
+	scheduledAt *time.Time
 	createdAt   time.Time
 }
 
@@ -89,33 +89,33 @@ func NewTask(
 	taskType Type,
 	taskStatus Status,
 	description string,
-	dueTime *time.Time,
+	scheduledAt *time.Time,
 	createdAt time.Time,
 ) (*Task, error) {
 	normalizedCreatedAt := createdAt.UTC().Truncate(time.Microsecond)
 
-	normalizedDueTime := dueTime
-	if dueTime != nil {
-		t := dueTime.UTC().Truncate(time.Microsecond)
-		normalizedDueTime = &t
+	normalizedScheduledAt := scheduledAt
+	if scheduledAt != nil {
+		t := scheduledAt.UTC().Truncate(time.Microsecond)
+		normalizedScheduledAt = &t
 	}
 
 	if utf8.RuneCountInString(title) > 500 {
 		return nil, ErrTitleTooLong
 	}
 
-	if taskType == TypeHasDueTime {
-		if normalizedDueTime == nil {
-			return nil, ErrDueTimeRequired
+	if taskType == TypeScheduled {
+		if normalizedScheduledAt == nil {
+			return nil, ErrScheduledAtRequired
 		}
 
-		if normalizedDueTime.Before(normalizedCreatedAt) {
-			return nil, ErrDueTimeBeforeCreatedAt
+		if normalizedScheduledAt.Before(normalizedCreatedAt) {
+			return nil, ErrScheduledAtBeforeCreatedAt
 		}
 	}
 
-	if taskType != TypeHasDueTime && normalizedDueTime != nil {
-		return nil, ErrDueTimeNotAllowed
+	if taskType != TypeScheduled && normalizedScheduledAt != nil {
+		return nil, ErrScheduledAtNotAllowed
 	}
 
 	return &Task{
@@ -125,7 +125,7 @@ func NewTask(
 		taskType:    taskType,
 		taskStatus:  taskStatus,
 		description: description,
-		dueTime:     normalizedDueTime,
+		scheduledAt: normalizedScheduledAt,
 		createdAt:   normalizedCreatedAt,
 	}, nil
 }
@@ -136,7 +136,7 @@ func CreateTask(
 	title string,
 	taskType Type,
 	description string,
-	dueTime *time.Time,
+	scheduledAt *time.Time,
 ) (*Task, error) {
 	var id ID
 
@@ -158,7 +158,7 @@ func CreateTask(
 		taskType,
 		StatusActive,
 		description,
-		dueTime,
+		scheduledAt,
 		time.Now().UTC(),
 	)
 }
@@ -187,8 +187,8 @@ func (t *Task) Description() string {
 	return t.description
 }
 
-func (t *Task) DueTime() *time.Time {
-	return t.dueTime
+func (t *Task) ScheduledAt() *time.Time {
+	return t.scheduledAt
 }
 
 func (t *Task) CreatedAt() time.Time {

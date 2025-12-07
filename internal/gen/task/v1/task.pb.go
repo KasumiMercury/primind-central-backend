@@ -26,11 +26,11 @@ const (
 type TaskType int32
 
 const (
-	TaskType_TASK_TYPE_UNSPECIFIED  TaskType = 0
-	TaskType_TASK_TYPE_URGENT       TaskType = 1
-	TaskType_TASK_TYPE_NORMAL       TaskType = 2
-	TaskType_TASK_TYPE_LOW          TaskType = 3
-	TaskType_TASK_TYPE_HAS_DUE_TIME TaskType = 4
+	TaskType_TASK_TYPE_UNSPECIFIED TaskType = 0
+	TaskType_TASK_TYPE_URGENT      TaskType = 1
+	TaskType_TASK_TYPE_NORMAL      TaskType = 2
+	TaskType_TASK_TYPE_LOW         TaskType = 3
+	TaskType_TASK_TYPE_SCHEDULED   TaskType = 4
 )
 
 // Enum value maps for TaskType.
@@ -40,14 +40,14 @@ var (
 		1: "TASK_TYPE_URGENT",
 		2: "TASK_TYPE_NORMAL",
 		3: "TASK_TYPE_LOW",
-		4: "TASK_TYPE_HAS_DUE_TIME",
+		4: "TASK_TYPE_SCHEDULED",
 	}
 	TaskType_value = map[string]int32{
-		"TASK_TYPE_UNSPECIFIED":  0,
-		"TASK_TYPE_URGENT":       1,
-		"TASK_TYPE_NORMAL":       2,
-		"TASK_TYPE_LOW":          3,
-		"TASK_TYPE_HAS_DUE_TIME": 4,
+		"TASK_TYPE_UNSPECIFIED": 0,
+		"TASK_TYPE_URGENT":      1,
+		"TASK_TYPE_NORMAL":      2,
+		"TASK_TYPE_LOW":         3,
+		"TASK_TYPE_SCHEDULED":   4,
 	}
 )
 
@@ -134,7 +134,7 @@ type Task struct {
 	TaskStatus    TaskStatus             `protobuf:"varint,3,opt,name=task_status,json=taskStatus,proto3,enum=task.v1.TaskStatus" json:"task_status,omitempty"`
 	Title         string                 `protobuf:"bytes,4,opt,name=title,proto3" json:"title,omitempty"`
 	Description   string                 `protobuf:"bytes,5,opt,name=description,proto3" json:"description,omitempty"`
-	DueTime       *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=due_time,json=dueTime,proto3,oneof" json:"due_time,omitempty"`
+	ScheduledAt   *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=scheduled_at,json=scheduledAt,proto3,oneof" json:"scheduled_at,omitempty"`
 	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -205,9 +205,9 @@ func (x *Task) GetDescription() string {
 	return ""
 }
 
-func (x *Task) GetDueTime() *timestamppb.Timestamp {
+func (x *Task) GetScheduledAt() *timestamppb.Timestamp {
 	if x != nil {
-		return x.DueTime
+		return x.ScheduledAt
 	}
 	return nil
 }
@@ -225,7 +225,7 @@ type CreateTaskRequest struct {
 	TaskType      TaskType               `protobuf:"varint,2,opt,name=task_type,json=taskType,proto3,enum=task.v1.TaskType" json:"task_type,omitempty"`
 	Title         string                 `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
 	Description   string                 `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
-	DueTime       *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=due_time,json=dueTime,proto3,oneof" json:"due_time,omitempty"`
+	ScheduledAt   *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=scheduled_at,json=scheduledAt,proto3,oneof" json:"scheduled_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -288,9 +288,9 @@ func (x *CreateTaskRequest) GetDescription() string {
 	return ""
 }
 
-func (x *CreateTaskRequest) GetDueTime() *timestamppb.Timestamp {
+func (x *CreateTaskRequest) GetScheduledAt() *timestamppb.Timestamp {
 	if x != nil {
-		return x.DueTime
+		return x.ScheduledAt
 	}
 	return nil
 }
@@ -431,7 +431,7 @@ var File_task_v1_task_proto protoreflect.FileDescriptor
 
 const file_task_v1_task_proto_rawDesc = "" +
 	"\n" +
-	"\x12task/v1/task.proto\x12\atask.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xe7\x02\n" +
+	"\x12task/v1/task.proto\x12\atask.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xf3\x02\n" +
 	"\x04Task\x12!\n" +
 	"\atask_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x06taskId\x12>\n" +
 	"\ttask_type\x18\x02 \x01(\x0e2\x11.task.v1.TaskTypeB\x0e\xbaH\v\x82\x01\b\x18\x01\x18\x02\x18\x03\x18\x04R\btaskType\x12@\n" +
@@ -439,32 +439,32 @@ const file_task_v1_task_proto_rawDesc = "" +
 	"\xbaH\a\x82\x01\x04\x18\x01\x18\x02R\n" +
 	"taskStatus\x12\x14\n" +
 	"\x05title\x18\x04 \x01(\tR\x05title\x12 \n" +
-	"\vdescription\x18\x05 \x01(\tR\vdescription\x12:\n" +
-	"\bdue_time\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampH\x00R\adueTime\x88\x01\x01\x129\n" +
+	"\vdescription\x18\x05 \x01(\tR\vdescription\x12B\n" +
+	"\fscheduled_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampH\x00R\vscheduledAt\x88\x01\x01\x129\n" +
 	"\n" +
-	"created_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAtB\v\n" +
-	"\t_due_time\"\x88\x02\n" +
+	"created_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAtB\x0f\n" +
+	"\r_scheduled_at\"\x94\x02\n" +
 	"\x11CreateTaskRequest\x12&\n" +
 	"\atask_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01H\x00R\x06taskId\x88\x01\x01\x12>\n" +
 	"\ttask_type\x18\x02 \x01(\x0e2\x11.task.v1.TaskTypeB\x0e\xbaH\v\x82\x01\b\x18\x01\x18\x02\x18\x03\x18\x04R\btaskType\x12\x14\n" +
 	"\x05title\x18\x03 \x01(\tR\x05title\x12 \n" +
-	"\vdescription\x18\x04 \x01(\tR\vdescription\x12:\n" +
-	"\bdue_time\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampH\x01R\adueTime\x88\x01\x01B\n" +
+	"\vdescription\x18\x04 \x01(\tR\vdescription\x12B\n" +
+	"\fscheduled_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampH\x01R\vscheduledAt\x88\x01\x01B\n" +
 	"\n" +
-	"\b_task_idB\v\n" +
-	"\t_due_time\"7\n" +
+	"\b_task_idB\x0f\n" +
+	"\r_scheduled_at\"7\n" +
 	"\x12CreateTaskResponse\x12!\n" +
 	"\x04task\x18\x01 \x01(\v2\r.task.v1.TaskR\x04task\"3\n" +
 	"\x0eGetTaskRequest\x12!\n" +
 	"\atask_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x06taskId\"4\n" +
 	"\x0fGetTaskResponse\x12!\n" +
-	"\x04task\x18\x01 \x01(\v2\r.task.v1.TaskR\x04task*\x80\x01\n" +
+	"\x04task\x18\x01 \x01(\v2\r.task.v1.TaskR\x04task*}\n" +
 	"\bTaskType\x12\x19\n" +
 	"\x15TASK_TYPE_UNSPECIFIED\x10\x00\x12\x14\n" +
 	"\x10TASK_TYPE_URGENT\x10\x01\x12\x14\n" +
 	"\x10TASK_TYPE_NORMAL\x10\x02\x12\x11\n" +
-	"\rTASK_TYPE_LOW\x10\x03\x12\x1a\n" +
-	"\x16TASK_TYPE_HAS_DUE_TIME\x10\x04*\\\n" +
+	"\rTASK_TYPE_LOW\x10\x03\x12\x17\n" +
+	"\x13TASK_TYPE_SCHEDULED\x10\x04*\\\n" +
 	"\n" +
 	"TaskStatus\x12\x1b\n" +
 	"\x17TASK_STATUS_UNSPECIFIED\x10\x00\x12\x16\n" +
@@ -503,10 +503,10 @@ var file_task_v1_task_proto_goTypes = []any{
 var file_task_v1_task_proto_depIdxs = []int32{
 	0,  // 0: task.v1.Task.task_type:type_name -> task.v1.TaskType
 	1,  // 1: task.v1.Task.task_status:type_name -> task.v1.TaskStatus
-	7,  // 2: task.v1.Task.due_time:type_name -> google.protobuf.Timestamp
+	7,  // 2: task.v1.Task.scheduled_at:type_name -> google.protobuf.Timestamp
 	7,  // 3: task.v1.Task.created_at:type_name -> google.protobuf.Timestamp
 	0,  // 4: task.v1.CreateTaskRequest.task_type:type_name -> task.v1.TaskType
-	7,  // 5: task.v1.CreateTaskRequest.due_time:type_name -> google.protobuf.Timestamp
+	7,  // 5: task.v1.CreateTaskRequest.scheduled_at:type_name -> google.protobuf.Timestamp
 	2,  // 6: task.v1.CreateTaskResponse.task:type_name -> task.v1.Task
 	2,  // 7: task.v1.GetTaskResponse.task:type_name -> task.v1.Task
 	3,  // 8: task.v1.TaskService.CreateTask:input_type -> task.v1.CreateTaskRequest

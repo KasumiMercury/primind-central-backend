@@ -23,7 +23,7 @@ func TestCreateTaskSuccess(t *testing.T) {
 		expectedCall func(t *testing.T, ctrl *gomock.Controller) apptask.CreateTaskUseCase
 	}{
 		{
-			name: "normal task without due time",
+			name: "normal task without scheduled time",
 			req: &taskv1.CreateTaskRequest{
 				Title:    "task title",
 				TaskType: taskv1.TaskType_TASK_TYPE_NORMAL,
@@ -48,8 +48,8 @@ func TestCreateTaskSuccess(t *testing.T) {
 							t.Fatalf("expected empty description, got %v", req.Description)
 						}
 
-						if req.DueTime != nil {
-							t.Fatalf("expected nil due time, got %v", req.DueTime)
+						if req.ScheduledAt != nil {
+							t.Fatalf("expected nil scheduled time, got %v", req.ScheduledAt)
 						}
 
 						return &apptask.CreateTaskResult{TaskID: "task-id-1"}, nil
@@ -59,44 +59,44 @@ func TestCreateTaskSuccess(t *testing.T) {
 			},
 		},
 		{
-			name: "task with description and due time",
+			name: "task with description and scheduled time",
 			req: func() *taskv1.CreateTaskRequest {
 				desc := "desc"
-				dueTime := timestamppb.New(time.Now().Add(time.Hour).UTC().Truncate(time.Second))
+				scheduledAt := timestamppb.New(time.Now().Add(time.Hour).UTC().Truncate(time.Second))
 
 				return &taskv1.CreateTaskRequest{
-					Title:       "task with due",
-					TaskType:    taskv1.TaskType_TASK_TYPE_HAS_DUE_TIME,
+					Title:       "task with scheduled",
+					TaskType:    taskv1.TaskType_TASK_TYPE_SCHEDULED,
 					Description: desc,
-					DueTime:     dueTime,
+					ScheduledAt: scheduledAt,
 				}
 			}(),
 			expectedCall: func(t *testing.T, ctrl *gomock.Controller) apptask.CreateTaskUseCase {
 				mockUseCase := NewMockCreateTaskUseCase(ctrl)
 				mockUseCase.EXPECT().CreateTask(gomock.Any(), gomock.Any()).
 					DoAndReturn(func(_ context.Context, req *apptask.CreateTaskRequest) (*apptask.CreateTaskResult, error) {
-						if req.SessionToken != "token-due" {
-							t.Fatalf("expected session token token-due, got %s", req.SessionToken)
+						if req.SessionToken != "token-scheduled" {
+							t.Fatalf("expected session token token-scheduled, got %s", req.SessionToken)
 						}
 
-						if req.Title != "task with due" {
-							t.Fatalf("expected title task with due, got %s", req.Title)
+						if req.Title != "task with scheduled" {
+							t.Fatalf("expected title task with scheduled, got %s", req.Title)
 						}
 
-						if req.TaskType != domaintask.TypeHasDueTime {
-							t.Fatalf("expected task type %s, got %s", domaintask.TypeHasDueTime, req.TaskType)
+						if req.TaskType != domaintask.TypeScheduled {
+							t.Fatalf("expected task type %s, got %s", domaintask.TypeScheduled, req.TaskType)
 						}
 
 						if req.Description != "desc" {
 							t.Fatalf("unexpected description: %v", req.Description)
 						}
 
-						if req.DueTime == nil {
-							t.Fatalf("expected due time to be set")
+						if req.ScheduledAt == nil {
+							t.Fatalf("expected scheduled time to be set")
 						}
 
-						if req.DueTime.UTC().Truncate(time.Second) != req.DueTime.UTC() {
-							t.Fatalf("due time should be utc second precision, got %v", req.DueTime)
+						if req.ScheduledAt.UTC().Truncate(time.Second) != req.ScheduledAt.UTC() {
+							t.Fatalf("scheduled time should be utc second precision, got %v", req.ScheduledAt)
 						}
 
 						return &apptask.CreateTaskResult{TaskID: "task-id-2"}, nil
@@ -157,8 +157,8 @@ func TestCreateTaskSuccess(t *testing.T) {
 			svc := NewService(mockUseCase, nil)
 
 			token := "token-normal"
-			if tt.name == "task with description and due time" {
-				token = "token-due"
+			if tt.name == "task with description and scheduled time" {
+				token = "token-scheduled"
 			}
 
 			if tt.name == "create task with predefined task ID" {
@@ -332,7 +332,7 @@ func TestCreateTaskError(t *testing.T) {
 
 func TestGetTaskSuccess(t *testing.T) {
 	createdAt := time.Now().UTC().Truncate(time.Second)
-	dueTime := createdAt.Add(30 * time.Minute)
+	scheduledAt := createdAt.Add(30 * time.Minute)
 
 	tests := []struct {
 		name         string
@@ -340,7 +340,7 @@ func TestGetTaskSuccess(t *testing.T) {
 		expectedCall func(t *testing.T, ctrl *gomock.Controller) apptask.GetTaskUseCase
 	}{
 		{
-			name: "get task without due time",
+			name: "get task without scheduled time",
 			req:  &taskv1.GetTaskRequest{TaskId: "task-id-1"},
 			expectedCall: func(t *testing.T, ctrl *gomock.Controller) apptask.GetTaskUseCase {
 				mockUseCase := NewMockGetTaskUseCase(ctrl)
@@ -368,7 +368,7 @@ func TestGetTaskSuccess(t *testing.T) {
 			},
 		},
 		{
-			name: "get task with due time and description",
+			name: "get task with scheduled time and description",
 			req:  &taskv1.GetTaskRequest{TaskId: "task-id-2"},
 			expectedCall: func(t *testing.T, ctrl *gomock.Controller) apptask.GetTaskUseCase {
 				mockUseCase := NewMockGetTaskUseCase(ctrl)
@@ -388,10 +388,10 @@ func TestGetTaskSuccess(t *testing.T) {
 						return &apptask.GetTaskResult{
 							TaskID:      "task-id-2",
 							Title:       "title 2",
-							TaskType:    domaintask.TypeHasDueTime,
+							TaskType:    domaintask.TypeScheduled,
 							TaskStatus:  domaintask.StatusCompleted,
 							Description: desc,
-							DueTime:     &dueTime,
+							ScheduledAt: &scheduledAt,
 							CreatedAt:   createdAt,
 						}, nil
 					})
