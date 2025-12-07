@@ -221,10 +221,11 @@ func (x *Task) GetCreatedAt() *timestamppb.Timestamp {
 
 type CreateTaskRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	TaskType      TaskType               `protobuf:"varint,1,opt,name=task_type,json=taskType,proto3,enum=task.v1.TaskType" json:"task_type,omitempty"`
-	Title         string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
-	Description   string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
-	DueTime       *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=due_time,json=dueTime,proto3,oneof" json:"due_time,omitempty"`
+	TaskId        *string                `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3,oneof" json:"task_id,omitempty"`
+	TaskType      TaskType               `protobuf:"varint,2,opt,name=task_type,json=taskType,proto3,enum=task.v1.TaskType" json:"task_type,omitempty"`
+	Title         string                 `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
+	Description   string                 `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
+	DueTime       *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=due_time,json=dueTime,proto3,oneof" json:"due_time,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -257,6 +258,13 @@ func (x *CreateTaskRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use CreateTaskRequest.ProtoReflect.Descriptor instead.
 func (*CreateTaskRequest) Descriptor() ([]byte, []int) {
 	return file_task_v1_task_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *CreateTaskRequest) GetTaskId() string {
+	if x != nil && x.TaskId != nil {
+		return *x.TaskId
+	}
+	return ""
 }
 
 func (x *CreateTaskRequest) GetTaskType() TaskType {
@@ -435,12 +443,15 @@ const file_task_v1_task_proto_rawDesc = "" +
 	"\bdue_time\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampH\x00R\adueTime\x88\x01\x01\x129\n" +
 	"\n" +
 	"created_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAtB\v\n" +
-	"\t_due_time\"\xd4\x01\n" +
-	"\x11CreateTaskRequest\x12>\n" +
-	"\ttask_type\x18\x01 \x01(\x0e2\x11.task.v1.TaskTypeB\x0e\xbaH\v\x82\x01\b\x18\x01\x18\x02\x18\x03\x18\x04R\btaskType\x12\x14\n" +
-	"\x05title\x18\x02 \x01(\tR\x05title\x12 \n" +
-	"\vdescription\x18\x03 \x01(\tR\vdescription\x12:\n" +
-	"\bdue_time\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampH\x00R\adueTime\x88\x01\x01B\v\n" +
+	"\t_due_time\"\x88\x02\n" +
+	"\x11CreateTaskRequest\x12&\n" +
+	"\atask_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01H\x00R\x06taskId\x88\x01\x01\x12>\n" +
+	"\ttask_type\x18\x02 \x01(\x0e2\x11.task.v1.TaskTypeB\x0e\xbaH\v\x82\x01\b\x18\x01\x18\x02\x18\x03\x18\x04R\btaskType\x12\x14\n" +
+	"\x05title\x18\x03 \x01(\tR\x05title\x12 \n" +
+	"\vdescription\x18\x04 \x01(\tR\vdescription\x12:\n" +
+	"\bdue_time\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampH\x01R\adueTime\x88\x01\x01B\n" +
+	"\n" +
+	"\b_task_idB\v\n" +
 	"\t_due_time\"7\n" +
 	"\x12CreateTaskResponse\x12!\n" +
 	"\x04task\x18\x01 \x01(\v2\r.task.v1.TaskR\x04task\"3\n" +
