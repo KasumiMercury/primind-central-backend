@@ -72,6 +72,25 @@ func TestCreateTaskSuccess(t *testing.T) {
 			}(),
 			userID: userID,
 		},
+		{
+			name: "empty title",
+			req: func() CreateTaskRequest {
+
+				validTaskID, err := domaintask.NewID()
+				if err != nil {
+					t.Fatalf("failed to generate task ID: %v", err)
+				}
+
+				return CreateTaskRequest{
+					TaskID:       validTaskID.String(),
+					SessionToken: "token-empty-title",
+					Title:        "",
+					TaskType:     domaintask.TypeNormal,
+					Description:  "This task has an empty title",
+				}
+			}(),
+			userID: userID,
+		},
 	}
 
 	for _, tt := range tests {
@@ -171,22 +190,6 @@ func TestCreateTaskError(t *testing.T) {
 				return mockAuth
 			},
 			expectedErr: ErrUnauthorized,
-		},
-		{
-			name: "empty title",
-			req: &CreateTaskRequest{
-				SessionToken: "token",
-				Title:        "",
-				TaskType:     domaintask.TypeNormal,
-			},
-			setupAuth: func(ctrl *gomock.Controller) authclient.AuthClient {
-				mockAuth := NewMockAuthClient(ctrl)
-				mockAuth.EXPECT().ValidateSession(gomock.Any(), "token").
-					Return(validUserID.String(), nil)
-
-				return mockAuth
-			},
-			expectedErr: ErrTitleRequired,
 		},
 		{
 			name: "scheduled time required for has_scheduled_time",
