@@ -71,12 +71,6 @@ func (h *createTaskHandler) CreateTask(ctx context.Context, req *CreateTaskReque
 		return nil, err
 	}
 
-	if req.Title == "" {
-		h.logger.Warn("create task called with empty title")
-
-		return nil, ErrTitleRequired
-	}
-
 	var taskID *domaintask.ID
 
 	if req.TaskID != "" {
