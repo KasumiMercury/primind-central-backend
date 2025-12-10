@@ -80,6 +80,7 @@ type Task struct {
 	description string
 	scheduledAt *time.Time
 	createdAt   time.Time
+	targetAt    time.Time
 }
 
 func NewTask(
@@ -91,8 +92,10 @@ func NewTask(
 	description string,
 	scheduledAt *time.Time,
 	createdAt time.Time,
+	targetAt time.Time,
 ) (*Task, error) {
 	normalizedCreatedAt := createdAt.UTC().Truncate(time.Microsecond)
+	normalizedTargetAt := targetAt.UTC().Truncate(time.Microsecond)
 
 	normalizedScheduledAt := scheduledAt
 	if scheduledAt != nil {
@@ -127,6 +130,7 @@ func NewTask(
 		description: description,
 		scheduledAt: normalizedScheduledAt,
 		createdAt:   normalizedCreatedAt,
+		targetAt:    normalizedTargetAt,
 	}, nil
 }
 
@@ -151,6 +155,19 @@ func CreateTask(
 		id = newID
 	}
 
+	createdAt := time.Now().UTC()
+
+	var targetAt time.Time
+
+	if taskType == TypeScheduled {
+		if scheduledAt != nil {
+			targetAt = *scheduledAt
+		}
+	} else {
+		activePeriod := GetActivePeriodForType(taskType)
+		targetAt = createdAt.Add(time.Duration(activePeriod))
+	}
+
 	return NewTask(
 		id,
 		userID,
@@ -159,7 +176,8 @@ func CreateTask(
 		StatusActive,
 		description,
 		scheduledAt,
-		time.Now().UTC(),
+		createdAt,
+		targetAt,
 	)
 }
 
@@ -193,4 +211,8 @@ func (t *Task) ScheduledAt() *time.Time {
 
 func (t *Task) CreatedAt() time.Time {
 	return t.createdAt
+}
+
+func (t *Task) TargetAt() time.Time {
+	return t.targetAt
 }

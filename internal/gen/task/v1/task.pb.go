@@ -127,6 +127,52 @@ func (TaskStatus) EnumDescriptor() ([]byte, []int) {
 	return file_task_v1_task_proto_rawDescGZIP(), []int{1}
 }
 
+type TaskSortType int32
+
+const (
+	TaskSortType_TASK_SORT_TYPE_UNSPECIFIED TaskSortType = 0
+	TaskSortType_TASK_SORT_TYPE_TARGET_AT   TaskSortType = 1
+)
+
+// Enum value maps for TaskSortType.
+var (
+	TaskSortType_name = map[int32]string{
+		0: "TASK_SORT_TYPE_UNSPECIFIED",
+		1: "TASK_SORT_TYPE_TARGET_AT",
+	}
+	TaskSortType_value = map[string]int32{
+		"TASK_SORT_TYPE_UNSPECIFIED": 0,
+		"TASK_SORT_TYPE_TARGET_AT":   1,
+	}
+)
+
+func (x TaskSortType) Enum() *TaskSortType {
+	p := new(TaskSortType)
+	*p = x
+	return p
+}
+
+func (x TaskSortType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (TaskSortType) Descriptor() protoreflect.EnumDescriptor {
+	return file_task_v1_task_proto_enumTypes[2].Descriptor()
+}
+
+func (TaskSortType) Type() protoreflect.EnumType {
+	return &file_task_v1_task_proto_enumTypes[2]
+}
+
+func (x TaskSortType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use TaskSortType.Descriptor instead.
+func (TaskSortType) EnumDescriptor() ([]byte, []int) {
+	return file_task_v1_task_proto_rawDescGZIP(), []int{2}
+}
+
 type Task struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
@@ -136,6 +182,8 @@ type Task struct {
 	Description   string                 `protobuf:"bytes,5,opt,name=description,proto3" json:"description,omitempty"`
 	ScheduledAt   *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=scheduled_at,json=scheduledAt,proto3,oneof" json:"scheduled_at,omitempty"`
 	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	TargetAt      *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=target_at,json=targetAt,proto3" json:"target_at,omitempty"`
+	Color         string                 `protobuf:"bytes,9,opt,name=color,proto3" json:"color,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -219,6 +267,20 @@ func (x *Task) GetCreatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *Task) GetTargetAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.TargetAt
+	}
+	return nil
+}
+
+func (x *Task) GetColor() string {
+	if x != nil {
+		return x.Color
+	}
+	return ""
+}
+
 type CreateTaskRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TaskId        *string                `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3,oneof" json:"task_id,omitempty"`
@@ -226,6 +288,7 @@ type CreateTaskRequest struct {
 	Title         string                 `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
 	Description   string                 `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
 	ScheduledAt   *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=scheduled_at,json=scheduledAt,proto3,oneof" json:"scheduled_at,omitempty"`
+	Color         string                 `protobuf:"bytes,6,opt,name=color,proto3" json:"color,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -293,6 +356,13 @@ func (x *CreateTaskRequest) GetScheduledAt() *timestamppb.Timestamp {
 		return x.ScheduledAt
 	}
 	return nil
+}
+
+func (x *CreateTaskRequest) GetColor() string {
+	if x != nil {
+		return x.Color
+	}
+	return ""
 }
 
 type CreateTaskResponse struct {
@@ -427,11 +497,99 @@ func (x *GetTaskResponse) GetTask() *Task {
 	return nil
 }
 
+type ListActiveTasksRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SortType      TaskSortType           `protobuf:"varint,1,opt,name=sort_type,json=sortType,proto3,enum=task.v1.TaskSortType" json:"sort_type,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListActiveTasksRequest) Reset() {
+	*x = ListActiveTasksRequest{}
+	mi := &file_task_v1_task_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListActiveTasksRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListActiveTasksRequest) ProtoMessage() {}
+
+func (x *ListActiveTasksRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_task_v1_task_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListActiveTasksRequest.ProtoReflect.Descriptor instead.
+func (*ListActiveTasksRequest) Descriptor() ([]byte, []int) {
+	return file_task_v1_task_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *ListActiveTasksRequest) GetSortType() TaskSortType {
+	if x != nil {
+		return x.SortType
+	}
+	return TaskSortType_TASK_SORT_TYPE_UNSPECIFIED
+}
+
+type ListActiveTasksResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Tasks         []*Task                `protobuf:"bytes,1,rep,name=tasks,proto3" json:"tasks,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListActiveTasksResponse) Reset() {
+	*x = ListActiveTasksResponse{}
+	mi := &file_task_v1_task_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListActiveTasksResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListActiveTasksResponse) ProtoMessage() {}
+
+func (x *ListActiveTasksResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_task_v1_task_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListActiveTasksResponse.ProtoReflect.Descriptor instead.
+func (*ListActiveTasksResponse) Descriptor() ([]byte, []int) {
+	return file_task_v1_task_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *ListActiveTasksResponse) GetTasks() []*Task {
+	if x != nil {
+		return x.Tasks
+	}
+	return nil
+}
+
 var File_task_v1_task_proto protoreflect.FileDescriptor
 
 const file_task_v1_task_proto_rawDesc = "" +
 	"\n" +
-	"\x12task/v1/task.proto\x12\atask.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xf3\x02\n" +
+	"\x12task/v1/task.proto\x12\atask.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc2\x03\n" +
 	"\x04Task\x12!\n" +
 	"\atask_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x06taskId\x12>\n" +
 	"\ttask_type\x18\x02 \x01(\x0e2\x11.task.v1.TaskTypeB\x0e\xbaH\v\x82\x01\b\x18\x01\x18\x02\x18\x03\x18\x04R\btaskType\x12@\n" +
@@ -442,14 +600,17 @@ const file_task_v1_task_proto_rawDesc = "" +
 	"\vdescription\x18\x05 \x01(\tR\vdescription\x12B\n" +
 	"\fscheduled_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampH\x00R\vscheduledAt\x88\x01\x01\x129\n" +
 	"\n" +
-	"created_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAtB\x0f\n" +
-	"\r_scheduled_at\"\x94\x02\n" +
+	"created_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x127\n" +
+	"\ttarget_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\btargetAt\x12\x14\n" +
+	"\x05color\x18\t \x01(\tR\x05colorB\x0f\n" +
+	"\r_scheduled_at\"\xaa\x02\n" +
 	"\x11CreateTaskRequest\x12&\n" +
 	"\atask_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01H\x00R\x06taskId\x88\x01\x01\x12>\n" +
 	"\ttask_type\x18\x02 \x01(\x0e2\x11.task.v1.TaskTypeB\x0e\xbaH\v\x82\x01\b\x18\x01\x18\x02\x18\x03\x18\x04R\btaskType\x12\x14\n" +
 	"\x05title\x18\x03 \x01(\tR\x05title\x12 \n" +
 	"\vdescription\x18\x04 \x01(\tR\vdescription\x12B\n" +
-	"\fscheduled_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampH\x01R\vscheduledAt\x88\x01\x01B\n" +
+	"\fscheduled_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampH\x01R\vscheduledAt\x88\x01\x01\x12\x14\n" +
+	"\x05color\x18\x06 \x01(\tR\x05colorB\n" +
 	"\n" +
 	"\b_task_idB\x0f\n" +
 	"\r_scheduled_at\"7\n" +
@@ -458,7 +619,11 @@ const file_task_v1_task_proto_rawDesc = "" +
 	"\x0eGetTaskRequest\x12!\n" +
 	"\atask_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x06taskId\"4\n" +
 	"\x0fGetTaskResponse\x12!\n" +
-	"\x04task\x18\x01 \x01(\v2\r.task.v1.TaskR\x04task*}\n" +
+	"\x04task\x18\x01 \x01(\v2\r.task.v1.TaskR\x04task\"L\n" +
+	"\x16ListActiveTasksRequest\x122\n" +
+	"\tsort_type\x18\x01 \x01(\x0e2\x15.task.v1.TaskSortTypeR\bsortType\">\n" +
+	"\x17ListActiveTasksResponse\x12#\n" +
+	"\x05tasks\x18\x01 \x03(\v2\r.task.v1.TaskR\x05tasks*}\n" +
 	"\bTaskType\x12\x19\n" +
 	"\x15TASK_TYPE_UNSPECIFIED\x10\x00\x12\x14\n" +
 	"\x10TASK_TYPE_URGENT\x10\x01\x12\x14\n" +
@@ -469,11 +634,15 @@ const file_task_v1_task_proto_rawDesc = "" +
 	"TaskStatus\x12\x1b\n" +
 	"\x17TASK_STATUS_UNSPECIFIED\x10\x00\x12\x16\n" +
 	"\x12TASK_STATUS_ACTIVE\x10\x01\x12\x19\n" +
-	"\x15TASK_STATUS_COMPLETED\x10\x022\x92\x01\n" +
+	"\x15TASK_STATUS_COMPLETED\x10\x02*L\n" +
+	"\fTaskSortType\x12\x1e\n" +
+	"\x1aTASK_SORT_TYPE_UNSPECIFIED\x10\x00\x12\x1c\n" +
+	"\x18TASK_SORT_TYPE_TARGET_AT\x10\x012\xe8\x01\n" +
 	"\vTaskService\x12E\n" +
 	"\n" +
 	"CreateTask\x12\x1a.task.v1.CreateTaskRequest\x1a\x1b.task.v1.CreateTaskResponse\x12<\n" +
-	"\aGetTask\x12\x17.task.v1.GetTaskRequest\x1a\x18.task.v1.GetTaskResponseB\xa3\x01\n" +
+	"\aGetTask\x12\x17.task.v1.GetTaskRequest\x1a\x18.task.v1.GetTaskResponse\x12T\n" +
+	"\x0fListActiveTasks\x12\x1f.task.v1.ListActiveTasksRequest\x1a .task.v1.ListActiveTasksResponseB\xa3\x01\n" +
 	"\vcom.task.v1B\tTaskProtoP\x01ZLgithub.com/KasumiMercury/primind-central-backend/internal/gen/task/v1;taskv1\xa2\x02\x03TXX\xaa\x02\aTask.V1\xca\x02\aTask\\V1\xe2\x02\x13Task\\V1\\GPBMetadata\xea\x02\bTask::V1b\x06proto3"
 
 var (
@@ -488,36 +657,44 @@ func file_task_v1_task_proto_rawDescGZIP() []byte {
 	return file_task_v1_task_proto_rawDescData
 }
 
-var file_task_v1_task_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_task_v1_task_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_task_v1_task_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+var file_task_v1_task_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_task_v1_task_proto_goTypes = []any{
-	(TaskType)(0),                 // 0: task.v1.TaskType
-	(TaskStatus)(0),               // 1: task.v1.TaskStatus
-	(*Task)(nil),                  // 2: task.v1.Task
-	(*CreateTaskRequest)(nil),     // 3: task.v1.CreateTaskRequest
-	(*CreateTaskResponse)(nil),    // 4: task.v1.CreateTaskResponse
-	(*GetTaskRequest)(nil),        // 5: task.v1.GetTaskRequest
-	(*GetTaskResponse)(nil),       // 6: task.v1.GetTaskResponse
-	(*timestamppb.Timestamp)(nil), // 7: google.protobuf.Timestamp
+	(TaskType)(0),                   // 0: task.v1.TaskType
+	(TaskStatus)(0),                 // 1: task.v1.TaskStatus
+	(TaskSortType)(0),               // 2: task.v1.TaskSortType
+	(*Task)(nil),                    // 3: task.v1.Task
+	(*CreateTaskRequest)(nil),       // 4: task.v1.CreateTaskRequest
+	(*CreateTaskResponse)(nil),      // 5: task.v1.CreateTaskResponse
+	(*GetTaskRequest)(nil),          // 6: task.v1.GetTaskRequest
+	(*GetTaskResponse)(nil),         // 7: task.v1.GetTaskResponse
+	(*ListActiveTasksRequest)(nil),  // 8: task.v1.ListActiveTasksRequest
+	(*ListActiveTasksResponse)(nil), // 9: task.v1.ListActiveTasksResponse
+	(*timestamppb.Timestamp)(nil),   // 10: google.protobuf.Timestamp
 }
 var file_task_v1_task_proto_depIdxs = []int32{
 	0,  // 0: task.v1.Task.task_type:type_name -> task.v1.TaskType
 	1,  // 1: task.v1.Task.task_status:type_name -> task.v1.TaskStatus
-	7,  // 2: task.v1.Task.scheduled_at:type_name -> google.protobuf.Timestamp
-	7,  // 3: task.v1.Task.created_at:type_name -> google.protobuf.Timestamp
-	0,  // 4: task.v1.CreateTaskRequest.task_type:type_name -> task.v1.TaskType
-	7,  // 5: task.v1.CreateTaskRequest.scheduled_at:type_name -> google.protobuf.Timestamp
-	2,  // 6: task.v1.CreateTaskResponse.task:type_name -> task.v1.Task
-	2,  // 7: task.v1.GetTaskResponse.task:type_name -> task.v1.Task
-	3,  // 8: task.v1.TaskService.CreateTask:input_type -> task.v1.CreateTaskRequest
-	5,  // 9: task.v1.TaskService.GetTask:input_type -> task.v1.GetTaskRequest
-	4,  // 10: task.v1.TaskService.CreateTask:output_type -> task.v1.CreateTaskResponse
-	6,  // 11: task.v1.TaskService.GetTask:output_type -> task.v1.GetTaskResponse
-	10, // [10:12] is the sub-list for method output_type
-	8,  // [8:10] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	10, // 2: task.v1.Task.scheduled_at:type_name -> google.protobuf.Timestamp
+	10, // 3: task.v1.Task.created_at:type_name -> google.protobuf.Timestamp
+	10, // 4: task.v1.Task.target_at:type_name -> google.protobuf.Timestamp
+	0,  // 5: task.v1.CreateTaskRequest.task_type:type_name -> task.v1.TaskType
+	10, // 6: task.v1.CreateTaskRequest.scheduled_at:type_name -> google.protobuf.Timestamp
+	3,  // 7: task.v1.CreateTaskResponse.task:type_name -> task.v1.Task
+	3,  // 8: task.v1.GetTaskResponse.task:type_name -> task.v1.Task
+	2,  // 9: task.v1.ListActiveTasksRequest.sort_type:type_name -> task.v1.TaskSortType
+	3,  // 10: task.v1.ListActiveTasksResponse.tasks:type_name -> task.v1.Task
+	4,  // 11: task.v1.TaskService.CreateTask:input_type -> task.v1.CreateTaskRequest
+	6,  // 12: task.v1.TaskService.GetTask:input_type -> task.v1.GetTaskRequest
+	8,  // 13: task.v1.TaskService.ListActiveTasks:input_type -> task.v1.ListActiveTasksRequest
+	5,  // 14: task.v1.TaskService.CreateTask:output_type -> task.v1.CreateTaskResponse
+	7,  // 15: task.v1.TaskService.GetTask:output_type -> task.v1.GetTaskResponse
+	9,  // 16: task.v1.TaskService.ListActiveTasks:output_type -> task.v1.ListActiveTasksResponse
+	14, // [14:17] is the sub-list for method output_type
+	11, // [11:14] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_task_v1_task_proto_init() }
@@ -532,8 +709,8 @@ func file_task_v1_task_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_task_v1_task_proto_rawDesc), len(file_task_v1_task_proto_rawDesc)),
-			NumEnums:      2,
-			NumMessages:   5,
+			NumEnums:      3,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

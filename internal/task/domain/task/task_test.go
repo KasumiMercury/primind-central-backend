@@ -348,6 +348,10 @@ func TestNewTaskSuccess(t *testing.T) {
 
 	createTime := time.Now().UTC().Truncate(time.Microsecond)
 
+	targetTime := createTime.Add(1 * time.Hour)
+	scheduledTargetTime := createTime.Add(48 * time.Hour)
+	scheduledTargetTime24h := createTime.Add(24 * time.Hour)
+
 	type args struct {
 		id          ID
 		userID      user.ID
@@ -357,6 +361,7 @@ func TestNewTaskSuccess(t *testing.T) {
 		description string
 		scheduledAt *time.Time
 		createdAt   time.Time
+		targetAt    time.Time
 	}
 
 	tests := []struct {
@@ -375,6 +380,7 @@ func TestNewTaskSuccess(t *testing.T) {
 				description: "",
 				scheduledAt: nil,
 				createdAt:   createTime,
+				targetAt:    targetTime,
 			},
 			expected: &Task{
 				id:          validID,
@@ -385,6 +391,7 @@ func TestNewTaskSuccess(t *testing.T) {
 				description: "",
 				scheduledAt: nil,
 				createdAt:   createTime,
+				targetAt:    targetTime,
 			},
 		},
 		{
@@ -402,6 +409,7 @@ func TestNewTaskSuccess(t *testing.T) {
 					return &scheduled
 				}(),
 				createdAt: createTime,
+				targetAt:  scheduledTargetTime,
 			},
 			expected: &Task{
 				id:          validID,
@@ -416,6 +424,7 @@ func TestNewTaskSuccess(t *testing.T) {
 					return &scheduled
 				}(),
 				createdAt: createTime,
+				targetAt:  scheduledTargetTime,
 			},
 		},
 		{
@@ -429,6 +438,7 @@ func TestNewTaskSuccess(t *testing.T) {
 				description: "Just a simple description.",
 				scheduledAt: nil,
 				createdAt:   createTime,
+				targetAt:    targetTime,
 			},
 			expected: &Task{
 				id:          validID,
@@ -439,6 +449,7 @@ func TestNewTaskSuccess(t *testing.T) {
 				description: "Just a simple description.",
 				scheduledAt: nil,
 				createdAt:   createTime,
+				targetAt:    targetTime,
 			},
 		},
 		{
@@ -456,6 +467,7 @@ func TestNewTaskSuccess(t *testing.T) {
 					return &scheduled
 				}(),
 				createdAt: createTime,
+				targetAt:  scheduledTargetTime24h,
 			},
 			expected: &Task{
 				id:          validID,
@@ -470,6 +482,7 @@ func TestNewTaskSuccess(t *testing.T) {
 					return &scheduled
 				}(),
 				createdAt: createTime,
+				targetAt:  scheduledTargetTime24h,
 			},
 		},
 		{
@@ -483,6 +496,7 @@ func TestNewTaskSuccess(t *testing.T) {
 				description: "",
 				scheduledAt: nil,
 				createdAt:   createTime,
+				targetAt:    targetTime,
 			},
 			expected: &Task{
 				id:          validID,
@@ -493,6 +507,7 @@ func TestNewTaskSuccess(t *testing.T) {
 				description: "",
 				scheduledAt: nil,
 				createdAt:   createTime,
+				targetAt:    targetTime,
 			},
 		},
 		{
@@ -506,6 +521,7 @@ func TestNewTaskSuccess(t *testing.T) {
 				description: "Description for 500 rune title.",
 				scheduledAt: nil,
 				createdAt:   createTime,
+				targetAt:    targetTime,
 			},
 			expected: &Task{
 				id:          validID,
@@ -516,6 +532,7 @@ func TestNewTaskSuccess(t *testing.T) {
 				description: "Description for 500 rune title.",
 				scheduledAt: nil,
 				createdAt:   createTime,
+				targetAt:    targetTime,
 			},
 		},
 	}
@@ -531,6 +548,7 @@ func TestNewTaskSuccess(t *testing.T) {
 				tt.args.description,
 				tt.args.scheduledAt,
 				tt.args.createdAt,
+				tt.args.targetAt,
 			)
 			if err != nil {
 				t.Fatalf("NewTask() unexpected error: %v", err)
@@ -575,6 +593,10 @@ func TestNewTaskSuccess(t *testing.T) {
 			if !task.CreatedAt().Equal(tt.expected.createdAt) {
 				t.Errorf("Task.CreatedAt() = %v, want %v", task.CreatedAt(), tt.expected.createdAt)
 			}
+
+			if !task.TargetAt().Equal(tt.expected.targetAt) {
+				t.Errorf("Task.TargetAt() = %v, want %v", task.TargetAt(), tt.expected.targetAt)
+			}
 		})
 	}
 }
@@ -618,6 +640,7 @@ func TestNewTaskErrors(t *testing.T) {
 	}
 
 	createTime := time.Now().UTC().Truncate(time.Microsecond)
+	targetTime := createTime.Add(1 * time.Hour)
 
 	type args struct {
 		id          ID
@@ -628,6 +651,7 @@ func TestNewTaskErrors(t *testing.T) {
 		description string
 		scheduledAt *time.Time
 		createdAt   time.Time
+		targetAt    time.Time
 	}
 
 	tests := []struct {
@@ -644,6 +668,7 @@ func TestNewTaskErrors(t *testing.T) {
 				taskType:  taskNormalType,
 				status:    taskStatus,
 				createdAt: createTime,
+				targetAt:  targetTime,
 			},
 			expectedErr: ErrTitleTooLong,
 		},
@@ -657,6 +682,7 @@ func TestNewTaskErrors(t *testing.T) {
 				status:      taskStatus,
 				scheduledAt: nil,
 				createdAt:   createTime,
+				targetAt:    targetTime,
 			},
 			expectedErr: ErrScheduledAtRequired,
 		},
@@ -674,6 +700,7 @@ func TestNewTaskErrors(t *testing.T) {
 					return &scheduled
 				}(),
 				createdAt: createTime,
+				targetAt:  targetTime,
 			},
 			expectedErr: ErrScheduledAtNotAllowed,
 		},
@@ -691,6 +718,7 @@ func TestNewTaskErrors(t *testing.T) {
 					return &scheduled
 				}(),
 				createdAt: createTime,
+				targetAt:  targetTime,
 			},
 			expectedErr: ErrScheduledAtNotAllowed,
 		},
@@ -708,6 +736,7 @@ func TestNewTaskErrors(t *testing.T) {
 					return &scheduled
 				}(),
 				createdAt: createTime,
+				targetAt:  targetTime,
 			},
 			expectedErr: ErrScheduledAtNotAllowed,
 		},
@@ -725,6 +754,7 @@ func TestNewTaskErrors(t *testing.T) {
 					return &scheduled
 				}(),
 				createdAt: createTime,
+				targetAt:  targetTime,
 			},
 			expectedErr: ErrScheduledAtBeforeCreatedAt,
 		},
@@ -741,6 +771,7 @@ func TestNewTaskErrors(t *testing.T) {
 				tt.args.description,
 				tt.args.scheduledAt,
 				tt.args.createdAt,
+				tt.args.targetAt,
 			)
 			if err == nil {
 				t.Fatalf("NewTask() expected error, got task: %+v", task)
@@ -884,4 +915,193 @@ func TestCreateTaskWithPreGeneratedID(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCreateTaskTargetAtCalculation(t *testing.T) {
+	t.Parallel()
+
+	validUserID, err := user.NewID()
+	if err != nil {
+		t.Fatalf("setup failed: %v", err)
+	}
+
+	tests := []struct {
+		name               string
+		taskType           Type
+		scheduledAt        *time.Time
+		expectedOffsetFunc func(createdAt time.Time, scheduledAt *time.Time) time.Time
+	}{
+		{
+			name:        "urgent task target_at is created_at + 15 minutes",
+			taskType:    TypeUrgent,
+			scheduledAt: nil,
+			expectedOffsetFunc: func(createdAt time.Time, scheduledAt *time.Time) time.Time {
+				return createdAt.Add(15 * time.Minute)
+			},
+		},
+		{
+			name:        "normal task target_at is created_at + 1 hour",
+			taskType:    TypeNormal,
+			scheduledAt: nil,
+			expectedOffsetFunc: func(createdAt time.Time, scheduledAt *time.Time) time.Time {
+				return createdAt.Add(1 * time.Hour)
+			},
+		},
+		{
+			name:        "low task target_at is created_at + 6 hours",
+			taskType:    TypeLow,
+			scheduledAt: nil,
+			expectedOffsetFunc: func(createdAt time.Time, scheduledAt *time.Time) time.Time {
+				return createdAt.Add(6 * time.Hour)
+			},
+		},
+		{
+			name:     "scheduled task target_at equals scheduled_at",
+			taskType: TypeScheduled,
+			scheduledAt: func() *time.Time {
+				scheduled := time.Now().Add(24 * time.Hour).UTC().Truncate(time.Microsecond)
+
+				return &scheduled
+			}(),
+			expectedOffsetFunc: func(createdAt time.Time, scheduledAt *time.Time) time.Time {
+				return *scheduledAt
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			beforeCreate := time.Now().UTC().Truncate(time.Microsecond)
+
+			task, err := CreateTask(
+				nil,
+				validUserID,
+				"Test Task",
+				tt.taskType,
+				"Test description",
+				tt.scheduledAt,
+			)
+			if err != nil {
+				t.Fatalf("CreateTask() unexpected error: %v", err)
+			}
+
+			afterCreate := time.Now().UTC().Truncate(time.Microsecond)
+
+			if task == nil {
+				t.Fatal("CreateTask() returned nil task")
+			}
+
+			// Verify targetAt is set
+			if task.TargetAt().IsZero() {
+				t.Error("CreateTask() targetAt is zero")
+			}
+
+			// Verify targetAt is calculated correctly based on task type
+			expectedMinTargetAt := tt.expectedOffsetFunc(beforeCreate, tt.scheduledAt).Truncate(time.Microsecond)
+			expectedMaxTargetAt := tt.expectedOffsetFunc(afterCreate, tt.scheduledAt).Truncate(time.Microsecond)
+			actualTargetAt := task.TargetAt().Truncate(time.Microsecond)
+
+			if tt.taskType == TypeScheduled {
+				// For scheduled tasks, target_at should exactly equal scheduled_at
+				expectedTargetAt := tt.scheduledAt.UTC().Truncate(time.Microsecond)
+				if !actualTargetAt.Equal(expectedTargetAt) {
+					t.Errorf("CreateTask() targetAt = %v, want %v", actualTargetAt, expectedTargetAt)
+				}
+			} else {
+				// For non-scheduled tasks, targetAt should be within the expected range
+				if actualTargetAt.Before(expectedMinTargetAt) || actualTargetAt.After(expectedMaxTargetAt) {
+					t.Errorf("CreateTask() targetAt = %v, expected between %v and %v",
+						actualTargetAt, expectedMinTargetAt, expectedMaxTargetAt)
+				}
+			}
+
+			// Verify targetAt is in UTC
+			if task.TargetAt().Location() != time.UTC {
+				t.Errorf("CreateTask() targetAt location = %v, want UTC", task.TargetAt().Location())
+			}
+		})
+	}
+}
+
+func TestNewTaskTargetAtNormalization(t *testing.T) {
+	t.Parallel()
+
+	validID, err := NewID()
+	if err != nil {
+		t.Fatalf("setup failed: %v", err)
+	}
+
+	validUserID, err := user.NewID()
+	if err != nil {
+		t.Fatalf("setup failed: %v", err)
+	}
+
+	taskNormalType, err := NewType("normal")
+	if err != nil {
+		t.Fatalf("setup failed: %v", err)
+	}
+
+	taskStatus, err := NewStatus("active")
+	if err != nil {
+		t.Fatalf("setup failed: %v", err)
+	}
+
+	t.Run("targetAt is normalized to UTC", func(t *testing.T) {
+		createTime := time.Now().UTC().Truncate(time.Microsecond)
+		// Create targetAt in a non-UTC timezone
+		jst := time.FixedZone("JST", 9*60*60)
+		targetAtJST := createTime.Add(1 * time.Hour).In(jst)
+
+		task, err := NewTask(
+			validID,
+			validUserID,
+			"Test Task",
+			taskNormalType,
+			taskStatus,
+			"Test description",
+			nil,
+			createTime,
+			targetAtJST,
+		)
+		if err != nil {
+			t.Fatalf("NewTask() unexpected error: %v", err)
+		}
+
+		// Verify targetAt is in UTC
+		if task.TargetAt().Location() != time.UTC {
+			t.Errorf("Task.TargetAt().Location() = %v, want UTC", task.TargetAt().Location())
+		}
+
+		// Verify the time value is equivalent
+		if !task.TargetAt().Equal(targetAtJST) {
+			t.Errorf("Task.TargetAt() = %v, want equivalent to %v", task.TargetAt(), targetAtJST)
+		}
+	})
+
+	t.Run("targetAt is truncated to microseconds", func(t *testing.T) {
+		createTime := time.Now().UTC().Truncate(time.Microsecond)
+		// Create targetAt with nanosecond precision
+		targetAtNano := createTime.Add(1*time.Hour + 123*time.Nanosecond)
+
+		task, err := NewTask(
+			validID,
+			validUserID,
+			"Test Task",
+			taskNormalType,
+			taskStatus,
+			"Test description",
+			nil,
+			createTime,
+			targetAtNano,
+		)
+		if err != nil {
+			t.Fatalf("NewTask() unexpected error: %v", err)
+		}
+
+		// Verify nanoseconds beyond microseconds are truncated
+		expectedTargetAt := targetAtNano.UTC().Truncate(time.Microsecond)
+		if !task.TargetAt().Equal(expectedTargetAt) {
+			t.Errorf("Task.TargetAt() = %v, want %v (truncated)", task.TargetAt(), expectedTargetAt)
+		}
+	})
 }

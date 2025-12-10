@@ -19,6 +19,7 @@ type TaskModel struct {
 	Description string     `gorm:"type:text"`
 	ScheduledAt *time.Time `gorm:"type:timestamptz"`
 	CreatedAt   time.Time  `gorm:"not null;autoCreateTime"`
+	TargetAt    time.Time  `gorm:"type:timestamptz;not null;index:idx_tasks_target_at"`
 }
 
 func (TaskModel) TableName() string {
@@ -52,6 +53,7 @@ func (r *taskRepository) SaveTask(ctx context.Context, task *domaintask.Task) er
 		Description: task.Description(),
 		ScheduledAt: scheduledAt,
 		CreatedAt:   task.CreatedAt(),
+		TargetAt:    task.TargetAt(),
 	}
 
 	return r.db.WithContext(ctx).Create(&record).Error
@@ -98,6 +100,7 @@ func (r *taskRepository) GetTaskByID(ctx context.Context, id domaintask.ID, user
 		record.Description,
 		record.ScheduledAt,
 		record.CreatedAt,
+		record.TargetAt,
 	)
 }
 

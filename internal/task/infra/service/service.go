@@ -97,6 +97,7 @@ func (s *Service) CreateTask(
 	s.logger.Info("task created", slog.String("task_id", result.TaskID))
 
 	return &taskv1.CreateTaskResponse{
+		//exhaustruct:ignore
 		Task: &taskv1.Task{
 			TaskId:      result.TaskID,
 			Title:       result.Title,
@@ -111,6 +112,7 @@ func (s *Service) CreateTask(
 				return nil
 			}(),
 			CreatedAt: timestamppb.New(result.CreatedAt),
+			TargetAt:  timestamppb.New(result.TargetAt),
 		},
 	}, nil
 }
@@ -162,6 +164,7 @@ func (s *Service) GetTask(
 	}
 
 	response := &taskv1.GetTaskResponse{
+		//exhaustruct:ignore
 		Task: &taskv1.Task{
 			TaskId:      result.TaskID,
 			Title:       result.Title,
@@ -170,12 +173,20 @@ func (s *Service) GetTask(
 			Description: result.Description,
 			ScheduledAt: scheduledAt,
 			CreatedAt:   timestamppb.New(result.CreatedAt),
+			TargetAt:    timestamppb.New(result.TargetAt),
 		},
 	}
 
 	s.logger.Info("task retrieved", slog.String("task_id", result.TaskID))
 
 	return response, nil
+}
+
+func (s *Service) ListActiveTasks(
+	ctx context.Context,
+	req *taskv1.ListActiveTasksRequest,
+) (*taskv1.ListActiveTasksResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("not implemented"))
 }
 
 func extractSessionTokenFromContext(ctx context.Context) string {

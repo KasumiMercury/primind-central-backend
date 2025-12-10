@@ -75,7 +75,6 @@ func TestCreateTaskSuccess(t *testing.T) {
 		{
 			name: "empty title",
 			req: func() CreateTaskRequest {
-
 				validTaskID, err := domaintask.NewID()
 				if err != nil {
 					t.Fatalf("failed to generate task ID: %v", err)
@@ -149,6 +148,16 @@ func TestCreateTaskSuccess(t *testing.T) {
 				if !saved.ScheduledAt().Equal(*tt.req.ScheduledAt) {
 					t.Fatalf("expected scheduled time %v, got %v", tt.req.ScheduledAt, saved.ScheduledAt())
 				}
+			}
+
+			// Verify TargetAt is set in the response
+			if resp.TargetAt.IsZero() {
+				t.Fatalf("expected target at to be set, got zero time")
+			}
+
+			// Verify TargetAt matches saved task
+			if !resp.TargetAt.Equal(saved.TargetAt()) {
+				t.Fatalf("expected target at %v, got %v", saved.TargetAt(), resp.TargetAt)
 			}
 		})
 	}
@@ -423,6 +432,10 @@ func TestGetTaskSuccess(t *testing.T) {
 			if !resp.CreatedAt.Equal(tt.expectedTask.CreatedAt()) {
 				t.Fatalf("expected created at %v, got %v", tt.expectedTask.CreatedAt(), resp.CreatedAt)
 			}
+
+			if !resp.TargetAt.Equal(tt.expectedTask.TargetAt()) {
+				t.Fatalf("expected target at %v, got %v", tt.expectedTask.TargetAt(), resp.TargetAt)
+			}
 		})
 	}
 }
@@ -565,6 +578,15 @@ func createPersistedTask(
 		t.Fatalf("failed to generate task id: %v", err)
 	}
 
+	// Calculate targetAt based on task type (same logic as CreateTask)
+	var targetAt time.Time
+	if taskType == domaintask.TypeScheduled && scheduledAt != nil {
+		targetAt = *scheduledAt
+	} else {
+		activePeriod := domaintask.GetActivePeriodForType(taskType)
+		targetAt = createdAt.Add(time.Duration(activePeriod))
+	}
+
 	task, err := domaintask.NewTask(
 		id,
 		userID,
@@ -574,6 +596,7 @@ func createPersistedTask(
 		description,
 		scheduledAt,
 		createdAt,
+		targetAt,
 	)
 	if err != nil {
 		t.Fatalf("failed to create task: %v", err)
