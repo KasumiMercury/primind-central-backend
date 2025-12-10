@@ -73,6 +73,10 @@ func (r *taskRepository) GetTaskByID(ctx context.Context, id domaintask.ID, user
 		return nil, err
 	}
 
+	return r.recordToTask(record)
+}
+
+func (r *taskRepository) recordToTask(record TaskModel) (*domaintask.Task, error) {
 	recordTaskID, err := domaintask.NewIDFromString(record.ID)
 	if err != nil {
 		return nil, err
@@ -124,4 +128,32 @@ func (r *taskRepository) ExistsTaskByID(ctx context.Context, id domaintask.ID) (
 	}
 
 	return count > 0, nil
+}
+
+func (r *taskRepository) ListActiveTasksByUserID(ctx context.Context, userID domainuser.ID, sortType domaintask.SortType) ([]*domaintask.Task, error) {
+	orderQuery, err := sortType.OrderQuery()
+	if err != nil {
+		return nil, err
+	}
+
+	var records []TaskModel
+
+	if err := r.db.WithContext(ctx).
+		Where("user_id = ? AND task_status = ?", userID.String(), string(domaintask.StatusActive)).
+		Order(orderQuery).
+		Find(&records).Error; err != nil {
+		return nil, err
+	}
+
+	tasks := make([]*domaintask.Task, 0, len(records))
+	for _, record := range records {
+		task, err := r.recordToTask(record)
+		if err != nil {
+			return nil, err
+		}
+
+		tasks = append(tasks, task)
+	}
+
+	return tasks, nil
 }

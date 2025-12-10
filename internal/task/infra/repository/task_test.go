@@ -427,3 +427,193 @@ func TestSaveTaskDuplicateID(t *testing.T) {
 		t.Fatal("SaveTask for duplicate ID should have failed, but succeeded")
 	}
 }
+
+func TestListActiveTasksByUserID(t *testing.T) {
+	db := setupTaskDB(t)
+	repo := NewTaskRepository(db)
+	ctx := context.Background()
+
+	userID, err := domainuser.NewID()
+	if err != nil {
+		t.Fatalf("failed to create user ID: %v", err)
+	}
+
+	otherUserID, err := domainuser.NewID()
+	if err != nil {
+		t.Fatalf("failed to create other user ID: %v", err)
+	}
+
+	now := time.Now().UTC().Truncate(time.Microsecond)
+
+	// Task 1: target_at = now + 1h, created_at = now
+	task1ID := domaintask.ID(uuid.Must(uuid.NewV7()))
+
+	task1, err := domaintask.NewTask(
+		task1ID,
+		userID,
+		"Task 1",
+		"normal",
+		"active",
+		"",
+		nil,
+		now,
+		now.Add(1*time.Hour),
+		domaintask.MustColor("#FF6B6B"),
+	)
+	if err != nil {
+		t.Fatalf("failed to create task1: %v", err)
+	}
+
+	if err := repo.SaveTask(ctx, task1); err != nil {
+		t.Fatalf("failed to save task1: %v", err)
+	}
+
+	// Task 2: target_at = now + 30min, created_at = now
+	task2ID := domaintask.ID(uuid.Must(uuid.NewV7()))
+
+	task2, err := domaintask.NewTask(
+		task2ID,
+		userID,
+		"Task 2",
+		"urgent",
+		"active",
+		"",
+		nil,
+		now,
+		now.Add(30*time.Minute),
+		domaintask.MustColor("#4ECDC4"),
+	)
+	if err != nil {
+		t.Fatalf("failed to create task2: %v", err)
+	}
+
+	if err := repo.SaveTask(ctx, task2); err != nil {
+		t.Fatalf("failed to save task2: %v", err)
+	}
+
+	// Task 3: target_at = now + 30min, created_at = now + 1s (same target, newer created - should come first for ties)
+	task3ID := domaintask.ID(uuid.Must(uuid.NewV7()))
+
+	task3, err := domaintask.NewTask(
+		task3ID,
+		userID,
+		"Task 3",
+		"normal",
+		"active",
+		"",
+		nil,
+		now.Add(1*time.Second),
+		now.Add(30*time.Minute),
+		domaintask.MustColor("#45B7D1"),
+	)
+	if err != nil {
+		t.Fatalf("failed to create task3: %v", err)
+	}
+
+	if err := repo.SaveTask(ctx, task3); err != nil {
+		t.Fatalf("failed to save task3: %v", err)
+	}
+
+	// Task 4: COMPLETED status (should NOT be returned)
+	task4ID := domaintask.ID(uuid.Must(uuid.NewV7()))
+
+	task4, err := domaintask.NewTask(
+		task4ID,
+		userID,
+		"Task 4",
+		"normal",
+		"completed",
+		"",
+		nil,
+		now,
+		now.Add(20*time.Minute),
+		domaintask.MustColor("#96CEB4"),
+	)
+	if err != nil {
+		t.Fatalf("failed to create task4: %v", err)
+	}
+
+	if err := repo.SaveTask(ctx, task4); err != nil {
+		t.Fatalf("failed to save task4: %v", err)
+	}
+
+	// Task 5: Different user (should NOT be returned)
+	task5ID := domaintask.ID(uuid.Must(uuid.NewV7()))
+
+	task5, err := domaintask.NewTask(
+		task5ID,
+		otherUserID,
+		"Task 5",
+		"normal",
+		"active",
+		"",
+		nil,
+		now,
+		now.Add(15*time.Minute),
+		domaintask.MustColor("#FFEAA7"),
+	)
+	if err != nil {
+		t.Fatalf("failed to create task5: %v", err)
+	}
+
+	if err := repo.SaveTask(ctx, task5); err != nil {
+		t.Fatalf("failed to save task5: %v", err)
+	}
+
+	t.Run("sort by target_at ascending with created_at descending for ties", func(t *testing.T) {
+		tasks, err := repo.ListActiveTasksByUserID(ctx, userID, domaintask.SortTypeTargetAt)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if len(tasks) != 3 {
+			t.Fatalf("expected 3 tasks, got %d", len(tasks))
+		}
+
+		// Expected order: task3 (30min, newer created), task2 (30min, older created), task1 (1h)
+		expectedOrder := []string{task3ID.String(), task2ID.String(), task1ID.String()}
+		for i, task := range tasks {
+			if task.ID().String() != expectedOrder[i] {
+				t.Errorf("position %d: expected %s, got %s", i, expectedOrder[i], task.ID().String())
+			}
+		}
+	})
+
+	t.Run("returns empty slice for user with no active tasks", func(t *testing.T) {
+		emptyUserID, err := domainuser.NewID()
+		if err != nil {
+			t.Fatalf("failed to create empty user ID: %v", err)
+		}
+
+		tasks, err := repo.ListActiveTasksByUserID(ctx, emptyUserID, domaintask.SortTypeTargetAt)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if len(tasks) != 0 {
+			t.Fatalf("expected 0 tasks, got %d", len(tasks))
+		}
+	})
+
+	t.Run("returns error for invalid sort type", func(t *testing.T) {
+		_, err := repo.ListActiveTasksByUserID(ctx, userID, domaintask.SortType("invalid"))
+		if !errors.Is(err, domaintask.ErrInvalidSortType) {
+			t.Fatalf("expected ErrInvalidSortType, got %v", err)
+		}
+	})
+
+	t.Run("user isolation - does not return other users tasks", func(t *testing.T) {
+		tasks, err := repo.ListActiveTasksByUserID(ctx, otherUserID, domaintask.SortTypeTargetAt)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if len(tasks) != 1 {
+			t.Fatalf("expected 1 task for other user, got %d", len(tasks))
+		}
+
+		if tasks[0].ID().String() != task5ID.String() {
+			t.Errorf("expected task5, got %s", tasks[0].ID().String())
+		}
+	})
+}
