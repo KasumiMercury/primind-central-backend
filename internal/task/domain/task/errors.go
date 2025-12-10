@@ -15,5 +15,7 @@ var (
 	ErrScheduledAtRequired        = errors.New("scheduledAt is required for tasks with type SCHEDULED")
 	ErrScheduledAtNotAllowed      = errors.New("scheduledAt is not allowed for tasks not having type SCHEDULED")
 	ErrScheduledAtBeforeCreatedAt = errors.New("scheduledAt cannot be before task creation time")
+	ErrColorEmpty                 = errors.New("color must be specified")
+	ErrColorInvalidFormat         = errors.New("color must be in #RRGGBB hex format")
 	ErrTaskNotFound               = errors.New("task not found")
 )

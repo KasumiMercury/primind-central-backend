@@ -352,6 +352,8 @@ func TestNewTaskSuccess(t *testing.T) {
 	scheduledTargetTime := createTime.Add(48 * time.Hour)
 	scheduledTargetTime24h := createTime.Add(24 * time.Hour)
 
+	validColor := MustColor("#FF6B6B")
+
 	type args struct {
 		id          ID
 		userID      user.ID
@@ -362,6 +364,7 @@ func TestNewTaskSuccess(t *testing.T) {
 		scheduledAt *time.Time
 		createdAt   time.Time
 		targetAt    time.Time
+		color       Color
 	}
 
 	tests := []struct {
@@ -381,6 +384,7 @@ func TestNewTaskSuccess(t *testing.T) {
 				scheduledAt: nil,
 				createdAt:   createTime,
 				targetAt:    targetTime,
+				color:       validColor,
 			},
 			expected: &Task{
 				id:          validID,
@@ -392,6 +396,7 @@ func TestNewTaskSuccess(t *testing.T) {
 				scheduledAt: nil,
 				createdAt:   createTime,
 				targetAt:    targetTime,
+				color:       validColor,
 			},
 		},
 		{
@@ -410,6 +415,7 @@ func TestNewTaskSuccess(t *testing.T) {
 				}(),
 				createdAt: createTime,
 				targetAt:  scheduledTargetTime,
+				color:     validColor,
 			},
 			expected: &Task{
 				id:          validID,
@@ -425,6 +431,7 @@ func TestNewTaskSuccess(t *testing.T) {
 				}(),
 				createdAt: createTime,
 				targetAt:  scheduledTargetTime,
+				color:     validColor,
 			},
 		},
 		{
@@ -439,6 +446,7 @@ func TestNewTaskSuccess(t *testing.T) {
 				scheduledAt: nil,
 				createdAt:   createTime,
 				targetAt:    targetTime,
+				color:       validColor,
 			},
 			expected: &Task{
 				id:          validID,
@@ -450,6 +458,7 @@ func TestNewTaskSuccess(t *testing.T) {
 				scheduledAt: nil,
 				createdAt:   createTime,
 				targetAt:    targetTime,
+				color:       validColor,
 			},
 		},
 		{
@@ -468,6 +477,7 @@ func TestNewTaskSuccess(t *testing.T) {
 				}(),
 				createdAt: createTime,
 				targetAt:  scheduledTargetTime24h,
+				color:     validColor,
 			},
 			expected: &Task{
 				id:          validID,
@@ -483,6 +493,7 @@ func TestNewTaskSuccess(t *testing.T) {
 				}(),
 				createdAt: createTime,
 				targetAt:  scheduledTargetTime24h,
+				color:     validColor,
 			},
 		},
 		{
@@ -497,6 +508,7 @@ func TestNewTaskSuccess(t *testing.T) {
 				scheduledAt: nil,
 				createdAt:   createTime,
 				targetAt:    targetTime,
+				color:       validColor,
 			},
 			expected: &Task{
 				id:          validID,
@@ -508,6 +520,7 @@ func TestNewTaskSuccess(t *testing.T) {
 				scheduledAt: nil,
 				createdAt:   createTime,
 				targetAt:    targetTime,
+				color:       validColor,
 			},
 		},
 		{
@@ -522,6 +535,7 @@ func TestNewTaskSuccess(t *testing.T) {
 				scheduledAt: nil,
 				createdAt:   createTime,
 				targetAt:    targetTime,
+				color:       validColor,
 			},
 			expected: &Task{
 				id:          validID,
@@ -533,6 +547,7 @@ func TestNewTaskSuccess(t *testing.T) {
 				scheduledAt: nil,
 				createdAt:   createTime,
 				targetAt:    targetTime,
+				color:       validColor,
 			},
 		},
 	}
@@ -549,13 +564,14 @@ func TestNewTaskSuccess(t *testing.T) {
 				tt.args.scheduledAt,
 				tt.args.createdAt,
 				tt.args.targetAt,
+				tt.args.color,
 			)
 			if err != nil {
 				t.Fatalf("NewTask() unexpected error: %v", err)
 			}
 
 			opts := cmp.Options{
-				cmp.AllowUnexported(Task{}),
+				cmp.AllowUnexported(Task{}, Color{}),
 			}
 			if diff := cmp.Diff(tt.expected, task, opts); diff != "" {
 				t.Errorf("NewTask() mismatch (-want +got):\n%s", diff)
@@ -596,6 +612,10 @@ func TestNewTaskSuccess(t *testing.T) {
 
 			if !task.TargetAt().Equal(tt.expected.targetAt) {
 				t.Errorf("Task.TargetAt() = %v, want %v", task.TargetAt(), tt.expected.targetAt)
+			}
+
+			if task.Color().String() != tt.expected.color.String() {
+				t.Errorf("Task.Color() = %v, want %v", task.Color(), tt.expected.color)
 			}
 		})
 	}
@@ -642,6 +662,8 @@ func TestNewTaskErrors(t *testing.T) {
 	createTime := time.Now().UTC().Truncate(time.Microsecond)
 	targetTime := createTime.Add(1 * time.Hour)
 
+	validColor := MustColor("#FF6B6B")
+
 	type args struct {
 		id          ID
 		userID      user.ID
@@ -652,6 +674,7 @@ func TestNewTaskErrors(t *testing.T) {
 		scheduledAt *time.Time
 		createdAt   time.Time
 		targetAt    time.Time
+		color       Color
 	}
 
 	tests := []struct {
@@ -669,6 +692,7 @@ func TestNewTaskErrors(t *testing.T) {
 				status:    taskStatus,
 				createdAt: createTime,
 				targetAt:  targetTime,
+				color:     validColor,
 			},
 			expectedErr: ErrTitleTooLong,
 		},
@@ -683,6 +707,7 @@ func TestNewTaskErrors(t *testing.T) {
 				scheduledAt: nil,
 				createdAt:   createTime,
 				targetAt:    targetTime,
+				color:       validColor,
 			},
 			expectedErr: ErrScheduledAtRequired,
 		},
@@ -701,6 +726,7 @@ func TestNewTaskErrors(t *testing.T) {
 				}(),
 				createdAt: createTime,
 				targetAt:  targetTime,
+				color:     validColor,
 			},
 			expectedErr: ErrScheduledAtNotAllowed,
 		},
@@ -719,6 +745,7 @@ func TestNewTaskErrors(t *testing.T) {
 				}(),
 				createdAt: createTime,
 				targetAt:  targetTime,
+				color:     validColor,
 			},
 			expectedErr: ErrScheduledAtNotAllowed,
 		},
@@ -737,6 +764,7 @@ func TestNewTaskErrors(t *testing.T) {
 				}(),
 				createdAt: createTime,
 				targetAt:  targetTime,
+				color:     validColor,
 			},
 			expectedErr: ErrScheduledAtNotAllowed,
 		},
@@ -755,8 +783,37 @@ func TestNewTaskErrors(t *testing.T) {
 				}(),
 				createdAt: createTime,
 				targetAt:  targetTime,
+				color:     validColor,
 			},
 			expectedErr: ErrScheduledAtBeforeCreatedAt,
+		},
+		{
+			name: "empty color",
+			args: args{
+				id:        validID,
+				userID:    validUserID,
+				title:     "Test Task",
+				taskType:  taskNormalType,
+				status:    taskStatus,
+				createdAt: createTime,
+				targetAt:  targetTime,
+				color:     Color{},
+			},
+			expectedErr: ErrColorEmpty,
+		},
+		{
+			name: "invalid color format",
+			args: args{
+				id:        validID,
+				userID:    validUserID,
+				title:     "Test Task",
+				taskType:  taskNormalType,
+				status:    taskStatus,
+				createdAt: createTime,
+				targetAt:  targetTime,
+				color:     Color{hex: "#FFF"},
+			},
+			expectedErr: ErrColorInvalidFormat,
 		},
 	}
 
@@ -772,6 +829,7 @@ func TestNewTaskErrors(t *testing.T) {
 				tt.args.scheduledAt,
 				tt.args.createdAt,
 				tt.args.targetAt,
+				tt.args.color,
 			)
 			if err == nil {
 				t.Fatalf("NewTask() expected error, got task: %+v", task)
@@ -802,6 +860,8 @@ func TestCreateTaskWithPreGeneratedID(t *testing.T) {
 		t.Fatalf("setup failed: %v", err)
 	}
 
+	validColor := MustColor("#FF6B6B")
+
 	tests := []struct {
 		name        string
 		taskID      *ID
@@ -810,6 +870,7 @@ func TestCreateTaskWithPreGeneratedID(t *testing.T) {
 		taskType    Type
 		description string
 		scheduledAt *time.Time
+		color       Color
 	}{
 		{
 			name: "create task with valid predefined UUIDv7",
@@ -823,6 +884,7 @@ func TestCreateTaskWithPreGeneratedID(t *testing.T) {
 			taskType:    taskNormalType,
 			description: "This task has a predefined ID",
 			scheduledAt: nil,
+			color:       validColor,
 		},
 		{
 			name:        "create task without ID",
@@ -832,6 +894,7 @@ func TestCreateTaskWithPreGeneratedID(t *testing.T) {
 			taskType:    taskNormalType,
 			description: "This task will get an auto-generated ID",
 			scheduledAt: nil,
+			color:       validColor,
 		},
 		{
 			name: "create scheduled task with predefined ID",
@@ -849,6 +912,7 @@ func TestCreateTaskWithPreGeneratedID(t *testing.T) {
 
 				return &scheduled
 			}(),
+			color: validColor,
 		},
 	}
 
@@ -861,6 +925,7 @@ func TestCreateTaskWithPreGeneratedID(t *testing.T) {
 				tt.taskType,
 				tt.description,
 				tt.scheduledAt,
+				tt.color,
 			)
 			if err != nil {
 				t.Fatalf("CreateTask() unexpected error: %v", err)
@@ -925,6 +990,8 @@ func TestCreateTaskTargetAtCalculation(t *testing.T) {
 		t.Fatalf("setup failed: %v", err)
 	}
 
+	validColor := MustColor("#FF6B6B")
+
 	tests := []struct {
 		name               string
 		taskType           Type
@@ -980,6 +1047,7 @@ func TestCreateTaskTargetAtCalculation(t *testing.T) {
 				tt.taskType,
 				"Test description",
 				tt.scheduledAt,
+				validColor,
 			)
 			if err != nil {
 				t.Fatalf("CreateTask() unexpected error: %v", err)
@@ -1046,6 +1114,8 @@ func TestNewTaskTargetAtNormalization(t *testing.T) {
 		t.Fatalf("setup failed: %v", err)
 	}
 
+	validColor := MustColor("#FF6B6B")
+
 	t.Run("targetAt is normalized to UTC", func(t *testing.T) {
 		createTime := time.Now().UTC().Truncate(time.Microsecond)
 		// Create targetAt in a non-UTC timezone
@@ -1062,6 +1132,7 @@ func TestNewTaskTargetAtNormalization(t *testing.T) {
 			nil,
 			createTime,
 			targetAtJST,
+			validColor,
 		)
 		if err != nil {
 			t.Fatalf("NewTask() unexpected error: %v", err)
@@ -1093,6 +1164,7 @@ func TestNewTaskTargetAtNormalization(t *testing.T) {
 			nil,
 			createTime,
 			targetAtNano,
+			validColor,
 		)
 		if err != nil {
 			t.Fatalf("NewTask() unexpected error: %v", err)
