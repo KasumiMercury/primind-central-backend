@@ -16,9 +16,10 @@ import (
 )
 
 type Service struct {
-	createTask apptask.CreateTaskUseCase
-	getTask    apptask.GetTaskUseCase
-	logger     *slog.Logger
+	createTask      apptask.CreateTaskUseCase
+	getTask         apptask.GetTaskUseCase
+	listActiveTasks apptask.ListActiveTasksUseCase
+	logger          *slog.Logger
 }
 
 var _ taskv1connect.TaskServiceHandler = (*Service)(nil)
@@ -26,11 +27,13 @@ var _ taskv1connect.TaskServiceHandler = (*Service)(nil)
 func NewService(
 	createTaskUseCase apptask.CreateTaskUseCase,
 	getTaskUseCase apptask.GetTaskUseCase,
+	listActiveTasksUseCase apptask.ListActiveTasksUseCase,
 ) *Service {
 	return &Service{
-		createTask: createTaskUseCase,
-		getTask:    getTaskUseCase,
-		logger:     slog.Default().WithGroup("task").WithGroup("service"),
+		createTask:      createTaskUseCase,
+		getTask:         getTaskUseCase,
+		listActiveTasks: listActiveTasksUseCase,
+		logger:          slog.Default().WithGroup("task").WithGroup("service"),
 	}
 }
 
@@ -189,7 +192,67 @@ func (s *Service) ListActiveTasks(
 	ctx context.Context,
 	req *taskv1.ListActiveTasksRequest,
 ) (*taskv1.ListActiveTasksResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("not implemented"))
+	token := extractSessionTokenFromContext(ctx)
+	if token == "" {
+		s.logger.Warn("list active tasks called without session token")
+
+		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("session token required"))
+	}
+
+	sortType, err := protoSortTypeToString(req.GetSortType())
+	if err != nil {
+		s.logger.Warn("invalid sort type", slog.String("error", err.Error()))
+
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	result, err := s.listActiveTasks.ListActiveTasks(ctx, &apptask.ListActiveTasksRequest{
+		SessionToken: token,
+		SortType:     sortType,
+	})
+	if err != nil {
+		switch {
+		case errors.Is(err, apptask.ErrUnauthorized):
+			s.logger.Info("unauthorized list active tasks attempt")
+
+			return nil, connect.NewError(connect.CodeUnauthenticated, err)
+		case errors.Is(err, apptask.ErrListActiveTasksRequestRequired),
+			errors.Is(err, apptask.ErrInvalidSortType):
+			s.logger.Warn("invalid list active tasks request", slog.String("error", err.Error()))
+
+			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		default:
+			s.logger.Error("unexpected list active tasks error", slog.String("error", err.Error()))
+
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
+	}
+
+	protoTasks := make([]*taskv1.Task, 0, len(result.Tasks))
+	for _, task := range result.Tasks {
+		var scheduledAt *timestamppb.Timestamp
+		if task.ScheduledAt != nil {
+			scheduledAt = timestamppb.New(*task.ScheduledAt)
+		}
+
+		protoTasks = append(protoTasks, &taskv1.Task{
+			TaskId:      task.TaskID,
+			Title:       task.Title,
+			TaskType:    stringToProtoTaskType(string(task.TaskType)),
+			TaskStatus:  stringToProtoTaskStatus(string(task.TaskStatus)),
+			Description: task.Description,
+			ScheduledAt: scheduledAt,
+			CreatedAt:   timestamppb.New(task.CreatedAt),
+			TargetAt:    timestamppb.New(task.TargetAt),
+			Color:       task.Color,
+		})
+	}
+
+	s.logger.Info("active tasks listed", slog.Int("count", len(protoTasks)))
+
+	return &taskv1.ListActiveTasksResponse{
+		Tasks: protoTasks,
+	}, nil
 }
 
 func extractSessionTokenFromContext(ctx context.Context) string {
@@ -236,5 +299,16 @@ func stringToProtoTaskStatus(taskStatus string) taskv1.TaskStatus {
 		return taskv1.TaskStatus_TASK_STATUS_COMPLETED
 	default:
 		return taskv1.TaskStatus_TASK_STATUS_UNSPECIFIED
+	}
+}
+
+func protoSortTypeToString(sortType taskv1.TaskSortType) (domaintask.SortType, error) {
+	switch sortType {
+	case taskv1.TaskSortType_TASK_SORT_TYPE_TARGET_AT:
+		return domaintask.SortTypeTargetAt, nil
+	case taskv1.TaskSortType_TASK_SORT_TYPE_UNSPECIFIED:
+		return "", errors.New("sort type is required")
+	default:
+		return "", errors.New("unsupported sort type")
 	}
 }
