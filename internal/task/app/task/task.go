@@ -19,6 +19,7 @@ type CreateTaskRequest struct {
 	TaskType     domaintask.Type
 	Description  string
 	ScheduledAt  *time.Time
+	Color        string
 }
 
 type CreateTaskResult struct {
@@ -30,6 +31,7 @@ type CreateTaskResult struct {
 	ScheduledAt *time.Time
 	CreatedAt   time.Time
 	TargetAt    time.Time
+	Color       string
 }
 
 type CreateTaskUseCase interface {
@@ -100,6 +102,13 @@ func (h *createTaskHandler) CreateTask(ctx context.Context, req *CreateTaskReque
 		}
 	}
 
+	color, err := domaintask.NewColor(req.Color)
+	if err != nil {
+		h.logger.Warn("invalid color format", slog.String("error", err.Error()))
+
+		return nil, err
+	}
+
 	task, err := domaintask.CreateTask(
 		taskID,
 		userID,
@@ -107,6 +116,7 @@ func (h *createTaskHandler) CreateTask(ctx context.Context, req *CreateTaskReque
 		req.TaskType,
 		req.Description,
 		req.ScheduledAt,
+		color,
 	)
 	if err != nil {
 		h.logger.Warn("failed to create task entity", slog.String("error", err.Error()))
@@ -131,6 +141,7 @@ func (h *createTaskHandler) CreateTask(ctx context.Context, req *CreateTaskReque
 		ScheduledAt: task.ScheduledAt(),
 		CreatedAt:   task.CreatedAt(),
 		TargetAt:    task.TargetAt(),
+		Color:       task.Color().String(),
 	}, nil
 }
 
@@ -148,6 +159,7 @@ type GetTaskResult struct {
 	ScheduledAt *time.Time
 	CreatedAt   time.Time
 	TargetAt    time.Time
+	Color       string
 }
 
 type GetTaskUseCase interface {
@@ -225,5 +237,6 @@ func (h *getTaskHandler) GetTask(ctx context.Context, req *GetTaskRequest) (*Get
 		ScheduledAt: task.ScheduledAt(),
 		CreatedAt:   task.CreatedAt(),
 		TargetAt:    task.TargetAt(),
+		Color:       task.Color().String(),
 	}, nil
 }

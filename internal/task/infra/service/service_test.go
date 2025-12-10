@@ -27,6 +27,7 @@ func TestCreateTaskSuccess(t *testing.T) {
 			req: &taskv1.CreateTaskRequest{
 				Title:    "task title",
 				TaskType: taskv1.TaskType_TASK_TYPE_NORMAL,
+				Color:    "#FF6B6B",
 			},
 			expectedCall: func(t *testing.T, ctrl *gomock.Controller) apptask.CreateTaskUseCase {
 				mockUseCase := NewMockCreateTaskUseCase(ctrl)
@@ -52,9 +53,14 @@ func TestCreateTaskSuccess(t *testing.T) {
 							t.Fatalf("expected nil scheduled time, got %v", req.ScheduledAt)
 						}
 
+						if req.Color != "#FF6B6B" {
+							t.Fatalf("expected color #FF6B6B, got %s", req.Color)
+						}
+
 						return &apptask.CreateTaskResult{
 							TaskID:   "task-id-1",
 							TargetAt: time.Now().Add(1 * time.Hour).UTC(),
+							Color:    "#FF6B6B",
 						}, nil
 					})
 
@@ -72,6 +78,7 @@ func TestCreateTaskSuccess(t *testing.T) {
 					TaskType:    taskv1.TaskType_TASK_TYPE_SCHEDULED,
 					Description: desc,
 					ScheduledAt: scheduledAt,
+					Color:       "#4ECDC4",
 				}
 			}(),
 			expectedCall: func(t *testing.T, ctrl *gomock.Controller) apptask.CreateTaskUseCase {
@@ -102,11 +109,16 @@ func TestCreateTaskSuccess(t *testing.T) {
 							t.Fatalf("scheduled time should be utc second precision, got %v", req.ScheduledAt)
 						}
 
+						if req.Color != "#4ECDC4" {
+							t.Fatalf("expected color #4ECDC4, got %s", req.Color)
+						}
+
 						scheduledTime := time.Now().Add(time.Hour).UTC().Truncate(time.Second)
 
 						return &apptask.CreateTaskResult{
 							TaskID:   "task-id-2",
 							TargetAt: scheduledTime,
+							Color:    "#4ECDC4",
 						}, nil
 					})
 
@@ -123,6 +135,7 @@ func TestCreateTaskSuccess(t *testing.T) {
 					TaskId:   &taskIDStr,
 					Title:    "Task with predefined ID",
 					TaskType: taskv1.TaskType_TASK_TYPE_NORMAL,
+					Color:    "#FF6B6B",
 				}
 			}(),
 			expectedCall: func(t *testing.T, ctrl *gomock.Controller) apptask.CreateTaskUseCase {
@@ -147,9 +160,14 @@ func TestCreateTaskSuccess(t *testing.T) {
 							t.Fatalf("expected title Task with predefined ID, got %s", req.Title)
 						}
 
+						if req.Color != "#FF6B6B" {
+							t.Fatalf("expected color #FF6B6B, got %s", req.Color)
+						}
+
 						return &apptask.CreateTaskResult{
 							TaskID:   req.TaskID,
 							TargetAt: time.Now().Add(1 * time.Hour).UTC(),
+							Color:    "#FF6B6B",
 						}, nil
 					})
 
@@ -206,7 +224,7 @@ func TestCreateTaskError(t *testing.T) {
 			name:         "missing session token",
 			ctx:          context.Background(),
 			service:      func(_ *gomock.Controller) *Service { return NewService(nil, nil) },
-			req:          &taskv1.CreateTaskRequest{Title: "title", TaskType: taskv1.TaskType_TASK_TYPE_NORMAL},
+			req:          &taskv1.CreateTaskRequest{Title: "title", TaskType: taskv1.TaskType_TASK_TYPE_NORMAL, Color: "#FF6B6B"},
 			expectedCode: connect.CodeUnauthenticated,
 		},
 		{
@@ -216,6 +234,7 @@ func TestCreateTaskError(t *testing.T) {
 			req: &taskv1.CreateTaskRequest{
 				Title:    "title",
 				TaskType: taskv1.TaskType_TASK_TYPE_UNSPECIFIED,
+				Color:    "#FF6B6B",
 			},
 			expectedCode: connect.CodeInvalidArgument,
 		},
@@ -230,7 +249,7 @@ func TestCreateTaskError(t *testing.T) {
 
 				return NewService(mockUseCase, nil)
 			},
-			req:          &taskv1.CreateTaskRequest{Title: "title", TaskType: taskv1.TaskType_TASK_TYPE_NORMAL},
+			req:          &taskv1.CreateTaskRequest{Title: "title", TaskType: taskv1.TaskType_TASK_TYPE_NORMAL, Color: "#FF6B6B"},
 			expectedCode: connect.CodeUnauthenticated,
 		},
 		{
@@ -244,7 +263,7 @@ func TestCreateTaskError(t *testing.T) {
 
 				return NewService(mockUseCase, nil)
 			},
-			req:          &taskv1.CreateTaskRequest{Title: "", TaskType: taskv1.TaskType_TASK_TYPE_NORMAL},
+			req:          &taskv1.CreateTaskRequest{Title: "", TaskType: taskv1.TaskType_TASK_TYPE_NORMAL, Color: "#FF6B6B"},
 			expectedCode: connect.CodeInvalidArgument,
 		},
 		{
@@ -258,7 +277,7 @@ func TestCreateTaskError(t *testing.T) {
 
 				return NewService(mockUseCase, nil)
 			},
-			req:          &taskv1.CreateTaskRequest{Title: "title", TaskType: taskv1.TaskType_TASK_TYPE_NORMAL},
+			req:          &taskv1.CreateTaskRequest{Title: "title", TaskType: taskv1.TaskType_TASK_TYPE_NORMAL, Color: "#FF6B6B"},
 			expectedCode: connect.CodeInternal,
 		},
 		{
@@ -275,7 +294,7 @@ func TestCreateTaskError(t *testing.T) {
 			req: func() *taskv1.CreateTaskRequest {
 				invalidUUID := "invalid-uuid"
 
-				return &taskv1.CreateTaskRequest{TaskId: &invalidUUID, Title: "title", TaskType: taskv1.TaskType_TASK_TYPE_NORMAL}
+				return &taskv1.CreateTaskRequest{TaskId: &invalidUUID, Title: "title", TaskType: taskv1.TaskType_TASK_TYPE_NORMAL, Color: "#FF6B6B"}
 			}(),
 			expectedCode: connect.CodeInvalidArgument,
 		},
@@ -298,6 +317,7 @@ func TestCreateTaskError(t *testing.T) {
 					TaskId:   &uuidv4Str,
 					Title:    "title",
 					TaskType: taskv1.TaskType_TASK_TYPE_NORMAL,
+					Color:    "#FF6B6B",
 				}
 			}(),
 			expectedCode: connect.CodeInvalidArgument,
@@ -321,9 +341,38 @@ func TestCreateTaskError(t *testing.T) {
 					TaskId:   &existingIDStr,
 					Title:    "title",
 					TaskType: taskv1.TaskType_TASK_TYPE_NORMAL,
+					Color:    "#FF6B6B",
 				}
 			}(),
 			expectedCode: connect.CodeAlreadyExists,
+		},
+		{
+			name: "empty color returns InvalidArgument",
+			ctx:  ctxWithSessionToken(t, "token"),
+			service: func(ctrl *gomock.Controller) *Service {
+				mockUseCase := NewMockCreateTaskUseCase(ctrl)
+				mockUseCase.EXPECT().
+					CreateTask(gomock.Any(), gomock.Any()).
+					Return(nil, domaintask.ErrColorEmpty)
+
+				return NewService(mockUseCase, nil)
+			},
+			req:          &taskv1.CreateTaskRequest{Title: "title", TaskType: taskv1.TaskType_TASK_TYPE_NORMAL, Color: ""},
+			expectedCode: connect.CodeInvalidArgument,
+		},
+		{
+			name: "invalid color format returns InvalidArgument",
+			ctx:  ctxWithSessionToken(t, "token"),
+			service: func(ctrl *gomock.Controller) *Service {
+				mockUseCase := NewMockCreateTaskUseCase(ctrl)
+				mockUseCase.EXPECT().
+					CreateTask(gomock.Any(), gomock.Any()).
+					Return(nil, domaintask.ErrColorInvalidFormat)
+
+				return NewService(mockUseCase, nil)
+			},
+			req:          &taskv1.CreateTaskRequest{Title: "title", TaskType: taskv1.TaskType_TASK_TYPE_NORMAL, Color: "invalid"},
+			expectedCode: connect.CodeInvalidArgument,
 		},
 	}
 
@@ -380,6 +429,7 @@ func TestGetTaskSuccess(t *testing.T) {
 							TaskStatus: domaintask.StatusActive,
 							CreatedAt:  createdAt,
 							TargetAt:   targetAtNormal,
+							Color:      "#FF6B6B",
 						}, nil
 					})
 
@@ -414,6 +464,7 @@ func TestGetTaskSuccess(t *testing.T) {
 							ScheduledAt: &scheduledAt,
 							CreatedAt:   createdAt,
 							TargetAt:    targetAtScheduled,
+							Color:       "#4ECDC4",
 						}, nil
 					})
 

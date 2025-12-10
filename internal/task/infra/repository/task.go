@@ -20,6 +20,7 @@ type TaskModel struct {
 	ScheduledAt *time.Time `gorm:"type:timestamptz"`
 	CreatedAt   time.Time  `gorm:"not null;autoCreateTime"`
 	TargetAt    time.Time  `gorm:"type:timestamptz;not null;index:idx_tasks_target_at"`
+	Color       string     `gorm:"type:varchar(7);not null"`
 }
 
 func (TaskModel) TableName() string {
@@ -54,6 +55,7 @@ func (r *taskRepository) SaveTask(ctx context.Context, task *domaintask.Task) er
 		ScheduledAt: scheduledAt,
 		CreatedAt:   task.CreatedAt(),
 		TargetAt:    task.TargetAt(),
+		Color:       task.Color().String(),
 	}
 
 	return r.db.WithContext(ctx).Create(&record).Error
@@ -91,6 +93,11 @@ func (r *taskRepository) GetTaskByID(ctx context.Context, id domaintask.ID, user
 		return nil, err
 	}
 
+	color, err := domaintask.NewColor(record.Color)
+	if err != nil {
+		return nil, err
+	}
+
 	return domaintask.NewTask(
 		recordTaskID,
 		recordUserID,
@@ -101,6 +108,7 @@ func (r *taskRepository) GetTaskByID(ctx context.Context, id domaintask.ID, user
 		record.ScheduledAt,
 		record.CreatedAt,
 		record.TargetAt,
+		color,
 	)
 }
 
