@@ -18,4 +18,5 @@ var (
 	ErrColorEmpty                 = errors.New("color must be specified")
 	ErrColorInvalidFormat         = errors.New("color must be in #RRGGBB hex format")
 	ErrTaskNotFound               = errors.New("task not found")
+	ErrInvalidSortType            = errors.New("invalid sort type")
 )
