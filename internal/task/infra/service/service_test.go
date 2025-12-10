@@ -52,7 +52,10 @@ func TestCreateTaskSuccess(t *testing.T) {
 							t.Fatalf("expected nil scheduled time, got %v", req.ScheduledAt)
 						}
 
-						return &apptask.CreateTaskResult{TaskID: "task-id-1"}, nil
+						return &apptask.CreateTaskResult{
+							TaskID:   "task-id-1",
+							TargetAt: time.Now().Add(1 * time.Hour).UTC(),
+						}, nil
 					})
 
 				return mockUseCase
@@ -99,7 +102,12 @@ func TestCreateTaskSuccess(t *testing.T) {
 							t.Fatalf("scheduled time should be utc second precision, got %v", req.ScheduledAt)
 						}
 
-						return &apptask.CreateTaskResult{TaskID: "task-id-2"}, nil
+						scheduledTime := time.Now().Add(time.Hour).UTC().Truncate(time.Second)
+
+						return &apptask.CreateTaskResult{
+							TaskID:   "task-id-2",
+							TargetAt: scheduledTime,
+						}, nil
 					})
 
 				return mockUseCase
@@ -139,7 +147,10 @@ func TestCreateTaskSuccess(t *testing.T) {
 							t.Fatalf("expected title Task with predefined ID, got %s", req.Title)
 						}
 
-						return &apptask.CreateTaskResult{TaskID: req.TaskID}, nil
+						return &apptask.CreateTaskResult{
+							TaskID:   req.TaskID,
+							TargetAt: time.Now().Add(1 * time.Hour).UTC(),
+						}, nil
 					})
 
 				return mockUseCase
@@ -174,6 +185,10 @@ func TestCreateTaskSuccess(t *testing.T) {
 
 			if resp.GetTask().GetTaskId() == "" {
 				t.Fatalf("expected task id to be set")
+			}
+
+			if resp.GetTask().GetTargetAt() == nil {
+				t.Fatalf("expected target_at to be set")
 			}
 		})
 	}
@@ -333,11 +348,14 @@ func TestCreateTaskError(t *testing.T) {
 func TestGetTaskSuccess(t *testing.T) {
 	createdAt := time.Now().UTC().Truncate(time.Second)
 	scheduledAt := createdAt.Add(30 * time.Minute)
+	targetAtNormal := createdAt.Add(1 * time.Hour)
+	targetAtScheduled := scheduledAt
 
 	tests := []struct {
 		name         string
 		req          *taskv1.GetTaskRequest
 		expectedCall func(t *testing.T, ctrl *gomock.Controller) apptask.GetTaskUseCase
+		targetAt     time.Time
 	}{
 		{
 			name: "get task without scheduled time",
@@ -361,11 +379,13 @@ func TestGetTaskSuccess(t *testing.T) {
 							TaskType:   domaintask.TypeNormal,
 							TaskStatus: domaintask.StatusActive,
 							CreatedAt:  createdAt,
+							TargetAt:   targetAtNormal,
 						}, nil
 					})
 
 				return mockUseCase
 			},
+			targetAt: targetAtNormal,
 		},
 		{
 			name: "get task with scheduled time and description",
@@ -393,11 +413,13 @@ func TestGetTaskSuccess(t *testing.T) {
 							Description: desc,
 							ScheduledAt: &scheduledAt,
 							CreatedAt:   createdAt,
+							TargetAt:    targetAtScheduled,
 						}, nil
 					})
 
 				return mockUseCase
 			},
+			targetAt: targetAtScheduled,
 		},
 	}
 
@@ -426,6 +448,14 @@ func TestGetTaskSuccess(t *testing.T) {
 
 			if resp.GetTask().GetCreatedAt().AsTime() != createdAt {
 				t.Fatalf("expected created at %v, got %v", createdAt, resp.GetTask().GetCreatedAt().AsTime())
+			}
+
+			if resp.GetTask().GetTargetAt() == nil {
+				t.Fatalf("expected target_at to be set")
+			}
+
+			if resp.GetTask().GetTargetAt().AsTime() != tt.targetAt {
+				t.Fatalf("expected target at %v, got %v", tt.targetAt, resp.GetTask().GetTargetAt().AsTime())
 			}
 		})
 	}

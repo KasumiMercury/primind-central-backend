@@ -38,6 +38,9 @@ func TestTaskRepositoryIntegrationSuccess(t *testing.T) {
 		t.Fatalf("failed to create user ID: %v", err)
 	}
 
+	createdAt := time.Now().UTC().Truncate(time.Microsecond)
+	targetAt := createdAt.Add(1 * time.Hour)
+
 	task, err := domaintask.NewTask(
 		domaintask.ID(taskId),
 		userId,
@@ -46,7 +49,8 @@ func TestTaskRepositoryIntegrationSuccess(t *testing.T) {
 		"active",
 		"",
 		nil,
-		time.Now(),
+		createdAt,
+		targetAt,
 	)
 	if err != nil {
 		t.Fatalf("failed to create task: %v", err)
@@ -65,6 +69,11 @@ func TestTaskRepositoryIntegrationSuccess(t *testing.T) {
 
 	if retrievedTask.Title() != task.Title() {
 		t.Errorf("expected title %q, got %q", task.Title(), retrievedTask.Title())
+	}
+
+	// Verify targetAt is persisted and retrieved correctly
+	if !retrievedTask.TargetAt().Equal(task.TargetAt()) {
+		t.Errorf("expected targetAt %v, got %v", task.TargetAt(), retrievedTask.TargetAt())
 	}
 }
 
@@ -102,6 +111,8 @@ func TestTaskRepositoryIntegrationError(t *testing.T) {
 	}
 
 	taskID := domaintask.ID(uuid.Must(uuid.NewV7()))
+	createdAt := time.Now().UTC().Truncate(time.Microsecond)
+	targetAt := createdAt.Add(1 * time.Hour)
 
 	task, err := domaintask.NewTask(
 		taskID,
@@ -111,7 +122,8 @@ func TestTaskRepositoryIntegrationError(t *testing.T) {
 		"active",
 		"",
 		nil,
-		time.Now(),
+		createdAt,
+		targetAt,
 	)
 	if err != nil {
 		t.Fatalf("failed to create task: %v", err)
@@ -128,8 +140,8 @@ func TestTaskRepositoryIntegrationError(t *testing.T) {
 
 	// Scenario 4: GetTaskByID with invalid TaskType in database
 	corruptedTaskID1 := uuid.Must(uuid.NewV7()).String()
-	if err := db.Exec("INSERT INTO tasks (id, user_id, title, task_type, task_status, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-		corruptedTaskID1, userID, "Corrupted Type Task", "invalid_type", "active", time.Now()).Error; err != nil {
+	if err := db.Exec("INSERT INTO tasks (id, user_id, title, task_type, task_status, created_at, target_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		corruptedTaskID1, userID, "Corrupted Type Task", "invalid_type", "active", time.Now(), time.Now().Add(1*time.Hour)).Error; err != nil {
 		t.Fatalf("failed to insert corrupted task type: %v", err)
 	}
 
@@ -140,8 +152,8 @@ func TestTaskRepositoryIntegrationError(t *testing.T) {
 
 	// Scenario 5: GetTaskByID with invalid TaskStatus in database
 	corruptedTaskID2 := uuid.Must(uuid.NewV7()).String()
-	if err := db.Exec("INSERT INTO tasks (id, user_id, title, task_type, task_status, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-		corruptedTaskID2, userID, "Corrupted Status Task", "normal", "invalid_status", time.Now()).Error; err != nil {
+	if err := db.Exec("INSERT INTO tasks (id, user_id, title, task_type, task_status, created_at, target_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		corruptedTaskID2, userID, "Corrupted Status Task", "normal", "invalid_status", time.Now(), time.Now().Add(1*time.Hour)).Error; err != nil {
 		t.Fatalf("failed to insert corrupted task status: %v", err)
 	}
 
@@ -156,6 +168,7 @@ func TestTaskRepositoryWithFixedClock(t *testing.T) {
 	repo := NewTaskRepository(db)
 
 	fixedTime := time.Date(2024, 1, 1, 10, 0, 0, 0, time.UTC)
+	fixedTargetAt := fixedTime.Add(1 * time.Hour)
 	taskID := domaintask.ID(uuid.Must(uuid.NewV7()))
 
 	userID, err := domainuser.NewID()
@@ -173,6 +186,7 @@ func TestTaskRepositoryWithFixedClock(t *testing.T) {
 		"",
 		nil,
 		fixedTime,
+		fixedTargetAt,
 	)
 	if err != nil {
 		t.Fatalf("failed to create task: %v", err)
@@ -192,8 +206,13 @@ func TestTaskRepositoryWithFixedClock(t *testing.T) {
 		t.Fatalf("expected CreatedAt %v, got %v", fixedTime, record.CreatedAt)
 	}
 
+	if !record.TargetAt.Equal(fixedTargetAt) {
+		t.Fatalf("expected TargetAt %v, got %v", fixedTargetAt, record.TargetAt)
+	}
+
 	// Scenario 2: Multiple tasks with same timestamp
 	taskID2 := domaintask.ID(uuid.Must(uuid.NewV7()))
+	fixedTargetAt2 := fixedTime.Add(15 * time.Minute)
 
 	task2, err := domaintask.NewTask(
 		taskID2,
@@ -204,6 +223,7 @@ func TestTaskRepositoryWithFixedClock(t *testing.T) {
 		"",
 		nil,
 		fixedTime,
+		fixedTargetAt2,
 	)
 	if err != nil {
 		t.Fatalf("failed to create task2: %v", err)
@@ -226,6 +246,11 @@ func TestTaskRepositoryWithFixedClock(t *testing.T) {
 	if !record.CreatedAt.Equal(record2.CreatedAt) {
 		t.Fatalf("expected both tasks to have identical CreatedAt, got %v and %v", record.CreatedAt, record2.CreatedAt)
 	}
+
+	// Verify targetAt is different for different task types
+	if record.TargetAt.Equal(record2.TargetAt) {
+		t.Fatalf("expected different TargetAt for different task types, got %v and %v", record.TargetAt, record2.TargetAt)
+	}
 }
 
 func TestExistsTaskByID(t *testing.T) {
@@ -238,6 +263,8 @@ func TestExistsTaskByID(t *testing.T) {
 	}
 
 	taskID1 := domaintask.ID(uuid.Must(uuid.NewV7()))
+	createdAt := time.Now().UTC().Truncate(time.Microsecond)
+	targetAt := createdAt.Add(1 * time.Hour)
 
 	task, err := domaintask.NewTask(
 		taskID1,
@@ -247,7 +274,8 @@ func TestExistsTaskByID(t *testing.T) {
 		"active",
 		"",
 		nil,
-		time.Now(),
+		createdAt,
+		targetAt,
 	)
 	if err != nil {
 		t.Fatalf("failed to create task: %v", err)
@@ -298,6 +326,8 @@ func TestSaveTaskWithPredefinedID(t *testing.T) {
 	}
 
 	predefinedID := domaintask.ID(uuid.Must(uuid.NewV7()))
+	createdAt := time.Now().UTC().Truncate(time.Microsecond)
+	targetAt := createdAt.Add(1 * time.Hour)
 
 	task, err := domaintask.NewTask(
 		predefinedID,
@@ -307,7 +337,8 @@ func TestSaveTaskWithPredefinedID(t *testing.T) {
 		"active",
 		"This task has a predefined ID",
 		nil,
-		time.Now(),
+		createdAt,
+		targetAt,
 	)
 	if err != nil {
 		t.Fatalf("failed to create task: %v", err)
@@ -346,6 +377,8 @@ func TestSaveTaskDuplicateID(t *testing.T) {
 	}
 
 	sharedTaskID := domaintask.ID(uuid.Must(uuid.NewV7()))
+	createdAt := time.Now().UTC().Truncate(time.Microsecond)
+	targetAt := createdAt.Add(1 * time.Hour)
 
 	task1, err := domaintask.NewTask(
 		sharedTaskID,
@@ -355,7 +388,8 @@ func TestSaveTaskDuplicateID(t *testing.T) {
 		"active",
 		"",
 		nil,
-		time.Now(),
+		createdAt,
+		targetAt,
 	)
 	if err != nil {
 		t.Fatalf("failed to create task1: %v", err)
@@ -373,7 +407,8 @@ func TestSaveTaskDuplicateID(t *testing.T) {
 		"active",
 		"",
 		nil,
-		time.Now(),
+		createdAt,
+		targetAt,
 	)
 	if err != nil {
 		t.Fatalf("failed to create task2: %v", err)

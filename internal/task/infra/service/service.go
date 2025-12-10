@@ -111,6 +111,7 @@ func (s *Service) CreateTask(
 				return nil
 			}(),
 			CreatedAt: timestamppb.New(result.CreatedAt),
+			TargetAt:  timestamppb.New(result.TargetAt),
 		},
 	}, nil
 }
@@ -170,6 +171,7 @@ func (s *Service) GetTask(
 			Description: result.Description,
 			ScheduledAt: scheduledAt,
 			CreatedAt:   timestamppb.New(result.CreatedAt),
+			TargetAt:    timestamppb.New(result.TargetAt),
 		},
 	}
 

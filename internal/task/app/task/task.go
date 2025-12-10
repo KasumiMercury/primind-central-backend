@@ -29,6 +29,7 @@ type CreateTaskResult struct {
 	Description string
 	ScheduledAt *time.Time
 	CreatedAt   time.Time
+	TargetAt    time.Time
 }
 
 type CreateTaskUseCase interface {
@@ -129,6 +130,7 @@ func (h *createTaskHandler) CreateTask(ctx context.Context, req *CreateTaskReque
 		Description: task.Description(),
 		ScheduledAt: task.ScheduledAt(),
 		CreatedAt:   task.CreatedAt(),
+		TargetAt:    task.TargetAt(),
 	}, nil
 }
 
@@ -145,6 +147,7 @@ type GetTaskResult struct {
 	Description string
 	ScheduledAt *time.Time
 	CreatedAt   time.Time
+	TargetAt    time.Time
 }
 
 type GetTaskUseCase interface {
@@ -221,5 +224,6 @@ func (h *getTaskHandler) GetTask(ctx context.Context, req *GetTaskRequest) (*Get
 		Description: task.Description(),
 		ScheduledAt: task.ScheduledAt(),
 		CreatedAt:   task.CreatedAt(),
+		TargetAt:    task.TargetAt(),
 	}, nil
 }
