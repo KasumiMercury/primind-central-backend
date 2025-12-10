@@ -81,6 +81,7 @@ type Task struct {
 	scheduledAt *time.Time
 	createdAt   time.Time
 	targetAt    time.Time
+	color       Color
 }
 
 func NewTask(
@@ -93,6 +94,7 @@ func NewTask(
 	scheduledAt *time.Time,
 	createdAt time.Time,
 	targetAt time.Time,
+	color Color,
 ) (*Task, error) {
 	normalizedCreatedAt := createdAt.UTC().Truncate(time.Microsecond)
 	normalizedTargetAt := targetAt.UTC().Truncate(time.Microsecond)
@@ -121,6 +123,10 @@ func NewTask(
 		return nil, ErrScheduledAtNotAllowed
 	}
 
+	if err := color.Validate(); err != nil {
+		return nil, err
+	}
+
 	return &Task{
 		id:          id,
 		userID:      userID,
@@ -131,6 +137,7 @@ func NewTask(
 		scheduledAt: normalizedScheduledAt,
 		createdAt:   normalizedCreatedAt,
 		targetAt:    normalizedTargetAt,
+		color:       color,
 	}, nil
 }
 
@@ -141,6 +148,7 @@ func CreateTask(
 	taskType Type,
 	description string,
 	scheduledAt *time.Time,
+	color Color,
 ) (*Task, error) {
 	var id ID
 
@@ -178,6 +186,7 @@ func CreateTask(
 		scheduledAt,
 		createdAt,
 		targetAt,
+		color,
 	)
 }
 
@@ -215,4 +224,8 @@ func (t *Task) CreatedAt() time.Time {
 
 func (t *Task) TargetAt() time.Time {
 	return t.targetAt
+}
+
+func (t *Task) Color() Color {
+	return t.color
 }

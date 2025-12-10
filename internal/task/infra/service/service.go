@@ -66,6 +66,7 @@ func (s *Service) CreateTask(
 		TaskType:     taskType,
 		Description:  req.GetDescription(),
 		ScheduledAt:  scheduledAt,
+		Color:        req.GetColor(),
 	})
 	if err != nil {
 		switch {
@@ -79,7 +80,9 @@ func (s *Service) CreateTask(
 			errors.Is(err, domaintask.ErrScheduledAtNotAllowed),
 			errors.Is(err, domaintask.ErrInvalidTaskType),
 			errors.Is(err, domaintask.ErrIDInvalidFormat),
-			errors.Is(err, domaintask.ErrIDInvalidV7):
+			errors.Is(err, domaintask.ErrIDInvalidV7),
+			errors.Is(err, domaintask.ErrColorEmpty),
+			errors.Is(err, domaintask.ErrColorInvalidFormat):
 			s.logger.Warn("invalid create task request", slog.String("error", err.Error()))
 
 			return nil, connect.NewError(connect.CodeInvalidArgument, err)
@@ -97,7 +100,6 @@ func (s *Service) CreateTask(
 	s.logger.Info("task created", slog.String("task_id", result.TaskID))
 
 	return &taskv1.CreateTaskResponse{
-		//exhaustruct:ignore
 		Task: &taskv1.Task{
 			TaskId:      result.TaskID,
 			Title:       result.Title,
@@ -113,6 +115,7 @@ func (s *Service) CreateTask(
 			}(),
 			CreatedAt: timestamppb.New(result.CreatedAt),
 			TargetAt:  timestamppb.New(result.TargetAt),
+			Color:     result.Color,
 		},
 	}, nil
 }
@@ -164,7 +167,6 @@ func (s *Service) GetTask(
 	}
 
 	response := &taskv1.GetTaskResponse{
-		//exhaustruct:ignore
 		Task: &taskv1.Task{
 			TaskId:      result.TaskID,
 			Title:       result.Title,
@@ -174,6 +176,7 @@ func (s *Service) GetTask(
 			ScheduledAt: scheduledAt,
 			CreatedAt:   timestamppb.New(result.CreatedAt),
 			TargetAt:    timestamppb.New(result.TargetAt),
+			Color:       result.Color,
 		},
 	}
 

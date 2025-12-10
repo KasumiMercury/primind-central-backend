@@ -51,6 +51,7 @@ func TestTaskRepositoryIntegrationSuccess(t *testing.T) {
 		nil,
 		createdAt,
 		targetAt,
+		domaintask.MustColor("#FF6B6B"),
 	)
 	if err != nil {
 		t.Fatalf("failed to create task: %v", err)
@@ -124,6 +125,7 @@ func TestTaskRepositoryIntegrationError(t *testing.T) {
 		nil,
 		createdAt,
 		targetAt,
+		domaintask.MustColor("#FF6B6B"),
 	)
 	if err != nil {
 		t.Fatalf("failed to create task: %v", err)
@@ -140,8 +142,8 @@ func TestTaskRepositoryIntegrationError(t *testing.T) {
 
 	// Scenario 4: GetTaskByID with invalid TaskType in database
 	corruptedTaskID1 := uuid.Must(uuid.NewV7()).String()
-	if err := db.Exec("INSERT INTO tasks (id, user_id, title, task_type, task_status, created_at, target_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-		corruptedTaskID1, userID, "Corrupted Type Task", "invalid_type", "active", time.Now(), time.Now().Add(1*time.Hour)).Error; err != nil {
+	if err := db.Exec("INSERT INTO tasks (id, user_id, title, task_type, task_status, created_at, target_at, color) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		corruptedTaskID1, userID, "Corrupted Type Task", "invalid_type", "active", time.Now(), time.Now().Add(1*time.Hour), "#FF6B6B").Error; err != nil {
 		t.Fatalf("failed to insert corrupted task type: %v", err)
 	}
 
@@ -152,8 +154,8 @@ func TestTaskRepositoryIntegrationError(t *testing.T) {
 
 	// Scenario 5: GetTaskByID with invalid TaskStatus in database
 	corruptedTaskID2 := uuid.Must(uuid.NewV7()).String()
-	if err := db.Exec("INSERT INTO tasks (id, user_id, title, task_type, task_status, created_at, target_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-		corruptedTaskID2, userID, "Corrupted Status Task", "normal", "invalid_status", time.Now(), time.Now().Add(1*time.Hour)).Error; err != nil {
+	if err := db.Exec("INSERT INTO tasks (id, user_id, title, task_type, task_status, created_at, target_at, color) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		corruptedTaskID2, userID, "Corrupted Status Task", "normal", "invalid_status", time.Now(), time.Now().Add(1*time.Hour), "#FF6B6B").Error; err != nil {
 		t.Fatalf("failed to insert corrupted task status: %v", err)
 	}
 
@@ -187,6 +189,7 @@ func TestTaskRepositoryWithFixedClock(t *testing.T) {
 		nil,
 		fixedTime,
 		fixedTargetAt,
+		domaintask.MustColor("#FF6B6B"),
 	)
 	if err != nil {
 		t.Fatalf("failed to create task: %v", err)
@@ -224,6 +227,7 @@ func TestTaskRepositoryWithFixedClock(t *testing.T) {
 		nil,
 		fixedTime,
 		fixedTargetAt2,
+		domaintask.MustColor("#4ECDC4"),
 	)
 	if err != nil {
 		t.Fatalf("failed to create task2: %v", err)
@@ -276,6 +280,7 @@ func TestExistsTaskByID(t *testing.T) {
 		nil,
 		createdAt,
 		targetAt,
+		domaintask.MustColor("#FF6B6B"),
 	)
 	if err != nil {
 		t.Fatalf("failed to create task: %v", err)
@@ -339,6 +344,7 @@ func TestSaveTaskWithPredefinedID(t *testing.T) {
 		nil,
 		createdAt,
 		targetAt,
+		domaintask.MustColor("#FF6B6B"),
 	)
 	if err != nil {
 		t.Fatalf("failed to create task: %v", err)
@@ -390,6 +396,7 @@ func TestSaveTaskDuplicateID(t *testing.T) {
 		nil,
 		createdAt,
 		targetAt,
+		domaintask.MustColor("#FF6B6B"),
 	)
 	if err != nil {
 		t.Fatalf("failed to create task1: %v", err)
@@ -409,6 +416,7 @@ func TestSaveTaskDuplicateID(t *testing.T) {
 		nil,
 		createdAt,
 		targetAt,
+		domaintask.MustColor("#FF6B6B"),
 	)
 	if err != nil {
 		t.Fatalf("failed to create task2: %v", err)
