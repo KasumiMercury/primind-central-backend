@@ -663,3 +663,190 @@ func createPersistedTask(
 
 	return task
 }
+
+func createPersistedTaskWithStatus(
+	t *testing.T,
+	repo domaintask.TaskRepository,
+	userID domainuser.ID,
+	title string,
+	taskType domaintask.Type,
+	taskStatus domaintask.Status,
+	createdAt time.Time,
+	targetAt time.Time,
+	color domaintask.Color,
+) *domaintask.Task {
+	t.Helper()
+
+	id, err := domaintask.NewID()
+	if err != nil {
+		t.Fatalf("failed to generate task id: %v", err)
+	}
+
+	task, err := domaintask.NewTask(
+		id,
+		userID,
+		title,
+		taskType,
+		taskStatus,
+		"",
+		nil,
+		createdAt,
+		targetAt,
+		color,
+	)
+	if err != nil {
+		t.Fatalf("failed to create task: %v", err)
+	}
+
+	if err := repo.SaveTask(context.Background(), task); err != nil {
+		t.Fatalf("failed to save task: %v", err)
+	}
+
+	return task
+}
+
+func TestListActiveTasksSuccess(t *testing.T) {
+	repo := setupTaskRepository(t)
+	ctx := context.Background()
+
+	userID, err := domainuser.NewID()
+	if err != nil {
+		t.Fatalf("failed to generate user id: %v", err)
+	}
+
+	now := time.Now().UTC().Truncate(time.Microsecond)
+
+	// Create tasks with different target_at and created_at times
+	task1 := createPersistedTaskWithStatus(t, repo, userID, "Task 1", domaintask.TypeNormal, domaintask.StatusActive, now, now.Add(1*time.Hour), domaintask.MustColor("#FF6B6B"))
+	task2 := createPersistedTaskWithStatus(t, repo, userID, "Task 2", domaintask.TypeUrgent, domaintask.StatusActive, now, now.Add(30*time.Minute), domaintask.MustColor("#4ECDC4"))
+	// Task 3: same target_at as task2, but newer created_at - should come first
+	task3 := createPersistedTaskWithStatus(t, repo, userID, "Task 3", domaintask.TypeNormal, domaintask.StatusActive, now.Add(1*time.Second), now.Add(30*time.Minute), domaintask.MustColor("#45B7D1"))
+	// Task 4: COMPLETED status - should not be returned
+	_ = createPersistedTaskWithStatus(t, repo, userID, "Task 4", domaintask.TypeNormal, domaintask.StatusCompleted, now, now.Add(20*time.Minute), domaintask.MustColor("#96CEB4"))
+
+	ctrl := gomock.NewController(t)
+	mockAuth := NewMockAuthClient(ctrl)
+	mockAuth.EXPECT().ValidateSession(gomock.Any(), "valid-token").Return(userID.String(), nil)
+
+	handler := NewListActiveTasksHandler(mockAuth, repo)
+
+	result, err := handler.ListActiveTasks(ctx, &ListActiveTasksRequest{
+		SessionToken: "valid-token",
+		SortType:     domaintask.SortTypeTargetAt,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result.Tasks) != 3 {
+		t.Fatalf("expected 3 tasks, got %d", len(result.Tasks))
+	}
+
+	// Expected order: task3 (30min, newer), task2 (30min, older), task1 (1h)
+	expectedOrder := []string{task3.ID().String(), task2.ID().String(), task1.ID().String()}
+	for i, task := range result.Tasks {
+		if task.TaskID != expectedOrder[i] {
+			t.Errorf("position %d: expected %s, got %s", i, expectedOrder[i], task.TaskID)
+		}
+	}
+}
+
+func TestListActiveTasksEmpty(t *testing.T) {
+	repo := setupTaskRepository(t)
+	ctx := context.Background()
+
+	userID, err := domainuser.NewID()
+	if err != nil {
+		t.Fatalf("failed to generate user id: %v", err)
+	}
+
+	ctrl := gomock.NewController(t)
+	mockAuth := NewMockAuthClient(ctrl)
+	mockAuth.EXPECT().ValidateSession(gomock.Any(), "valid-token").Return(userID.String(), nil)
+
+	handler := NewListActiveTasksHandler(mockAuth, repo)
+
+	result, err := handler.ListActiveTasks(ctx, &ListActiveTasksRequest{
+		SessionToken: "valid-token",
+		SortType:     domaintask.SortTypeTargetAt,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result.Tasks) != 0 {
+		t.Fatalf("expected 0 tasks, got %d", len(result.Tasks))
+	}
+}
+
+func TestListActiveTasksError(t *testing.T) {
+	repo := setupTaskRepository(t)
+	ctx := context.Background()
+
+	validUserID, err := domainuser.NewID()
+	if err != nil {
+		t.Fatalf("failed to generate user id: %v", err)
+	}
+
+	tests := []struct {
+		name        string
+		req         *ListActiveTasksRequest
+		setupAuth   func(ctrl *gomock.Controller) authclient.AuthClient
+		expectedErr error
+	}{
+		{
+			name:        "nil request",
+			req:         nil,
+			setupAuth:   func(ctrl *gomock.Controller) authclient.AuthClient { return NewMockAuthClient(ctrl) },
+			expectedErr: ErrListActiveTasksRequestRequired,
+		},
+		{
+			name: "unauthorized session",
+			req: &ListActiveTasksRequest{
+				SessionToken: "invalid-token",
+				SortType:     domaintask.SortTypeTargetAt,
+			},
+			setupAuth: func(ctrl *gomock.Controller) authclient.AuthClient {
+				mockAuth := NewMockAuthClient(ctrl)
+				mockAuth.EXPECT().ValidateSession(gomock.Any(), "invalid-token").
+					Return("", authclient.ErrUnauthorized)
+
+				return mockAuth
+			},
+			expectedErr: ErrUnauthorized,
+		},
+		{
+			name: "invalid sort type",
+			req: &ListActiveTasksRequest{
+				SessionToken: "valid-token",
+				SortType:     domaintask.SortType("invalid"),
+			},
+			setupAuth: func(ctrl *gomock.Controller) authclient.AuthClient {
+				mockAuth := NewMockAuthClient(ctrl)
+				mockAuth.EXPECT().ValidateSession(gomock.Any(), "valid-token").
+					Return(validUserID.String(), nil)
+
+				return mockAuth
+			},
+			expectedErr: domaintask.ErrInvalidSortType,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			mockAuth := tt.setupAuth(ctrl)
+			handler := NewListActiveTasksHandler(mockAuth, repo)
+
+			_, err := handler.ListActiveTasks(ctx, tt.req)
+			if err == nil {
+				t.Fatalf("expected error %v, got nil", tt.expectedErr)
+			}
+
+			if !errors.Is(err, tt.expectedErr) {
+				t.Fatalf("expected error %v, got %v", tt.expectedErr, err)
+			}
+		})
+	}
+}

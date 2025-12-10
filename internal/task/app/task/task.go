@@ -240,3 +240,94 @@ func (h *getTaskHandler) GetTask(ctx context.Context, req *GetTaskRequest) (*Get
 		Color:       task.Color().String(),
 	}, nil
 }
+
+type ListActiveTasksRequest struct {
+	SessionToken string
+	SortType     domaintask.SortType
+}
+
+type ListActiveTasksResult struct {
+	Tasks []TaskItem
+}
+
+type TaskItem struct {
+	TaskID      string
+	Title       string
+	TaskType    domaintask.Type
+	TaskStatus  domaintask.Status
+	Description string
+	ScheduledAt *time.Time
+	CreatedAt   time.Time
+	TargetAt    time.Time
+	Color       string
+}
+
+type ListActiveTasksUseCase interface {
+	ListActiveTasks(ctx context.Context, req *ListActiveTasksRequest) (*ListActiveTasksResult, error)
+}
+
+type listActiveTasksHandler struct {
+	authClient authclient.AuthClient
+	taskRepo   domaintask.TaskRepository
+	logger     *slog.Logger
+}
+
+func NewListActiveTasksHandler(
+	authClient authclient.AuthClient,
+	taskRepo domaintask.TaskRepository,
+) ListActiveTasksUseCase {
+	return &listActiveTasksHandler{
+		authClient: authClient,
+		taskRepo:   taskRepo,
+		logger:     slog.Default().WithGroup("task").WithGroup("listactivetasks"),
+	}
+}
+
+func (h *listActiveTasksHandler) ListActiveTasks(ctx context.Context, req *ListActiveTasksRequest) (*ListActiveTasksResult, error) {
+	if req == nil {
+		return nil, ErrListActiveTasksRequestRequired
+	}
+
+	userIDstr, err := h.authClient.ValidateSession(ctx, req.SessionToken)
+	if err != nil {
+		h.logger.Info("session validation failed", slog.String("error", err.Error()))
+
+		return nil, fmt.Errorf("%w: %s", ErrUnauthorized, err.Error())
+	}
+
+	userID, err := domainuser.NewIDFromString(userIDstr)
+	if err != nil {
+		h.logger.Warn("invalid user ID format", slog.String("error", err.Error()))
+
+		return nil, err
+	}
+
+	tasks, err := h.taskRepo.ListActiveTasksByUserID(ctx, userID, req.SortType)
+	if err != nil {
+		h.logger.Error("failed to list active tasks", slog.String("error", err.Error()))
+
+		return nil, err
+	}
+
+	result := &ListActiveTasksResult{
+		Tasks: make([]TaskItem, 0, len(tasks)),
+	}
+
+	for _, task := range tasks {
+		result.Tasks = append(result.Tasks, TaskItem{
+			TaskID:      task.ID().String(),
+			Title:       task.Title(),
+			TaskType:    task.TaskType(),
+			TaskStatus:  task.TaskStatus(),
+			Description: task.Description(),
+			ScheduledAt: task.ScheduledAt(),
+			CreatedAt:   task.CreatedAt(),
+			TargetAt:    task.TargetAt(),
+			Color:       task.Color().String(),
+		})
+	}
+
+	h.logger.Info("active tasks listed", slog.Int("count", len(result.Tasks)))
+
+	return result, nil
+}
