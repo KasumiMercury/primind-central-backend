@@ -485,6 +485,10 @@ func TestGetTaskSuccess(t *testing.T) {
 			if !resp.TargetAt.Equal(tt.expectedTask.TargetAt()) {
 				t.Fatalf("expected target at %v, got %v", tt.expectedTask.TargetAt(), resp.TargetAt)
 			}
+
+			if resp.Color != tt.expectedTask.Color().String() {
+				t.Fatalf("expected color %q, got %q", tt.expectedTask.Color().String(), resp.Color)
+			}
 		})
 	}
 }
