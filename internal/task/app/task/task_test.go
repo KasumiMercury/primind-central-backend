@@ -882,6 +882,7 @@ func TestUpdateTaskSuccess(t *testing.T) {
 			taskID: normalTask.ID().String(),
 			req: func() UpdateTaskRequest {
 				status := domaintask.StatusCompleted
+
 				return UpdateTaskRequest{
 					SessionToken: "token",
 					TaskID:       normalTask.ID().String(),
@@ -897,6 +898,7 @@ func TestUpdateTaskSuccess(t *testing.T) {
 			taskID: normalTask.ID().String(),
 			req: func() UpdateTaskRequest {
 				title := "Updated Title"
+
 				return UpdateTaskRequest{
 					SessionToken: "token",
 					TaskID:       normalTask.ID().String(),
@@ -912,6 +914,7 @@ func TestUpdateTaskSuccess(t *testing.T) {
 			taskID: normalTask.ID().String(),
 			req: func() UpdateTaskRequest {
 				desc := "Updated Description"
+
 				return UpdateTaskRequest{
 					SessionToken: "token",
 					TaskID:       normalTask.ID().String(),
@@ -927,6 +930,7 @@ func TestUpdateTaskSuccess(t *testing.T) {
 			taskID: normalTask.ID().String(),
 			req: func() UpdateTaskRequest {
 				color := "#4ECDC4"
+
 				return UpdateTaskRequest{
 					SessionToken: "token",
 					TaskID:       normalTask.ID().String(),
@@ -942,6 +946,7 @@ func TestUpdateTaskSuccess(t *testing.T) {
 			taskID: scheduledTask.ID().String(),
 			req: func() UpdateTaskRequest {
 				newScheduled := now.Add(4 * time.Hour)
+
 				return UpdateTaskRequest{
 					SessionToken: "token",
 					TaskID:       scheduledTask.ID().String(),
@@ -959,6 +964,7 @@ func TestUpdateTaskSuccess(t *testing.T) {
 				title := "Multi Update Title"
 				desc := "Multi Update Desc"
 				color := "#45B7D1"
+
 				return UpdateTaskRequest{
 					SessionToken: "token",
 					TaskID:       normalTask.ID().String(),
@@ -1142,7 +1148,9 @@ func TestUpdateTaskError(t *testing.T) {
 				for i := range longTitle {
 					longTitle[i] = 'a'
 				}
+
 				title := string(longTitle)
+
 				return &UpdateTaskRequest{
 					SessionToken: "token",
 					TaskID:       normalTask.ID().String(),
@@ -1163,6 +1171,7 @@ func TestUpdateTaskError(t *testing.T) {
 			name: "scheduled_at on non-SCHEDULED task",
 			req: func() *UpdateTaskRequest {
 				scheduledAt := time.Now().Add(1 * time.Hour)
+
 				return &UpdateTaskRequest{
 					SessionToken: "token",
 					TaskID:       normalTask.ID().String(),
@@ -1183,6 +1192,7 @@ func TestUpdateTaskError(t *testing.T) {
 			name: "invalid color format",
 			req: func() *UpdateTaskRequest {
 				color := "#FFF"
+
 				return &UpdateTaskRequest{
 					SessionToken: "token",
 					TaskID:       normalTask.ID().String(),
