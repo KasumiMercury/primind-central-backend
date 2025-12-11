@@ -183,7 +183,7 @@ func TestCreateTaskSuccess(t *testing.T) {
 			defer ctrl.Finish()
 
 			mockUseCase := tt.expectedCall(t, ctrl)
-			svc := NewService(mockUseCase, nil, nil, nil)
+			svc := NewService(mockUseCase, nil, nil, nil, nil)
 
 			token := "token-normal"
 			if tt.name == "task with description and scheduled time" {
@@ -223,14 +223,14 @@ func TestCreateTaskError(t *testing.T) {
 		{
 			name:         "missing session token",
 			ctx:          context.Background(),
-			service:      func(_ *gomock.Controller) *Service { return NewService(nil, nil, nil, nil) },
+			service:      func(_ *gomock.Controller) *Service { return NewService(nil, nil, nil, nil, nil) },
 			req:          &taskv1.CreateTaskRequest{Title: "title", TaskType: taskv1.TaskType_TASK_TYPE_NORMAL, Color: "#FF6B6B"},
 			expectedCode: connect.CodeUnauthenticated,
 		},
 		{
 			name:    "invalid task type",
 			ctx:     ctxWithSessionToken(t, "token"),
-			service: func(_ *gomock.Controller) *Service { return NewService(nil, nil, nil, nil) },
+			service: func(_ *gomock.Controller) *Service { return NewService(nil, nil, nil, nil, nil) },
 			req: &taskv1.CreateTaskRequest{
 				Title:    "title",
 				TaskType: taskv1.TaskType_TASK_TYPE_UNSPECIFIED,
@@ -247,7 +247,7 @@ func TestCreateTaskError(t *testing.T) {
 					CreateTask(gomock.Any(), gomock.Any()).
 					Return(nil, apptask.ErrUnauthorized)
 
-				return NewService(mockUseCase, nil, nil, nil)
+				return NewService(mockUseCase, nil, nil, nil, nil)
 			},
 			req:          &taskv1.CreateTaskRequest{Title: "title", TaskType: taskv1.TaskType_TASK_TYPE_NORMAL, Color: "#FF6B6B"},
 			expectedCode: connect.CodeUnauthenticated,
@@ -261,7 +261,7 @@ func TestCreateTaskError(t *testing.T) {
 					CreateTask(gomock.Any(), gomock.Any()).
 					Return(nil, apptask.ErrTitleRequired)
 
-				return NewService(mockUseCase, nil, nil, nil)
+				return NewService(mockUseCase, nil, nil, nil, nil)
 			},
 			req:          &taskv1.CreateTaskRequest{Title: "", TaskType: taskv1.TaskType_TASK_TYPE_NORMAL, Color: "#FF6B6B"},
 			expectedCode: connect.CodeInvalidArgument,
@@ -275,7 +275,7 @@ func TestCreateTaskError(t *testing.T) {
 					CreateTask(gomock.Any(), gomock.Any()).
 					Return(nil, errors.New("boom"))
 
-				return NewService(mockUseCase, nil, nil, nil)
+				return NewService(mockUseCase, nil, nil, nil, nil)
 			},
 			req:          &taskv1.CreateTaskRequest{Title: "title", TaskType: taskv1.TaskType_TASK_TYPE_NORMAL, Color: "#FF6B6B"},
 			expectedCode: connect.CodeInternal,
@@ -289,7 +289,7 @@ func TestCreateTaskError(t *testing.T) {
 					CreateTask(gomock.Any(), gomock.Any()).
 					Return(nil, domaintask.ErrIDInvalidFormat)
 
-				return NewService(mockUseCase, nil, nil, nil)
+				return NewService(mockUseCase, nil, nil, nil, nil)
 			},
 			req: func() *taskv1.CreateTaskRequest {
 				invalidUUID := "invalid-uuid"
@@ -307,7 +307,7 @@ func TestCreateTaskError(t *testing.T) {
 					CreateTask(gomock.Any(), gomock.Any()).
 					Return(nil, domaintask.ErrIDInvalidV7)
 
-				return NewService(mockUseCase, nil, nil, nil)
+				return NewService(mockUseCase, nil, nil, nil, nil)
 			},
 			req: func() *taskv1.CreateTaskRequest {
 				uuidv4 := uuid.New()
@@ -331,7 +331,7 @@ func TestCreateTaskError(t *testing.T) {
 					CreateTask(gomock.Any(), gomock.Any()).
 					Return(nil, apptask.ErrTaskIDAlreadyExists)
 
-				return NewService(mockUseCase, nil, nil, nil)
+				return NewService(mockUseCase, nil, nil, nil, nil)
 			},
 			req: func() *taskv1.CreateTaskRequest {
 				existingID, _ := domaintask.NewID()
@@ -355,7 +355,7 @@ func TestCreateTaskError(t *testing.T) {
 					CreateTask(gomock.Any(), gomock.Any()).
 					Return(nil, domaintask.ErrColorEmpty)
 
-				return NewService(mockUseCase, nil, nil, nil)
+				return NewService(mockUseCase, nil, nil, nil, nil)
 			},
 			req:          &taskv1.CreateTaskRequest{Title: "title", TaskType: taskv1.TaskType_TASK_TYPE_NORMAL, Color: ""},
 			expectedCode: connect.CodeInvalidArgument,
@@ -369,7 +369,7 @@ func TestCreateTaskError(t *testing.T) {
 					CreateTask(gomock.Any(), gomock.Any()).
 					Return(nil, domaintask.ErrColorInvalidFormat)
 
-				return NewService(mockUseCase, nil, nil, nil)
+				return NewService(mockUseCase, nil, nil, nil, nil)
 			},
 			req:          &taskv1.CreateTaskRequest{Title: "title", TaskType: taskv1.TaskType_TASK_TYPE_NORMAL, Color: "invalid"},
 			expectedCode: connect.CodeInvalidArgument,
@@ -481,7 +481,7 @@ func TestGetTaskSuccess(t *testing.T) {
 			defer ctrl.Finish()
 
 			mockUseCase := tt.expectedCall(t, ctrl)
-			svc := NewService(nil, mockUseCase, nil, nil)
+			svc := NewService(nil, mockUseCase, nil, nil, nil)
 			ctx := ctxWithSessionToken(t, "token")
 
 			resp, err := svc.GetTask(ctx, tt.req)
@@ -523,7 +523,7 @@ func TestGetTaskError(t *testing.T) {
 		{
 			name:         "missing session token",
 			ctx:          context.Background(),
-			service:      func(_ *gomock.Controller) *Service { return NewService(nil, nil, nil, nil) },
+			service:      func(_ *gomock.Controller) *Service { return NewService(nil, nil, nil, nil, nil) },
 			req:          &taskv1.GetTaskRequest{TaskId: "id"},
 			expectedCode: connect.CodeUnauthenticated,
 		},
@@ -536,7 +536,7 @@ func TestGetTaskError(t *testing.T) {
 					GetTask(gomock.Any(), gomock.Any()).
 					Return(nil, apptask.ErrUnauthorized)
 
-				return NewService(nil, mockUseCase, nil, nil)
+				return NewService(nil, mockUseCase, nil, nil, nil)
 			},
 			req:          &taskv1.GetTaskRequest{TaskId: "id"},
 			expectedCode: connect.CodeUnauthenticated,
@@ -550,7 +550,7 @@ func TestGetTaskError(t *testing.T) {
 					GetTask(gomock.Any(), gomock.Any()).
 					Return(nil, apptask.ErrTaskNotFound)
 
-				return NewService(nil, mockUseCase, nil, nil)
+				return NewService(nil, mockUseCase, nil, nil, nil)
 			},
 			req:          &taskv1.GetTaskRequest{TaskId: "id"},
 			expectedCode: connect.CodeNotFound,
@@ -564,7 +564,7 @@ func TestGetTaskError(t *testing.T) {
 					GetTask(gomock.Any(), gomock.Any()).
 					Return(nil, apptask.ErrTaskIDRequired)
 
-				return NewService(nil, mockUseCase, nil, nil)
+				return NewService(nil, mockUseCase, nil, nil, nil)
 			},
 			req:          &taskv1.GetTaskRequest{TaskId: ""},
 			expectedCode: connect.CodeInvalidArgument,
@@ -578,7 +578,7 @@ func TestGetTaskError(t *testing.T) {
 					GetTask(gomock.Any(), gomock.Any()).
 					Return(nil, errors.New("boom"))
 
-				return NewService(nil, mockUseCase, nil, nil)
+				return NewService(nil, mockUseCase, nil, nil, nil)
 			},
 			req:          &taskv1.GetTaskRequest{TaskId: "id"},
 			expectedCode: connect.CodeInternal,
@@ -645,7 +645,7 @@ func TestListActiveTasksSuccess(t *testing.T) {
 			}, nil
 		})
 
-	svc := NewService(nil, nil, mockUseCase, nil)
+	svc := NewService(nil, nil, mockUseCase, nil, nil)
 	ctx := ctxWithSessionToken(t, "valid-token")
 
 	resp, err := svc.ListActiveTasks(ctx, &taskv1.ListActiveTasksRequest{
@@ -679,14 +679,14 @@ func TestListActiveTasksError(t *testing.T) {
 		{
 			name:         "missing session token",
 			ctx:          context.Background(),
-			service:      func(_ *gomock.Controller) *Service { return NewService(nil, nil, nil, nil) },
+			service:      func(_ *gomock.Controller) *Service { return NewService(nil, nil, nil, nil, nil) },
 			req:          &taskv1.ListActiveTasksRequest{SortType: taskv1.TaskSortType_TASK_SORT_TYPE_TARGET_AT},
 			expectedCode: connect.CodeUnauthenticated,
 		},
 		{
 			name:         "invalid sort type (unspecified)",
 			ctx:          ctxWithSessionToken(t, "token"),
-			service:      func(_ *gomock.Controller) *Service { return NewService(nil, nil, nil, nil) },
+			service:      func(_ *gomock.Controller) *Service { return NewService(nil, nil, nil, nil, nil) },
 			req:          &taskv1.ListActiveTasksRequest{SortType: taskv1.TaskSortType_TASK_SORT_TYPE_UNSPECIFIED},
 			expectedCode: connect.CodeInvalidArgument,
 		},
@@ -699,7 +699,7 @@ func TestListActiveTasksError(t *testing.T) {
 					ListActiveTasks(gomock.Any(), gomock.Any()).
 					Return(nil, apptask.ErrUnauthorized)
 
-				return NewService(nil, nil, mockUseCase, nil)
+				return NewService(nil, nil, mockUseCase, nil, nil)
 			},
 			req:          &taskv1.ListActiveTasksRequest{SortType: taskv1.TaskSortType_TASK_SORT_TYPE_TARGET_AT},
 			expectedCode: connect.CodeUnauthenticated,
@@ -713,7 +713,7 @@ func TestListActiveTasksError(t *testing.T) {
 					ListActiveTasks(gomock.Any(), gomock.Any()).
 					Return(nil, apptask.ErrInvalidSortType)
 
-				return NewService(nil, nil, mockUseCase, nil)
+				return NewService(nil, nil, mockUseCase, nil, nil)
 			},
 			req:          &taskv1.ListActiveTasksRequest{SortType: taskv1.TaskSortType_TASK_SORT_TYPE_TARGET_AT},
 			expectedCode: connect.CodeInvalidArgument,
@@ -727,7 +727,7 @@ func TestListActiveTasksError(t *testing.T) {
 					ListActiveTasks(gomock.Any(), gomock.Any()).
 					Return(nil, errors.New("database error"))
 
-				return NewService(nil, nil, mockUseCase, nil)
+				return NewService(nil, nil, mockUseCase, nil, nil)
 			},
 			req:          &taskv1.ListActiveTasksRequest{SortType: taskv1.TaskSortType_TASK_SORT_TYPE_TARGET_AT},
 			expectedCode: connect.CodeInternal,
@@ -741,6 +741,133 @@ func TestListActiveTasksError(t *testing.T) {
 			defer ctrl.Finish()
 
 			_, err := tt.service(ctrl).ListActiveTasks(tt.ctx, tt.req)
+			if err == nil {
+				t.Fatalf("expected error")
+			}
+
+			if connect.CodeOf(err) != tt.expectedCode {
+				t.Fatalf("expected code %v, got %v", tt.expectedCode, connect.CodeOf(err))
+			}
+		})
+	}
+}
+
+func TestDeleteTaskSuccess(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockUseCase := NewMockDeleteTaskUseCase(ctrl)
+	mockUseCase.EXPECT().
+		DeleteTask(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, req *apptask.DeleteTaskRequest) error {
+			if req.SessionToken != "valid-token" {
+				t.Fatalf("expected session token valid-token, got %s", req.SessionToken)
+			}
+
+			if req.TaskID != "task-id-1" {
+				t.Fatalf("expected task id task-id-1, got %s", req.TaskID)
+			}
+
+			return nil
+		})
+
+	svc := NewService(nil, nil, nil, nil, mockUseCase)
+	ctx := ctxWithSessionToken(t, "valid-token")
+
+	resp, err := svc.DeleteTask(ctx, &taskv1.DeleteTaskRequest{TaskId: "task-id-1"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if resp == nil {
+		t.Fatalf("expected response")
+	}
+}
+
+func TestDeleteTaskError(t *testing.T) {
+	tests := []struct {
+		name         string
+		ctx          context.Context
+		service      func(ctrl *gomock.Controller) *Service
+		req          *taskv1.DeleteTaskRequest
+		expectedCode connect.Code
+	}{
+		{
+			name:         "missing session token",
+			ctx:          context.Background(),
+			service:      func(_ *gomock.Controller) *Service { return NewService(nil, nil, nil, nil, nil) },
+			req:          &taskv1.DeleteTaskRequest{TaskId: "id"},
+			expectedCode: connect.CodeUnauthenticated,
+		},
+		{
+			name: "unauthorized",
+			ctx:  ctxWithSessionToken(t, "token"),
+			service: func(ctrl *gomock.Controller) *Service {
+				mockUseCase := NewMockDeleteTaskUseCase(ctrl)
+				mockUseCase.EXPECT().DeleteTask(gomock.Any(), gomock.Any()).Return(apptask.ErrUnauthorized)
+
+				return NewService(nil, nil, nil, nil, mockUseCase)
+			},
+			req:          &taskv1.DeleteTaskRequest{TaskId: "id"},
+			expectedCode: connect.CodeUnauthenticated,
+		},
+		{
+			name: "task not found",
+			ctx:  ctxWithSessionToken(t, "token"),
+			service: func(ctrl *gomock.Controller) *Service {
+				mockUseCase := NewMockDeleteTaskUseCase(ctrl)
+				mockUseCase.EXPECT().DeleteTask(gomock.Any(), gomock.Any()).Return(apptask.ErrTaskNotFound)
+
+				return NewService(nil, nil, nil, nil, mockUseCase)
+			},
+			req:          &taskv1.DeleteTaskRequest{TaskId: "id"},
+			expectedCode: connect.CodeNotFound,
+		},
+		{
+			name: "invalid argument - empty task id",
+			ctx:  ctxWithSessionToken(t, "token"),
+			service: func(ctrl *gomock.Controller) *Service {
+				mockUseCase := NewMockDeleteTaskUseCase(ctrl)
+				mockUseCase.EXPECT().DeleteTask(gomock.Any(), gomock.Any()).Return(apptask.ErrTaskIDRequired)
+
+				return NewService(nil, nil, nil, nil, mockUseCase)
+			},
+			req:          &taskv1.DeleteTaskRequest{TaskId: ""},
+			expectedCode: connect.CodeInvalidArgument,
+		},
+		{
+			name: "invalid argument - invalid id format",
+			ctx:  ctxWithSessionToken(t, "token"),
+			service: func(ctrl *gomock.Controller) *Service {
+				mockUseCase := NewMockDeleteTaskUseCase(ctrl)
+				mockUseCase.EXPECT().DeleteTask(gomock.Any(), gomock.Any()).Return(domaintask.ErrIDInvalidFormat)
+
+				return NewService(nil, nil, nil, nil, mockUseCase)
+			},
+			req:          &taskv1.DeleteTaskRequest{TaskId: "invalid-uuid"},
+			expectedCode: connect.CodeInvalidArgument,
+		},
+		{
+			name: "internal error",
+			ctx:  ctxWithSessionToken(t, "token"),
+			service: func(ctrl *gomock.Controller) *Service {
+				mockUseCase := NewMockDeleteTaskUseCase(ctrl)
+				mockUseCase.EXPECT().DeleteTask(gomock.Any(), gomock.Any()).Return(errors.New("boom"))
+
+				return NewService(nil, nil, nil, nil, mockUseCase)
+			},
+			req:          &taskv1.DeleteTaskRequest{TaskId: "id"},
+			expectedCode: connect.CodeInternal,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			_, err := tt.service(ctrl).DeleteTask(tt.ctx, tt.req)
 			if err == nil {
 				t.Fatalf("expected error")
 			}

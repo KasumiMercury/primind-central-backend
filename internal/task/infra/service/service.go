@@ -20,6 +20,7 @@ type Service struct {
 	getTask         apptask.GetTaskUseCase
 	listActiveTasks apptask.ListActiveTasksUseCase
 	updateTask      apptask.UpdateTaskUseCase
+	deleteTask      apptask.DeleteTaskUseCase
 	logger          *slog.Logger
 }
 
@@ -30,12 +31,14 @@ func NewService(
 	getTaskUseCase apptask.GetTaskUseCase,
 	listActiveTasksUseCase apptask.ListActiveTasksUseCase,
 	updateTaskUseCase apptask.UpdateTaskUseCase,
+	deleteTaskUseCase apptask.DeleteTaskUseCase,
 ) *Service {
 	return &Service{
 		createTask:      createTaskUseCase,
 		getTask:         getTaskUseCase,
 		listActiveTasks: listActiveTasksUseCase,
 		updateTask:      updateTaskUseCase,
+		deleteTask:      deleteTaskUseCase,
 		logger:          slog.Default().WithGroup("task").WithGroup("service"),
 	}
 }
@@ -435,4 +438,47 @@ func (s *Service) UpdateTask(
 			Color:     result.Color,
 		},
 	}, nil
+}
+
+func (s *Service) DeleteTask(
+	ctx context.Context,
+	req *taskv1.DeleteTaskRequest,
+) (*taskv1.DeleteTaskResponse, error) {
+	token := extractSessionTokenFromContext(ctx)
+	if token == "" {
+		s.logger.Warn("delete task called without session token")
+
+		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("session token required"))
+	}
+
+	err := s.deleteTask.DeleteTask(ctx, &apptask.DeleteTaskRequest{
+		SessionToken: token,
+		TaskID:       req.GetTaskId(),
+	})
+	if err != nil {
+		switch {
+		case errors.Is(err, apptask.ErrUnauthorized):
+			s.logger.Info("unauthorized delete task attempt")
+
+			return nil, connect.NewError(connect.CodeUnauthenticated, err)
+		case errors.Is(err, apptask.ErrTaskNotFound):
+			s.logger.Info("task not found", slog.String("task_id", req.GetTaskId()))
+
+			return nil, connect.NewError(connect.CodeNotFound, err)
+		case errors.Is(err, apptask.ErrTaskIDRequired),
+			errors.Is(err, domaintask.ErrIDInvalidFormat),
+			errors.Is(err, domaintask.ErrIDInvalidV7):
+			s.logger.Warn("invalid delete task request", slog.String("error", err.Error()))
+
+			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		default:
+			s.logger.Error("unexpected delete task error", slog.String("error", err.Error()))
+
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
+	}
+
+	s.logger.Info("task deleted", slog.String("task_id", req.GetTaskId()))
+
+	return &taskv1.DeleteTaskResponse{}, nil
 }

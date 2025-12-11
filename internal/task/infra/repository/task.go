@@ -190,3 +190,19 @@ func (r *taskRepository) UpdateTask(ctx context.Context, task *domaintask.Task) 
 
 	return nil
 }
+
+func (r *taskRepository) DeleteTask(ctx context.Context, id domaintask.ID, userID domainuser.ID) error {
+	result := r.db.WithContext(ctx).
+		Where("id = ? AND user_id = ?", id.String(), userID.String()).
+		Delete(&TaskModel{})
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return domaintask.ErrTaskNotFound
+	}
+
+	return nil
+}
