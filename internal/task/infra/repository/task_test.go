@@ -860,3 +860,130 @@ func TestUpdateTask(t *testing.T) {
 		}
 	})
 }
+
+func TestDeleteTask(t *testing.T) {
+	db := setupTaskDB(t)
+	repo := NewTaskRepository(db)
+	ctx := context.Background()
+
+	userID, err := domainuser.NewID()
+	if err != nil {
+		t.Fatalf("failed to create user ID: %v", err)
+	}
+
+	now := time.Now().UTC().Truncate(time.Microsecond)
+	targetAt := now.Add(1 * time.Hour)
+
+	t.Run("delete task successfully", func(t *testing.T) {
+		taskID := domaintask.ID(uuid.Must(uuid.NewV7()))
+
+		task, err := domaintask.NewTask(
+			taskID,
+			userID,
+			"Task to Delete",
+			"normal",
+			"active",
+			"",
+			nil,
+			now,
+			targetAt,
+			domaintask.MustColor("#FF6B6B"),
+		)
+		if err != nil {
+			t.Fatalf("failed to create task: %v", err)
+		}
+
+		if err := repo.SaveTask(ctx, task); err != nil {
+			t.Fatalf("failed to save task: %v", err)
+		}
+
+		if err := repo.DeleteTask(ctx, taskID, userID); err != nil {
+			t.Fatalf("failed to delete task: %v", err)
+		}
+
+		// Verify task is gone
+		_, err = repo.GetTaskByID(ctx, taskID, userID)
+		if !errors.Is(err, domaintask.ErrTaskNotFound) {
+			t.Fatalf("expected task to be deleted, got %v", err)
+		}
+	})
+
+	t.Run("delete non-existent task returns ErrTaskNotFound", func(t *testing.T) {
+		nonExistentID := domaintask.ID(uuid.Must(uuid.NewV7()))
+
+		err := repo.DeleteTask(ctx, nonExistentID, userID)
+		if !errors.Is(err, domaintask.ErrTaskNotFound) {
+			t.Fatalf("expected ErrTaskNotFound, got %v", err)
+		}
+	})
+
+	t.Run("user isolation - cannot delete other user's task", func(t *testing.T) {
+		otherUserID, err := domainuser.NewID()
+		if err != nil {
+			t.Fatalf("failed to create other user ID: %v", err)
+		}
+
+		taskID := domaintask.ID(uuid.Must(uuid.NewV7()))
+
+		task, err := domaintask.NewTask(
+			taskID,
+			userID,
+			"User1's Task",
+			"normal",
+			"active",
+			"",
+			nil,
+			now,
+			targetAt,
+			domaintask.MustColor("#FF6B6B"),
+		)
+		if err != nil {
+			t.Fatalf("failed to create task: %v", err)
+		}
+
+		if err := repo.SaveTask(ctx, task); err != nil {
+			t.Fatalf("failed to save task: %v", err)
+		}
+
+		// Try to delete with different user
+		err = repo.DeleteTask(ctx, taskID, otherUserID)
+		if !errors.Is(err, domaintask.ErrTaskNotFound) {
+			t.Fatalf("expected ErrTaskNotFound for user isolation, got %v", err)
+		}
+
+		// Verify task still exists
+		_, err = repo.GetTaskByID(ctx, taskID, userID)
+		if err != nil {
+			t.Fatalf("task should still exist: %v", err)
+		}
+	})
+
+	t.Run("delete completed task", func(t *testing.T) {
+		taskID := domaintask.ID(uuid.Must(uuid.NewV7()))
+
+		task, err := domaintask.NewTask(
+			taskID,
+			userID,
+			"Completed Task",
+			"normal",
+			"completed",
+			"",
+			nil,
+			now,
+			targetAt,
+			domaintask.MustColor("#FF6B6B"),
+		)
+		if err != nil {
+			t.Fatalf("failed to create task: %v", err)
+		}
+
+		if err := repo.SaveTask(ctx, task); err != nil {
+			t.Fatalf("failed to save task: %v", err)
+		}
+
+		err = repo.DeleteTask(ctx, taskID, userID)
+		if err != nil {
+			t.Fatalf("should be able to delete completed task: %v", err)
+		}
+	})
+}

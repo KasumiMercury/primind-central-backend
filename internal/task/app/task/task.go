@@ -524,3 +524,78 @@ func (h *updateTaskHandler) validateScheduledAtConstraint(task *domaintask.Task,
 
 	return nil
 }
+
+type DeleteTaskRequest struct {
+	SessionToken string
+	TaskID       string
+}
+
+type DeleteTaskUseCase interface {
+	DeleteTask(ctx context.Context, req *DeleteTaskRequest) error
+}
+
+type deleteTaskHandler struct {
+	authClient authclient.AuthClient
+	taskRepo   domaintask.TaskRepository
+	logger     *slog.Logger
+}
+
+func NewDeleteTaskHandler(
+	authClient authclient.AuthClient,
+	taskRepo domaintask.TaskRepository,
+) DeleteTaskUseCase {
+	return &deleteTaskHandler{
+		authClient: authClient,
+		taskRepo:   taskRepo,
+		logger:     slog.Default().WithGroup("task").WithGroup("deletetask"),
+	}
+}
+
+func (h *deleteTaskHandler) DeleteTask(ctx context.Context, req *DeleteTaskRequest) error {
+	if req == nil {
+		return ErrDeleteTaskRequestRequired
+	}
+
+	userIDstr, err := h.authClient.ValidateSession(ctx, req.SessionToken)
+	if err != nil {
+		h.logger.Info("session validation failed", slog.String("error", err.Error()))
+
+		return fmt.Errorf("%w: %s", ErrUnauthorized, err.Error())
+	}
+
+	userID, err := domainuser.NewIDFromString(userIDstr)
+	if err != nil {
+		h.logger.Warn("invalid user ID format", slog.String("error", err.Error()))
+
+		return err
+	}
+
+	if req.TaskID == "" {
+		h.logger.Warn("delete task called with empty task ID")
+
+		return ErrTaskIDRequired
+	}
+
+	taskID, err := domaintask.NewIDFromString(req.TaskID)
+	if err != nil {
+		h.logger.Warn("invalid task ID format", slog.String("error", err.Error()))
+
+		return err
+	}
+
+	if err := h.taskRepo.DeleteTask(ctx, taskID, userID); err != nil {
+		if errors.Is(err, domaintask.ErrTaskNotFound) {
+			h.logger.Info("task not found", slog.String("task_id", req.TaskID))
+
+			return ErrTaskNotFound
+		}
+
+		h.logger.Error("failed to delete task", slog.String("error", err.Error()))
+
+		return err
+	}
+
+	h.logger.Info("task deleted successfully", slog.String("task_id", req.TaskID))
+
+	return nil
+}

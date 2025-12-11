@@ -1233,3 +1233,146 @@ func TestUpdateTaskError(t *testing.T) {
 func containsError(err, target error) bool {
 	return err != nil && target != nil && (errors.Is(err, target) || (err.Error() != "" && target.Error() != "" && (err.Error() == target.Error() || len(err.Error()) > len(target.Error()) && err.Error()[:len(target.Error())] == target.Error())))
 }
+
+func TestDeleteTaskSuccess(t *testing.T) {
+	repo := setupTaskRepository(t)
+	ctx := context.Background()
+
+	userID, err := domainuser.NewID()
+	if err != nil {
+		t.Fatalf("failed to generate user id: %v", err)
+	}
+
+	now := time.Now().UTC().Truncate(time.Microsecond)
+	validColor := domaintask.MustColor("#FF6B6B")
+
+	// Create a task to delete
+	task := createPersistedTask(t, repo, userID, "Task to Delete", domaintask.TypeNormal, "", nil, now, validColor)
+
+	ctrl := gomock.NewController(t)
+	mockAuth := NewMockAuthClient(ctrl)
+	mockAuth.EXPECT().ValidateSession(gomock.Any(), "valid-token").Return(userID.String(), nil)
+
+	handler := NewDeleteTaskHandler(mockAuth, repo)
+
+	err = handler.DeleteTask(ctx, &DeleteTaskRequest{
+		SessionToken: "valid-token",
+		TaskID:       task.ID().String(),
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Verify task is deleted
+	_, err = repo.GetTaskByID(ctx, task.ID(), userID)
+	if !errors.Is(err, domaintask.ErrTaskNotFound) {
+		t.Fatalf("expected task to be deleted, got %v", err)
+	}
+}
+
+func TestDeleteTaskError(t *testing.T) {
+	repo := setupTaskRepository(t)
+	ctx := context.Background()
+
+	validUserID, err := domainuser.NewID()
+	if err != nil {
+		t.Fatalf("failed to generate user id: %v", err)
+	}
+
+	missingID, err := domaintask.NewID()
+	if err != nil {
+		t.Fatalf("failed to generate id: %v", err)
+	}
+
+	tests := []struct {
+		name        string
+		req         *DeleteTaskRequest
+		setupAuth   func(ctrl *gomock.Controller) authclient.AuthClient
+		expectedErr error
+	}{
+		{
+			name:        "nil request",
+			req:         nil,
+			setupAuth:   func(ctrl *gomock.Controller) authclient.AuthClient { return NewMockAuthClient(ctrl) },
+			expectedErr: ErrDeleteTaskRequestRequired,
+		},
+		{
+			name: "unauthorized session",
+			req: &DeleteTaskRequest{
+				SessionToken: "bad-token",
+				TaskID:       missingID.String(),
+			},
+			setupAuth: func(ctrl *gomock.Controller) authclient.AuthClient {
+				mockAuth := NewMockAuthClient(ctrl)
+				mockAuth.EXPECT().ValidateSession(gomock.Any(), "bad-token").
+					Return("", authclient.ErrUnauthorized)
+
+				return mockAuth
+			},
+			expectedErr: ErrUnauthorized,
+		},
+		{
+			name: "empty task id",
+			req: &DeleteTaskRequest{
+				SessionToken: "token",
+				TaskID:       "",
+			},
+			setupAuth: func(ctrl *gomock.Controller) authclient.AuthClient {
+				mockAuth := NewMockAuthClient(ctrl)
+				mockAuth.EXPECT().ValidateSession(gomock.Any(), "token").
+					Return(validUserID.String(), nil)
+
+				return mockAuth
+			},
+			expectedErr: ErrTaskIDRequired,
+		},
+		{
+			name: "invalid task id format",
+			req: &DeleteTaskRequest{
+				SessionToken: "token",
+				TaskID:       "invalid-uuid",
+			},
+			setupAuth: func(ctrl *gomock.Controller) authclient.AuthClient {
+				mockAuth := NewMockAuthClient(ctrl)
+				mockAuth.EXPECT().ValidateSession(gomock.Any(), "token").
+					Return(validUserID.String(), nil)
+
+				return mockAuth
+			},
+			expectedErr: domaintask.ErrIDInvalidFormat,
+		},
+		{
+			name: "task not found",
+			req: &DeleteTaskRequest{
+				SessionToken: "token",
+				TaskID:       missingID.String(),
+			},
+			setupAuth: func(ctrl *gomock.Controller) authclient.AuthClient {
+				mockAuth := NewMockAuthClient(ctrl)
+				mockAuth.EXPECT().ValidateSession(gomock.Any(), "token").
+					Return(validUserID.String(), nil)
+
+				return mockAuth
+			},
+			expectedErr: ErrTaskNotFound,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			mockAuth := tt.setupAuth(ctrl)
+			handler := NewDeleteTaskHandler(mockAuth, repo)
+
+			err := handler.DeleteTask(ctx, tt.req)
+			if err == nil {
+				t.Fatalf("expected error %v, got nil", tt.expectedErr)
+			}
+
+			if !errors.Is(err, tt.expectedErr) && err.Error() != tt.expectedErr.Error() {
+				t.Fatalf("expected error %v, got %v", tt.expectedErr, err)
+			}
+		})
+	}
+}
