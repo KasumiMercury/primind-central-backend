@@ -51,8 +51,9 @@ func NewHTTPHandlerWithRepositories(ctx context.Context, repos Repositories) (st
 	createTaskUseCase := apptask.NewCreateTaskHandler(repos.AuthClient, repos.Tasks)
 	getTaskUseCase := apptask.NewGetTaskHandler(repos.AuthClient, repos.Tasks)
 	listActiveTasksUseCase := apptask.NewListActiveTasksHandler(repos.AuthClient, repos.Tasks)
+	updateTaskUseCase := apptask.NewUpdateTaskHandler(repos.AuthClient, repos.Tasks)
 
-	taskService := tasksvc.NewService(createTaskUseCase, getTaskUseCase, listActiveTasksUseCase)
+	taskService := tasksvc.NewService(createTaskUseCase, getTaskUseCase, listActiveTasksUseCase, updateTaskUseCase)
 
 	// Register interceptor for session token extraction
 	taskPath, taskHandler := taskv1connect.NewTaskServiceHandler(

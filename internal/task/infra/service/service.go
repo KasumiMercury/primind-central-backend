@@ -19,6 +19,7 @@ type Service struct {
 	createTask      apptask.CreateTaskUseCase
 	getTask         apptask.GetTaskUseCase
 	listActiveTasks apptask.ListActiveTasksUseCase
+	updateTask      apptask.UpdateTaskUseCase
 	logger          *slog.Logger
 }
 
@@ -28,11 +29,13 @@ func NewService(
 	createTaskUseCase apptask.CreateTaskUseCase,
 	getTaskUseCase apptask.GetTaskUseCase,
 	listActiveTasksUseCase apptask.ListActiveTasksUseCase,
+	updateTaskUseCase apptask.UpdateTaskUseCase,
 ) *Service {
 	return &Service{
 		createTask:      createTaskUseCase,
 		getTask:         getTaskUseCase,
 		listActiveTasks: listActiveTasksUseCase,
+		updateTask:      updateTaskUseCase,
 		logger:          slog.Default().WithGroup("task").WithGroup("service"),
 	}
 }
@@ -311,4 +314,121 @@ func protoSortTypeToString(sortType taskv1.TaskSortType) (domaintask.SortType, e
 	default:
 		return "", errors.New("unsupported sort type")
 	}
+}
+
+func protoTaskStatusToStatus(status taskv1.TaskStatus) (domaintask.Status, error) {
+	switch status {
+	case taskv1.TaskStatus_TASK_STATUS_ACTIVE:
+		return domaintask.StatusActive, nil
+	case taskv1.TaskStatus_TASK_STATUS_COMPLETED:
+		return domaintask.StatusCompleted, nil
+	case taskv1.TaskStatus_TASK_STATUS_UNSPECIFIED:
+		return "", errors.New("task status is required")
+	default:
+		return "", errors.New("unsupported task status")
+	}
+}
+
+func (s *Service) UpdateTask(
+	ctx context.Context,
+	req *taskv1.UpdateTaskRequest,
+) (*taskv1.UpdateTaskResponse, error) {
+	token := extractSessionTokenFromContext(ctx)
+	if token == "" {
+		s.logger.Warn("update task called without session token")
+
+		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("session token required"))
+	}
+
+	var updateMask []string
+	if req.GetUpdateMask() != nil {
+		updateMask = req.GetUpdateMask().GetPaths()
+	}
+
+	useCaseReq := &apptask.UpdateTaskRequest{
+		SessionToken: token,
+		TaskID:       req.GetTaskId(),
+		UpdateMask:   updateMask,
+	}
+
+	for _, path := range updateMask {
+		switch path {
+		case "task_status":
+			status, err := protoTaskStatusToStatus(req.GetTaskStatus())
+			if err == nil {
+				useCaseReq.TaskStatus = &status
+			}
+		case "title":
+			title := req.GetTitle()
+			useCaseReq.Title = &title
+		case "description":
+			desc := req.GetDescription()
+			useCaseReq.Description = &desc
+		case "scheduled_at":
+			if req.ScheduledAt == nil {
+				useCaseReq.ClearScheduledAt = true
+			} else {
+				scheduledAt := req.GetScheduledAt().AsTime()
+				useCaseReq.ScheduledAt = &scheduledAt
+			}
+		case "color":
+			color := req.GetColor()
+			useCaseReq.Color = &color
+		}
+	}
+
+	result, err := s.updateTask.UpdateTask(ctx, useCaseReq)
+	if err != nil {
+		switch {
+		case errors.Is(err, apptask.ErrUnauthorized):
+			s.logger.Info("unauthorized update task attempt")
+
+			return nil, connect.NewError(connect.CodeUnauthenticated, err)
+		case errors.Is(err, apptask.ErrTaskNotFound):
+			s.logger.Info("task not found", slog.String("task_id", req.GetTaskId()))
+
+			return nil, connect.NewError(connect.CodeNotFound, err)
+		case errors.Is(err, apptask.ErrTaskIDRequired),
+			errors.Is(err, domaintask.ErrIDInvalidFormat),
+			errors.Is(err, domaintask.ErrIDInvalidV7),
+			errors.Is(err, domaintask.ErrTitleTooLong),
+			errors.Is(err, domaintask.ErrScheduledAtRequired),
+			errors.Is(err, domaintask.ErrScheduledAtNotAllowed),
+			errors.Is(err, domaintask.ErrScheduledAtBeforeCreatedAt),
+			errors.Is(err, domaintask.ErrColorEmpty),
+			errors.Is(err, domaintask.ErrColorInvalidFormat),
+			errors.Is(err, domaintask.ErrNoFieldsToUpdate),
+			errors.Is(err, domaintask.ErrInvalidUpdateField),
+			errors.Is(err, domaintask.ErrInvalidTaskStatus):
+			s.logger.Warn("invalid update task request", slog.String("error", err.Error()))
+
+			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		default:
+			s.logger.Error("unexpected update task error", slog.String("error", err.Error()))
+
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
+	}
+
+	s.logger.Info("task updated", slog.String("task_id", result.TaskID))
+
+	return &taskv1.UpdateTaskResponse{
+		Task: &taskv1.Task{
+			TaskId:      result.TaskID,
+			Title:       result.Title,
+			TaskType:    stringToProtoTaskType(string(result.TaskType)),
+			TaskStatus:  stringToProtoTaskStatus(string(result.TaskStatus)),
+			Description: result.Description,
+			ScheduledAt: func() *timestamppb.Timestamp {
+				if result.ScheduledAt != nil {
+					return timestamppb.New(*result.ScheduledAt)
+				}
+
+				return nil
+			}(),
+			CreatedAt: timestamppb.New(result.CreatedAt),
+			TargetAt:  timestamppb.New(result.TargetAt),
+			Color:     result.Color,
+		},
+	}, nil
 }
