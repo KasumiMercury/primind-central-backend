@@ -850,3 +850,376 @@ func TestListActiveTasksError(t *testing.T) {
 		})
 	}
 }
+
+func TestUpdateTaskSuccess(t *testing.T) {
+	repo := setupTaskRepository(t)
+	ctx := context.Background()
+
+	userID, err := domainuser.NewID()
+	if err != nil {
+		t.Fatalf("failed to generate user id: %v", err)
+	}
+
+	now := time.Now().UTC().Truncate(time.Microsecond)
+	scheduled := now.Add(2 * time.Hour)
+	validColor := domaintask.MustColor("#FF6B6B")
+
+	// Create a normal task
+	normalTask := createPersistedTask(t, repo, userID, "Original Title", domaintask.TypeNormal, "Original Description", nil, now, validColor)
+
+	// Create a scheduled task
+	scheduledTask := createPersistedTask(t, repo, userID, "Scheduled Task", domaintask.TypeScheduled, "Scheduled Description", &scheduled, now, validColor)
+
+	tests := []struct {
+		name          string
+		taskID        string
+		req           UpdateTaskRequest
+		expectedTitle string
+		expectedDesc  string
+	}{
+		{
+			name:   "update task_status only",
+			taskID: normalTask.ID().String(),
+			req: func() UpdateTaskRequest {
+				status := domaintask.StatusCompleted
+				return UpdateTaskRequest{
+					SessionToken: "token",
+					TaskID:       normalTask.ID().String(),
+					UpdateMask:   []string{"task_status"},
+					TaskStatus:   &status,
+				}
+			}(),
+			expectedTitle: "Original Title",
+			expectedDesc:  "Original Description",
+		},
+		{
+			name:   "update title only",
+			taskID: normalTask.ID().String(),
+			req: func() UpdateTaskRequest {
+				title := "Updated Title"
+				return UpdateTaskRequest{
+					SessionToken: "token",
+					TaskID:       normalTask.ID().String(),
+					UpdateMask:   []string{"title"},
+					Title:        &title,
+				}
+			}(),
+			expectedTitle: "Updated Title",
+			expectedDesc:  "Original Description",
+		},
+		{
+			name:   "update description only",
+			taskID: normalTask.ID().String(),
+			req: func() UpdateTaskRequest {
+				desc := "Updated Description"
+				return UpdateTaskRequest{
+					SessionToken: "token",
+					TaskID:       normalTask.ID().String(),
+					UpdateMask:   []string{"description"},
+					Description:  &desc,
+				}
+			}(),
+			expectedTitle: "Updated Title",
+			expectedDesc:  "Updated Description",
+		},
+		{
+			name:   "update color only",
+			taskID: normalTask.ID().String(),
+			req: func() UpdateTaskRequest {
+				color := "#4ECDC4"
+				return UpdateTaskRequest{
+					SessionToken: "token",
+					TaskID:       normalTask.ID().String(),
+					UpdateMask:   []string{"color"},
+					Color:        &color,
+				}
+			}(),
+			expectedTitle: "Updated Title",
+			expectedDesc:  "Updated Description",
+		},
+		{
+			name:   "update scheduled_at for SCHEDULED task",
+			taskID: scheduledTask.ID().String(),
+			req: func() UpdateTaskRequest {
+				newScheduled := now.Add(4 * time.Hour)
+				return UpdateTaskRequest{
+					SessionToken: "token",
+					TaskID:       scheduledTask.ID().String(),
+					UpdateMask:   []string{"scheduled_at"},
+					ScheduledAt:  &newScheduled,
+				}
+			}(),
+			expectedTitle: "Scheduled Task",
+			expectedDesc:  "Scheduled Description",
+		},
+		{
+			name:   "update multiple fields",
+			taskID: normalTask.ID().String(),
+			req: func() UpdateTaskRequest {
+				title := "Multi Update Title"
+				desc := "Multi Update Desc"
+				color := "#45B7D1"
+				return UpdateTaskRequest{
+					SessionToken: "token",
+					TaskID:       normalTask.ID().String(),
+					UpdateMask:   []string{"title", "description", "color"},
+					Title:        &title,
+					Description:  &desc,
+					Color:        &color,
+				}
+			}(),
+			expectedTitle: "Multi Update Title",
+			expectedDesc:  "Multi Update Desc",
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			mockAuth := NewMockAuthClient(ctrl)
+			mockAuth.EXPECT().ValidateSession(gomock.Any(), tt.req.SessionToken).
+				Return(userID.String(), nil)
+
+			handler := NewUpdateTaskHandler(mockAuth, repo)
+
+			resp, err := handler.UpdateTask(ctx, &tt.req)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if resp == nil {
+				t.Fatalf("expected response, got nil")
+			}
+
+			if resp.TaskID != tt.taskID {
+				t.Fatalf("expected task id %s, got %s", tt.taskID, resp.TaskID)
+			}
+
+			if resp.Title != tt.expectedTitle {
+				t.Fatalf("expected title %q, got %q", tt.expectedTitle, resp.Title)
+			}
+
+			if resp.Description != tt.expectedDesc {
+				t.Fatalf("expected description %q, got %q", tt.expectedDesc, resp.Description)
+			}
+		})
+	}
+}
+
+func TestUpdateTaskError(t *testing.T) {
+	repo := setupTaskRepository(t)
+	ctx := context.Background()
+
+	validUserID, err := domainuser.NewID()
+	if err != nil {
+		t.Fatalf("failed to generate user id: %v", err)
+	}
+
+	now := time.Now().UTC().Truncate(time.Microsecond)
+	validColor := domaintask.MustColor("#FF6B6B")
+
+	// Create a normal task for testing
+	normalTask := createPersistedTask(t, repo, validUserID, "Test Task", domaintask.TypeNormal, "", nil, now, validColor)
+
+	missingID, err := domaintask.NewID()
+	if err != nil {
+		t.Fatalf("failed to generate id: %v", err)
+	}
+
+	tests := []struct {
+		name        string
+		req         *UpdateTaskRequest
+		setupAuth   func(ctrl *gomock.Controller) authclient.AuthClient
+		expectedErr error
+	}{
+		{
+			name:        "nil request",
+			req:         nil,
+			setupAuth:   func(ctrl *gomock.Controller) authclient.AuthClient { return NewMockAuthClient(ctrl) },
+			expectedErr: ErrUpdateTaskRequestRequired,
+		},
+		{
+			name: "unauthorized session",
+			req: &UpdateTaskRequest{
+				SessionToken: "invalid-token",
+				TaskID:       normalTask.ID().String(),
+				UpdateMask:   []string{"title"},
+			},
+			setupAuth: func(ctrl *gomock.Controller) authclient.AuthClient {
+				mockAuth := NewMockAuthClient(ctrl)
+				mockAuth.EXPECT().ValidateSession(gomock.Any(), "invalid-token").
+					Return("", authclient.ErrUnauthorized)
+
+				return mockAuth
+			},
+			expectedErr: ErrUnauthorized,
+		},
+		{
+			name: "empty task id",
+			req: &UpdateTaskRequest{
+				SessionToken: "token",
+				TaskID:       "",
+				UpdateMask:   []string{"title"},
+			},
+			setupAuth: func(ctrl *gomock.Controller) authclient.AuthClient {
+				mockAuth := NewMockAuthClient(ctrl)
+				mockAuth.EXPECT().ValidateSession(gomock.Any(), "token").
+					Return(validUserID.String(), nil)
+
+				return mockAuth
+			},
+			expectedErr: ErrTaskIDRequired,
+		},
+		{
+			name: "invalid task id format",
+			req: &UpdateTaskRequest{
+				SessionToken: "token",
+				TaskID:       "invalid-uuid",
+				UpdateMask:   []string{"title"},
+			},
+			setupAuth: func(ctrl *gomock.Controller) authclient.AuthClient {
+				mockAuth := NewMockAuthClient(ctrl)
+				mockAuth.EXPECT().ValidateSession(gomock.Any(), "token").
+					Return(validUserID.String(), nil)
+
+				return mockAuth
+			},
+			expectedErr: domaintask.ErrIDInvalidFormat,
+		},
+		{
+			name: "task not found",
+			req: &UpdateTaskRequest{
+				SessionToken: "token",
+				TaskID:       missingID.String(),
+				UpdateMask:   []string{"title"},
+			},
+			setupAuth: func(ctrl *gomock.Controller) authclient.AuthClient {
+				mockAuth := NewMockAuthClient(ctrl)
+				mockAuth.EXPECT().ValidateSession(gomock.Any(), "token").
+					Return(validUserID.String(), nil)
+
+				return mockAuth
+			},
+			expectedErr: ErrTaskNotFound,
+		},
+		{
+			name: "empty update mask",
+			req: &UpdateTaskRequest{
+				SessionToken: "token",
+				TaskID:       normalTask.ID().String(),
+				UpdateMask:   []string{},
+			},
+			setupAuth: func(ctrl *gomock.Controller) authclient.AuthClient {
+				mockAuth := NewMockAuthClient(ctrl)
+				mockAuth.EXPECT().ValidateSession(gomock.Any(), "token").
+					Return(validUserID.String(), nil)
+
+				return mockAuth
+			},
+			expectedErr: domaintask.ErrNoFieldsToUpdate,
+		},
+		{
+			name: "invalid field in update mask",
+			req: &UpdateTaskRequest{
+				SessionToken: "token",
+				TaskID:       normalTask.ID().String(),
+				UpdateMask:   []string{"task_type"},
+			},
+			setupAuth: func(ctrl *gomock.Controller) authclient.AuthClient {
+				mockAuth := NewMockAuthClient(ctrl)
+				mockAuth.EXPECT().ValidateSession(gomock.Any(), "token").
+					Return(validUserID.String(), nil)
+
+				return mockAuth
+			},
+			expectedErr: domaintask.ErrInvalidUpdateField,
+		},
+		{
+			name: "title too long",
+			req: func() *UpdateTaskRequest {
+				longTitle := make([]byte, 501)
+				for i := range longTitle {
+					longTitle[i] = 'a'
+				}
+				title := string(longTitle)
+				return &UpdateTaskRequest{
+					SessionToken: "token",
+					TaskID:       normalTask.ID().String(),
+					UpdateMask:   []string{"title"},
+					Title:        &title,
+				}
+			}(),
+			setupAuth: func(ctrl *gomock.Controller) authclient.AuthClient {
+				mockAuth := NewMockAuthClient(ctrl)
+				mockAuth.EXPECT().ValidateSession(gomock.Any(), "token").
+					Return(validUserID.String(), nil)
+
+				return mockAuth
+			},
+			expectedErr: domaintask.ErrTitleTooLong,
+		},
+		{
+			name: "scheduled_at on non-SCHEDULED task",
+			req: func() *UpdateTaskRequest {
+				scheduledAt := time.Now().Add(1 * time.Hour)
+				return &UpdateTaskRequest{
+					SessionToken: "token",
+					TaskID:       normalTask.ID().String(),
+					UpdateMask:   []string{"scheduled_at"},
+					ScheduledAt:  &scheduledAt,
+				}
+			}(),
+			setupAuth: func(ctrl *gomock.Controller) authclient.AuthClient {
+				mockAuth := NewMockAuthClient(ctrl)
+				mockAuth.EXPECT().ValidateSession(gomock.Any(), "token").
+					Return(validUserID.String(), nil)
+
+				return mockAuth
+			},
+			expectedErr: domaintask.ErrScheduledAtNotAllowed,
+		},
+		{
+			name: "invalid color format",
+			req: func() *UpdateTaskRequest {
+				color := "#FFF"
+				return &UpdateTaskRequest{
+					SessionToken: "token",
+					TaskID:       normalTask.ID().String(),
+					UpdateMask:   []string{"color"},
+					Color:        &color,
+				}
+			}(),
+			setupAuth: func(ctrl *gomock.Controller) authclient.AuthClient {
+				mockAuth := NewMockAuthClient(ctrl)
+				mockAuth.EXPECT().ValidateSession(gomock.Any(), "token").
+					Return(validUserID.String(), nil)
+
+				return mockAuth
+			},
+			expectedErr: domaintask.ErrColorInvalidFormat,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			mockAuth := tt.setupAuth(ctrl)
+			handler := NewUpdateTaskHandler(mockAuth, repo)
+
+			_, err := handler.UpdateTask(ctx, tt.req)
+			if err == nil {
+				t.Fatalf("expected error %v, got nil", tt.expectedErr)
+			}
+
+			if !errors.Is(err, tt.expectedErr) && !containsError(err, tt.expectedErr) {
+				t.Fatalf("expected error %v, got %v", tt.expectedErr, err)
+			}
+		})
+	}
+}
+
+func containsError(err, target error) bool {
+	return err != nil && target != nil && (errors.Is(err, target) || (err.Error() != "" && target.Error() != "" && (err.Error() == target.Error() || len(err.Error()) > len(target.Error()) && err.Error()[:len(target.Error())] == target.Error())))
+}
