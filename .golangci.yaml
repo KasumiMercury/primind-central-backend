@@ -35,6 +35,8 @@ linters:
                 - 'gorm\.io/gorm/clause\.Locking'
                 - 'gorm\.io/gorm/clause\.Column'
                 - '.*repository\..*Model'
+                - '.*task\.TaskUpdateInput'
+                - '.*app/task\.UpdateTaskRequest'
         wsl_v5:
             allow-first-in-block: true
             allow-whole-block: false

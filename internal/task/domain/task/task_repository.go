@@ -11,4 +11,5 @@ type TaskRepository interface {
 	GetTaskByID(ctx context.Context, id ID, userID user.ID) (*Task, error)
 	ExistsTaskByID(ctx context.Context, id ID) (bool, error)
 	ListActiveTasksByUserID(ctx context.Context, userID user.ID, sortType SortType) ([]*Task, error)
+	UpdateTask(ctx context.Context, task *Task) error
 }

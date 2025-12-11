@@ -331,3 +331,196 @@ func (h *listActiveTasksHandler) ListActiveTasks(ctx context.Context, req *ListA
 
 	return result, nil
 }
+
+type UpdateTaskRequest struct {
+	SessionToken     string
+	TaskID           string
+	UpdateMask       []string
+	TaskStatus       *domaintask.Status
+	Title            *string
+	Description      *string
+	ScheduledAt      *time.Time
+	ClearScheduledAt bool
+	Color            *string
+}
+
+type UpdateTaskResult struct {
+	TaskID      string
+	Title       string
+	TaskType    domaintask.Type
+	TaskStatus  domaintask.Status
+	Description string
+	ScheduledAt *time.Time
+	CreatedAt   time.Time
+	TargetAt    time.Time
+	Color       string
+}
+
+type UpdateTaskUseCase interface {
+	UpdateTask(ctx context.Context, req *UpdateTaskRequest) (*UpdateTaskResult, error)
+}
+
+type updateTaskHandler struct {
+	authClient authclient.AuthClient
+	taskRepo   domaintask.TaskRepository
+	logger     *slog.Logger
+}
+
+func NewUpdateTaskHandler(
+	authClient authclient.AuthClient,
+	taskRepo domaintask.TaskRepository,
+) UpdateTaskUseCase {
+	return &updateTaskHandler{
+		authClient: authClient,
+		taskRepo:   taskRepo,
+		logger:     slog.Default().WithGroup("task").WithGroup("updatetask"),
+	}
+}
+
+func (h *updateTaskHandler) UpdateTask(ctx context.Context, req *UpdateTaskRequest) (*UpdateTaskResult, error) {
+	if req == nil {
+		return nil, ErrUpdateTaskRequestRequired
+	}
+
+	userIDstr, err := h.authClient.ValidateSession(ctx, req.SessionToken)
+	if err != nil {
+		h.logger.Info("session validation failed", slog.String("error", err.Error()))
+
+		return nil, fmt.Errorf("%w: %s", ErrUnauthorized, err.Error())
+	}
+
+	userID, err := domainuser.NewIDFromString(userIDstr)
+	if err != nil {
+		h.logger.Warn("invalid user ID format", slog.String("error", err.Error()))
+
+		return nil, err
+	}
+
+	if req.TaskID == "" {
+		return nil, ErrTaskIDRequired
+	}
+
+	taskID, err := domaintask.NewIDFromString(req.TaskID)
+	if err != nil {
+		h.logger.Warn("invalid task ID format", slog.String("error", err.Error()))
+
+		return nil, err
+	}
+
+	if len(req.UpdateMask) == 0 {
+		return nil, domaintask.ErrNoFieldsToUpdate
+	}
+
+	updateInput, err := h.buildUpdateInput(req)
+	if err != nil {
+		return nil, err
+	}
+
+	existingTask, err := h.taskRepo.GetTaskByID(ctx, taskID, userID)
+	if err != nil {
+		if errors.Is(err, domaintask.ErrTaskNotFound) {
+			h.logger.Info("task not found", slog.String("task_id", req.TaskID))
+
+			return nil, ErrTaskNotFound
+		}
+
+		h.logger.Error("failed to get task", slog.String("error", err.Error()))
+
+		return nil, err
+	}
+
+	if err := h.validateScheduledAtConstraint(existingTask, updateInput); err != nil {
+		h.logger.Warn("scheduled_at validation failed", slog.String("error", err.Error()))
+
+		return nil, err
+	}
+
+	updatedTask, err := existingTask.ApplyUpdate(updateInput)
+	if err != nil {
+		h.logger.Warn("failed to apply update", slog.String("error", err.Error()))
+
+		return nil, err
+	}
+
+	if err := h.taskRepo.UpdateTask(ctx, updatedTask); err != nil {
+		h.logger.Error("failed to update task", slog.String("error", err.Error()))
+
+		return nil, err
+	}
+
+	h.logger.Info("task updated successfully", slog.String("task_id", updatedTask.ID().String()))
+
+	return &UpdateTaskResult{
+		TaskID:      updatedTask.ID().String(),
+		Title:       updatedTask.Title(),
+		TaskType:    updatedTask.TaskType(),
+		TaskStatus:  updatedTask.TaskStatus(),
+		Description: updatedTask.Description(),
+		ScheduledAt: updatedTask.ScheduledAt(),
+		CreatedAt:   updatedTask.CreatedAt(),
+		TargetAt:    updatedTask.TargetAt(),
+		Color:       updatedTask.Color().String(),
+	}, nil
+}
+
+func (h *updateTaskHandler) buildUpdateInput(req *UpdateTaskRequest) (*domaintask.TaskUpdateInput, error) {
+	input := &domaintask.TaskUpdateInput{}
+
+	validFields := map[string]bool{
+		"task_status":  true,
+		"title":        true,
+		"description":  true,
+		"scheduled_at": true,
+		"color":        true,
+	}
+
+	for _, field := range req.UpdateMask {
+		if !validFields[field] {
+			return nil, fmt.Errorf("%w: %s", domaintask.ErrInvalidUpdateField, field)
+		}
+
+		switch field {
+		case "task_status":
+			if req.TaskStatus != nil {
+				input.TaskStatus = req.TaskStatus
+			}
+		case "title":
+			if req.Title != nil {
+				input.Title = req.Title
+			}
+		case "description":
+			if req.Description != nil {
+				input.Description = req.Description
+			}
+		case "scheduled_at":
+			if req.ClearScheduledAt {
+				input.ClearScheduledAt = true
+			} else if req.ScheduledAt != nil {
+				input.ScheduledAt = req.ScheduledAt
+			}
+		case "color":
+			if req.Color != nil {
+				color, err := domaintask.NewColor(*req.Color)
+				if err != nil {
+					return nil, err
+				}
+
+				input.Color = &color
+			}
+		}
+	}
+
+	return input, nil
+}
+
+func (h *updateTaskHandler) validateScheduledAtConstraint(task *domaintask.Task, input *domaintask.TaskUpdateInput) error {
+	if input.ScheduledAt == nil && !input.ClearScheduledAt {
+		return nil
+	}
+
+	if task.TaskType() != domaintask.TypeScheduled {
+		return domaintask.ErrScheduledAtNotAllowed
+	}
+
+	return nil
+}

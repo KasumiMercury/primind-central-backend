@@ -19,4 +19,6 @@ var (
 	ErrColorInvalidFormat         = errors.New("color must be in #RRGGBB hex format")
 	ErrTaskNotFound               = errors.New("task not found")
 	ErrInvalidSortType            = errors.New("invalid sort type")
+	ErrNoFieldsToUpdate           = errors.New("at least one field must be specified for update")
+	ErrInvalidUpdateField         = errors.New("invalid field in update mask")
 )

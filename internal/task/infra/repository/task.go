@@ -157,3 +157,36 @@ func (r *taskRepository) ListActiveTasksByUserID(ctx context.Context, userID dom
 
 	return tasks, nil
 }
+
+func (r *taskRepository) UpdateTask(ctx context.Context, task *domaintask.Task) error {
+	if task == nil {
+		return ErrTaskRequired
+	}
+
+	var scheduledAt *time.Time
+	if task.ScheduledAt() != nil {
+		scheduledAt = task.ScheduledAt()
+	}
+
+	result := r.db.WithContext(ctx).
+		Model(&TaskModel{}).
+		Where("id = ? AND user_id = ?", task.ID().String(), task.UserID().String()).
+		Updates(map[string]any{
+			"task_status":  string(task.TaskStatus()),
+			"title":        task.Title(),
+			"description":  task.Description(),
+			"scheduled_at": scheduledAt,
+			"target_at":    task.TargetAt(),
+			"color":        task.Color().String(),
+		})
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return domaintask.ErrTaskNotFound
+	}
+
+	return nil
+}

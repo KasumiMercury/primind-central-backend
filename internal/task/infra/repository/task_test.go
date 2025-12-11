@@ -617,3 +617,246 @@ func TestListActiveTasksByUserID(t *testing.T) {
 		}
 	})
 }
+
+func TestUpdateTask(t *testing.T) {
+	db := setupTaskDB(t)
+	repo := NewTaskRepository(db)
+	ctx := context.Background()
+
+	userID, err := domainuser.NewID()
+	if err != nil {
+		t.Fatalf("failed to create user ID: %v", err)
+	}
+
+	now := time.Now().UTC().Truncate(time.Microsecond)
+	targetAt := now.Add(1 * time.Hour)
+
+	t.Run("update task successfully", func(t *testing.T) {
+		taskID := domaintask.ID(uuid.Must(uuid.NewV7()))
+
+		task, err := domaintask.NewTask(
+			taskID,
+			userID,
+			"Original Title",
+			"normal",
+			"active",
+			"Original Description",
+			nil,
+			now,
+			targetAt,
+			domaintask.MustColor("#FF6B6B"),
+		)
+		if err != nil {
+			t.Fatalf("failed to create task: %v", err)
+		}
+
+		if err := repo.SaveTask(ctx, task); err != nil {
+			t.Fatalf("failed to save task: %v", err)
+		}
+
+		// Create updated task
+		updatedTask, err := domaintask.NewTask(
+			taskID,
+			userID,
+			"Updated Title",
+			"normal",
+			"completed",
+			"Updated Description",
+			nil,
+			now,
+			targetAt,
+			domaintask.MustColor("#4ECDC4"),
+		)
+		if err != nil {
+			t.Fatalf("failed to create updated task: %v", err)
+		}
+
+		if err := repo.UpdateTask(ctx, updatedTask); err != nil {
+			t.Fatalf("failed to update task: %v", err)
+		}
+
+		// Verify the update
+		retrieved, err := repo.GetTaskByID(ctx, taskID, userID)
+		if err != nil {
+			t.Fatalf("failed to retrieve updated task: %v", err)
+		}
+
+		if retrieved.Title() != "Updated Title" {
+			t.Errorf("expected title 'Updated Title', got '%s'", retrieved.Title())
+		}
+
+		if retrieved.TaskStatus() != domaintask.StatusCompleted {
+			t.Errorf("expected status 'completed', got '%s'", retrieved.TaskStatus())
+		}
+
+		if retrieved.Description() != "Updated Description" {
+			t.Errorf("expected description 'Updated Description', got '%s'", retrieved.Description())
+		}
+
+		if retrieved.Color().String() != "#4ECDC4" {
+			t.Errorf("expected color '#4ECDC4', got '%s'", retrieved.Color().String())
+		}
+	})
+
+	t.Run("update non-existent task returns ErrTaskNotFound", func(t *testing.T) {
+		nonExistentID := domaintask.ID(uuid.Must(uuid.NewV7()))
+
+		task, err := domaintask.NewTask(
+			nonExistentID,
+			userID,
+			"Non-existent Task",
+			"normal",
+			"active",
+			"",
+			nil,
+			now,
+			targetAt,
+			domaintask.MustColor("#FF6B6B"),
+		)
+		if err != nil {
+			t.Fatalf("failed to create task: %v", err)
+		}
+
+		err = repo.UpdateTask(ctx, task)
+		if !errors.Is(err, domaintask.ErrTaskNotFound) {
+			t.Fatalf("expected ErrTaskNotFound, got %v", err)
+		}
+	})
+
+	t.Run("update with nil task returns ErrTaskRequired", func(t *testing.T) {
+		err := repo.UpdateTask(ctx, nil)
+		if !errors.Is(err, ErrTaskRequired) {
+			t.Fatalf("expected ErrTaskRequired, got %v", err)
+		}
+	})
+
+	t.Run("user isolation - cannot update other user's task", func(t *testing.T) {
+		otherUserID, err := domainuser.NewID()
+		if err != nil {
+			t.Fatalf("failed to create other user ID: %v", err)
+		}
+
+		taskID := domaintask.ID(uuid.Must(uuid.NewV7()))
+
+		// Create task owned by userID
+		task, err := domaintask.NewTask(
+			taskID,
+			userID,
+			"User1's Task",
+			"normal",
+			"active",
+			"",
+			nil,
+			now,
+			targetAt,
+			domaintask.MustColor("#FF6B6B"),
+		)
+		if err != nil {
+			t.Fatalf("failed to create task: %v", err)
+		}
+
+		if err := repo.SaveTask(ctx, task); err != nil {
+			t.Fatalf("failed to save task: %v", err)
+		}
+
+		// Try to update with otherUserID
+		maliciousUpdate, err := domaintask.NewTask(
+			taskID,
+			otherUserID, // Different user
+			"Malicious Update",
+			"normal",
+			"active",
+			"",
+			nil,
+			now,
+			targetAt,
+			domaintask.MustColor("#FF6B6B"),
+		)
+		if err != nil {
+			t.Fatalf("failed to create malicious update task: %v", err)
+		}
+
+		err = repo.UpdateTask(ctx, maliciousUpdate)
+		if !errors.Is(err, domaintask.ErrTaskNotFound) {
+			t.Fatalf("expected ErrTaskNotFound for user isolation, got %v", err)
+		}
+
+		// Verify original task is unchanged
+		original, err := repo.GetTaskByID(ctx, taskID, userID)
+		if err != nil {
+			t.Fatalf("failed to retrieve original task: %v", err)
+		}
+
+		if original.Title() != "User1's Task" {
+			t.Errorf("expected original title unchanged, got '%s'", original.Title())
+		}
+	})
+
+	t.Run("update scheduled task with new scheduled_at", func(t *testing.T) {
+		taskID := domaintask.ID(uuid.Must(uuid.NewV7()))
+		scheduledAt := now.Add(2 * time.Hour)
+		scheduledTargetAt := scheduledAt
+
+		task, err := domaintask.NewTask(
+			taskID,
+			userID,
+			"Scheduled Task",
+			"scheduled",
+			"active",
+			"",
+			&scheduledAt,
+			now,
+			scheduledTargetAt,
+			domaintask.MustColor("#FF6B6B"),
+		)
+		if err != nil {
+			t.Fatalf("failed to create scheduled task: %v", err)
+		}
+
+		if err := repo.SaveTask(ctx, task); err != nil {
+			t.Fatalf("failed to save scheduled task: %v", err)
+		}
+
+		// Update with new scheduled_at
+		newScheduledAt := now.Add(4 * time.Hour)
+		newTargetAt := newScheduledAt
+
+		updatedTask, err := domaintask.NewTask(
+			taskID,
+			userID,
+			"Scheduled Task",
+			"scheduled",
+			"active",
+			"",
+			&newScheduledAt,
+			now,
+			newTargetAt,
+			domaintask.MustColor("#FF6B6B"),
+		)
+		if err != nil {
+			t.Fatalf("failed to create updated scheduled task: %v", err)
+		}
+
+		if err := repo.UpdateTask(ctx, updatedTask); err != nil {
+			t.Fatalf("failed to update scheduled task: %v", err)
+		}
+
+		// Verify the update
+		retrieved, err := repo.GetTaskByID(ctx, taskID, userID)
+		if err != nil {
+			t.Fatalf("failed to retrieve updated scheduled task: %v", err)
+		}
+
+		if retrieved.ScheduledAt() == nil {
+			t.Fatalf("expected scheduled_at to be set, got nil")
+		}
+
+		if !retrieved.ScheduledAt().Equal(newScheduledAt) {
+			t.Errorf("expected scheduled_at %v, got %v", newScheduledAt, retrieved.ScheduledAt())
+		}
+
+		if !retrieved.TargetAt().Equal(newTargetAt) {
+			t.Errorf("expected target_at %v, got %v", newTargetAt, retrieved.TargetAt())
+		}
+	})
+}

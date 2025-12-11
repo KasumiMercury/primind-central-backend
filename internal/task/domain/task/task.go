@@ -229,3 +229,73 @@ func (t *Task) TargetAt() time.Time {
 func (t *Task) Color() Color {
 	return t.color
 }
+
+type TaskUpdateInput struct {
+	TaskStatus       *Status
+	Title            *string
+	Description      *string
+	ScheduledAt      *time.Time
+	ClearScheduledAt bool
+	Color            *Color
+}
+
+func (u *TaskUpdateInput) HasUpdates() bool {
+	return u.TaskStatus != nil ||
+		u.Title != nil ||
+		u.Description != nil ||
+		u.ScheduledAt != nil ||
+		u.ClearScheduledAt ||
+		u.Color != nil
+}
+
+func (t *Task) ApplyUpdate(input *TaskUpdateInput) (*Task, error) {
+	if input == nil || !input.HasUpdates() {
+		return nil, ErrNoFieldsToUpdate
+	}
+
+	newStatus := t.taskStatus
+	newTitle := t.title
+	newDescription := t.description
+	newScheduledAt := t.scheduledAt
+	newColor := t.color
+	newTargetAt := t.targetAt
+
+	if input.TaskStatus != nil {
+		newStatus = *input.TaskStatus
+	}
+
+	if input.Title != nil {
+		newTitle = *input.Title
+	}
+
+	if input.Description != nil {
+		newDescription = *input.Description
+	}
+
+	if input.ClearScheduledAt {
+		newScheduledAt = nil
+	} else if input.ScheduledAt != nil {
+		newScheduledAt = input.ScheduledAt
+	}
+
+	if input.Color != nil {
+		newColor = *input.Color
+	}
+
+	if t.taskType == TypeScheduled && newScheduledAt != nil {
+		newTargetAt = *newScheduledAt
+	}
+
+	return NewTask(
+		t.id,
+		t.userID,
+		newTitle,
+		t.taskType,
+		newStatus,
+		newDescription,
+		newScheduledAt,
+		t.createdAt,
+		newTargetAt,
+		newColor,
+	)
+}
