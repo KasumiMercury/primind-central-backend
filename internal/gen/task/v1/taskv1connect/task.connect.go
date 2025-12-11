@@ -42,6 +42,8 @@ const (
 	TaskServiceListActiveTasksProcedure = "/task.v1.TaskService/ListActiveTasks"
 	// TaskServiceUpdateTaskProcedure is the fully-qualified name of the TaskService's UpdateTask RPC.
 	TaskServiceUpdateTaskProcedure = "/task.v1.TaskService/UpdateTask"
+	// TaskServiceDeleteTaskProcedure is the fully-qualified name of the TaskService's DeleteTask RPC.
+	TaskServiceDeleteTaskProcedure = "/task.v1.TaskService/DeleteTask"
 )
 
 // TaskServiceClient is a client for the task.v1.TaskService service.
@@ -50,6 +52,7 @@ type TaskServiceClient interface {
 	GetTask(context.Context, *v1.GetTaskRequest) (*v1.GetTaskResponse, error)
 	ListActiveTasks(context.Context, *v1.ListActiveTasksRequest) (*v1.ListActiveTasksResponse, error)
 	UpdateTask(context.Context, *v1.UpdateTaskRequest) (*v1.UpdateTaskResponse, error)
+	DeleteTask(context.Context, *v1.DeleteTaskRequest) (*v1.DeleteTaskResponse, error)
 }
 
 // NewTaskServiceClient constructs a client for the task.v1.TaskService service. By default, it uses
@@ -87,6 +90,12 @@ func NewTaskServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(taskServiceMethods.ByName("UpdateTask")),
 			connect.WithClientOptions(opts...),
 		),
+		deleteTask: connect.NewClient[v1.DeleteTaskRequest, v1.DeleteTaskResponse](
+			httpClient,
+			baseURL+TaskServiceDeleteTaskProcedure,
+			connect.WithSchema(taskServiceMethods.ByName("DeleteTask")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -96,6 +105,7 @@ type taskServiceClient struct {
 	getTask         *connect.Client[v1.GetTaskRequest, v1.GetTaskResponse]
 	listActiveTasks *connect.Client[v1.ListActiveTasksRequest, v1.ListActiveTasksResponse]
 	updateTask      *connect.Client[v1.UpdateTaskRequest, v1.UpdateTaskResponse]
+	deleteTask      *connect.Client[v1.DeleteTaskRequest, v1.DeleteTaskResponse]
 }
 
 // CreateTask calls task.v1.TaskService.CreateTask.
@@ -134,12 +144,22 @@ func (c *taskServiceClient) UpdateTask(ctx context.Context, req *v1.UpdateTaskRe
 	return nil, err
 }
 
+// DeleteTask calls task.v1.TaskService.DeleteTask.
+func (c *taskServiceClient) DeleteTask(ctx context.Context, req *v1.DeleteTaskRequest) (*v1.DeleteTaskResponse, error) {
+	response, err := c.deleteTask.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // TaskServiceHandler is an implementation of the task.v1.TaskService service.
 type TaskServiceHandler interface {
 	CreateTask(context.Context, *v1.CreateTaskRequest) (*v1.CreateTaskResponse, error)
 	GetTask(context.Context, *v1.GetTaskRequest) (*v1.GetTaskResponse, error)
 	ListActiveTasks(context.Context, *v1.ListActiveTasksRequest) (*v1.ListActiveTasksResponse, error)
 	UpdateTask(context.Context, *v1.UpdateTaskRequest) (*v1.UpdateTaskResponse, error)
+	DeleteTask(context.Context, *v1.DeleteTaskRequest) (*v1.DeleteTaskResponse, error)
 }
 
 // NewTaskServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -173,6 +193,12 @@ func NewTaskServiceHandler(svc TaskServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(taskServiceMethods.ByName("UpdateTask")),
 		connect.WithHandlerOptions(opts...),
 	)
+	taskServiceDeleteTaskHandler := connect.NewUnaryHandlerSimple(
+		TaskServiceDeleteTaskProcedure,
+		svc.DeleteTask,
+		connect.WithSchema(taskServiceMethods.ByName("DeleteTask")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/task.v1.TaskService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case TaskServiceCreateTaskProcedure:
@@ -183,6 +209,8 @@ func NewTaskServiceHandler(svc TaskServiceHandler, opts ...connect.HandlerOption
 			taskServiceListActiveTasksHandler.ServeHTTP(w, r)
 		case TaskServiceUpdateTaskProcedure:
 			taskServiceUpdateTaskHandler.ServeHTTP(w, r)
+		case TaskServiceDeleteTaskProcedure:
+			taskServiceDeleteTaskHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -206,4 +234,8 @@ func (UnimplementedTaskServiceHandler) ListActiveTasks(context.Context, *v1.List
 
 func (UnimplementedTaskServiceHandler) UpdateTask(context.Context, *v1.UpdateTaskRequest) (*v1.UpdateTaskResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("task.v1.TaskService.UpdateTask is not implemented"))
+}
+
+func (UnimplementedTaskServiceHandler) DeleteTask(context.Context, *v1.DeleteTaskRequest) (*v1.DeleteTaskResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("task.v1.TaskService.DeleteTask is not implemented"))
 }
