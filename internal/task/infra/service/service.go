@@ -355,9 +355,11 @@ func (s *Service) UpdateTask(
 		switch path {
 		case "task_status":
 			status, err := protoTaskStatusToStatus(req.GetTaskStatus())
-			if err == nil {
-				useCaseReq.TaskStatus = &status
+			if err != nil {
+				s.logger.Warn("invalid task status in update", slog.String("error", err.Error()))
+				return nil, connect.NewError(connect.CodeInvalidArgument, err)
 			}
+			useCaseReq.TaskStatus = &status
 		case "title":
 			title := req.GetTitle()
 			useCaseReq.Title = &title
