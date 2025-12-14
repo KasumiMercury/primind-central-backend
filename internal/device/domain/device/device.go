@@ -75,6 +75,13 @@ func NewDevice(
 		return nil, ErrUserAgentRequired
 	}
 
+	switch platform {
+	case PlatformWeb, PlatformAndroid, PlatformIOS:
+		// ok
+	default:
+		return nil, ErrInvalidPlatform
+	}
+
 	return &Device{
 		id:             id,
 		userID:         userID,
@@ -88,6 +95,7 @@ func NewDevice(
 		createdAt:      createdAt.UTC().Truncate(time.Microsecond),
 		updatedAt:      updatedAt.UTC().Truncate(time.Microsecond),
 	}, nil
+}
 }
 
 func CreateDevice(
