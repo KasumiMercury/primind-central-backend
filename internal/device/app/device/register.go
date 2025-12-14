@@ -69,8 +69,7 @@ func (h *registerDeviceHandler) RegisterDevice(ctx context.Context, req *Registe
 	userID, err := domainuser.NewIDFromString(userIDStr)
 	if err != nil {
 		h.logger.Warn("invalid user ID format", slog.String("error", err.Error()))
-
-		return nil, err
+		return nil, fmt.Errorf("invalid user id from auth service: %w", err)
 	}
 
 	if req.DeviceID != nil && *req.DeviceID != "" {
