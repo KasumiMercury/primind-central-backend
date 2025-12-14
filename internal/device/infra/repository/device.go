@@ -93,9 +93,19 @@ func (r *deviceRepository) UpdateDevice(ctx context.Context, device *domaindevic
 		return ErrDeviceRequired
 	}
 
-	result := r.db.WithContext(ctx).
-		Model(&DeviceModel{}).
+	var record DeviceModel
+	if err := r.db.WithContext(ctx).
 		Where("id = ? AND user_id = ?", device.ID().String(), device.UserID().String()).
+		First(&record).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return domaindevice.ErrDeviceNotFound
+		}
+
+		return err
+	}
+
+	return r.db.WithContext(ctx).
+		Model(&record).
 		Updates(map[string]any{
 			"session_token":   device.SessionToken(),
 			"timezone":        device.Timezone(),
@@ -105,17 +115,7 @@ func (r *deviceRepository) UpdateDevice(ctx context.Context, device *domaindevic
 			"user_agent":      device.UserAgent(),
 			"accept_language": device.AcceptLanguage(),
 			"updated_at":      device.UpdatedAt(),
-		})
-
-	if result.Error != nil {
-		return result.Error
-	}
-
-	if result.RowsAffected == 0 {
-		return domaindevice.ErrDeviceNotFound
-	}
-
-	return nil
+		}).Error
 }
 
 func (r *deviceRepository) ExistsDeviceByID(ctx context.Context, id domaindevice.ID) (bool, error) {
