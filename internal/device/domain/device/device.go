@@ -96,7 +96,6 @@ func NewDevice(
 		updatedAt:      updatedAt.UTC().Truncate(time.Microsecond),
 	}, nil
 }
-}
 
 func CreateDevice(
 	deviceID *ID,

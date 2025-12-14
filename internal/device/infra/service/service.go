@@ -112,7 +112,6 @@ func (s *Service) handleRegisterDeviceError(err error) (*devicev1.RegisterDevice
 		return nil, connect.NewError(connect.CodeInternal, errors.New("internal server error"))
 	}
 }
-}
 
 func extractSessionTokenFromContext(ctx context.Context) string {
 	return interceptor.ExtractSessionToken(ctx)
