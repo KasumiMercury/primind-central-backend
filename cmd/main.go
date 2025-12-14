@@ -10,6 +10,9 @@ import (
 	authmodule "github.com/KasumiMercury/primind-central-backend/internal/auth"
 	authrepository "github.com/KasumiMercury/primind-central-backend/internal/auth/infra/repository"
 	"github.com/KasumiMercury/primind-central-backend/internal/config"
+	devicemodule "github.com/KasumiMercury/primind-central-backend/internal/device"
+	deviceconfig "github.com/KasumiMercury/primind-central-backend/internal/device/config"
+	devicerepository "github.com/KasumiMercury/primind-central-backend/internal/device/infra/repository"
 	taskmodule "github.com/KasumiMercury/primind-central-backend/internal/task"
 	taskconfig "github.com/KasumiMercury/primind-central-backend/internal/task/config"
 	taskrepository "github.com/KasumiMercury/primind-central-backend/internal/task/infra/repository"
@@ -99,6 +102,24 @@ func main() {
 	}
 
 	mux.Handle(taskPath, taskHandler)
+
+	deviceCfg, err := deviceconfig.Load()
+	if err != nil {
+		logger.Error("failed to load device config", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+
+	devicePath, deviceHandler, err := devicemodule.NewHTTPHandler(
+		ctx,
+		devicerepository.NewDeviceRepository(db),
+		deviceCfg.AuthServiceURL,
+	)
+	if err != nil {
+		logger.Error("failed to initialize device service", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+
+	mux.Handle(devicePath, deviceHandler)
 
 	addr := ":8080"
 	logger.Info("starting Connect API server", slog.String("address", addr))
