@@ -9,6 +9,7 @@ import (
 
 var (
 	ErrUnauthorized                  = authclient.ErrUnauthorized
+	ErrAuthServiceUnavailable        = authclient.ErrAuthServiceUnavailable
 	ErrRegisterDeviceRequestRequired = errors.New("register device request is required")
 	ErrDeviceAlreadyOwned            = domaindevice.ErrDeviceAlreadyOwned
 )

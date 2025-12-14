@@ -22,10 +22,10 @@ func TestRegisterDeviceSuccess(t *testing.T) {
 	fcmToken := "test-fcm-token"
 
 	tests := []struct {
-		name         string
-		req          RegisterDeviceRequest
-		setupMocks   func(ctrl *gomock.Controller, userID domainuser.ID) (*MockAuthClient, *MockDeviceRepository)
-		expectedNew  bool
+		name        string
+		req         RegisterDeviceRequest
+		setupMocks  func(ctrl *gomock.Controller, userID domainuser.ID) (*MockAuthClient, *MockDeviceRepository)
+		expectedNew bool
 	}{
 		{
 			name: "create new device without device_id",
@@ -198,6 +198,27 @@ func TestRegisterDeviceErrors(t *testing.T) {
 				return mockAuth, mockRepo
 			},
 			expectedErr: ErrUnauthorized,
+		},
+		{
+			name: "auth service unavailable",
+			req: &RegisterDeviceRequest{
+				SessionToken:   "valid-token",
+				Timezone:       "UTC",
+				Locale:         "en-US",
+				Platform:       domaindevice.PlatformWeb,
+				UserAgent:      "Mozilla/5.0",
+				AcceptLanguage: "en-US",
+			},
+			setupMocks: func(ctrl *gomock.Controller) (*MockAuthClient, *MockDeviceRepository) {
+				mockAuth := NewMockAuthClient(ctrl)
+				mockRepo := NewMockDeviceRepository(ctrl)
+
+				mockAuth.EXPECT().ValidateSession(gomock.Any(), "valid-token").
+					Return("", authclient.ErrAuthServiceUnavailable)
+
+				return mockAuth, mockRepo
+			},
+			expectedErr: ErrAuthServiceUnavailable,
 		},
 		{
 			name: "device already owned by another user",

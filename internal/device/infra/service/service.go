@@ -86,6 +86,10 @@ func (s *Service) handleRegisterDeviceError(err error) (*devicev1.RegisterDevice
 		s.logger.Info("unauthorized register device attempt")
 
 		return nil, connect.NewError(connect.CodeUnauthenticated, err)
+	case errors.Is(err, appdevice.ErrAuthServiceUnavailable):
+		s.logger.Error("auth service unavailable during register device", slog.String("error", err.Error()))
+
+		return nil, connect.NewError(connect.CodeUnavailable, err)
 	case errors.Is(err, appdevice.ErrDeviceAlreadyOwned):
 		s.logger.Warn("device already owned by another user", slog.String("error", err.Error()))
 

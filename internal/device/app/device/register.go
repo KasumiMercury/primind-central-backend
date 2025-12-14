@@ -55,9 +55,15 @@ func (h *registerDeviceHandler) RegisterDevice(ctx context.Context, req *Registe
 
 	userIDStr, err := h.authClient.ValidateSession(ctx, req.SessionToken)
 	if err != nil {
-		h.logger.Info("session validation failed", slog.String("error", err.Error()))
+		if errors.Is(err, authclient.ErrUnauthorized) {
+			h.logger.Info("session validation failed", slog.String("error", err.Error()))
 
-		return nil, fmt.Errorf("%w: %s", ErrUnauthorized, err.Error())
+			return nil, ErrUnauthorized
+		}
+
+		h.logger.Error("session validation failed", slog.String("error", err.Error()))
+
+		return nil, fmt.Errorf("session validation failed: %w", err)
 	}
 
 	userID, err := domainuser.NewIDFromString(userIDStr)
