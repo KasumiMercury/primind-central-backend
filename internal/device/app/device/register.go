@@ -130,10 +130,13 @@ func (h *registerDeviceHandler) createDeviceWithID(
 	userID domainuser.ID,
 	deviceID *domaindevice.ID,
 ) (*RegisterDeviceResult, error) {
+	// Copy session token to heap to avoid storing pointer to request-scoped memory
+	sessionToken := req.SessionToken
+
 	device, err := domaindevice.CreateDevice(
 		deviceID,
 		userID,
-		&req.SessionToken,
+		&sessionToken,
 		req.Timezone,
 		req.Locale,
 		req.Platform,
@@ -166,8 +169,11 @@ func (h *registerDeviceHandler) updateExistingDevice(
 	req *RegisterDeviceRequest,
 	existingDevice *domaindevice.Device,
 ) (*RegisterDeviceResult, error) {
+	// Copy session token to heap to avoid storing pointer to request-scoped memory
+	sessionToken := req.SessionToken
+
 	updatedDevice, err := existingDevice.UpdateInfo(
-		&req.SessionToken,
+		&sessionToken,
 		req.Timezone,
 		req.Locale,
 		req.Platform,
