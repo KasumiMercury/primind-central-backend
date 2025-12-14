@@ -62,9 +62,15 @@ func (h *createTaskHandler) CreateTask(ctx context.Context, req *CreateTaskReque
 
 	userIDstr, err := h.authClient.ValidateSession(ctx, req.SessionToken)
 	if err != nil {
-		h.logger.Info("session validation failed", slog.String("error", err.Error()))
+		if errors.Is(err, authclient.ErrUnauthorized) {
+			h.logger.Info("session validation failed", slog.String("error", err.Error()))
 
-		return nil, fmt.Errorf("%w: %s", ErrUnauthorized, err.Error())
+			return nil, ErrUnauthorized
+		}
+
+		h.logger.Error("session validation failed", slog.String("error", err.Error()))
+
+		return nil, fmt.Errorf("session validation failed: %w", err)
 	}
 
 	userID, err := domainuser.NewIDFromString(userIDstr)
@@ -190,9 +196,15 @@ func (h *getTaskHandler) GetTask(ctx context.Context, req *GetTaskRequest) (*Get
 
 	userIDstr, err := h.authClient.ValidateSession(ctx, req.SessionToken)
 	if err != nil {
-		h.logger.Info("session validation failed", slog.String("error", err.Error()))
+		if errors.Is(err, authclient.ErrUnauthorized) {
+			h.logger.Info("session validation failed", slog.String("error", err.Error()))
 
-		return nil, fmt.Errorf("%w: %s", ErrUnauthorized, err.Error())
+			return nil, ErrUnauthorized
+		}
+
+		h.logger.Error("session validation failed", slog.String("error", err.Error()))
+
+		return nil, fmt.Errorf("session validation failed: %w", err)
 	}
 
 	userID, err := domainuser.NewIDFromString(userIDstr)
@@ -290,9 +302,15 @@ func (h *listActiveTasksHandler) ListActiveTasks(ctx context.Context, req *ListA
 
 	userIDstr, err := h.authClient.ValidateSession(ctx, req.SessionToken)
 	if err != nil {
-		h.logger.Info("session validation failed", slog.String("error", err.Error()))
+		if errors.Is(err, authclient.ErrUnauthorized) {
+			h.logger.Info("session validation failed", slog.String("error", err.Error()))
 
-		return nil, fmt.Errorf("%w: %s", ErrUnauthorized, err.Error())
+			return nil, ErrUnauthorized
+		}
+
+		h.logger.Error("session validation failed", slog.String("error", err.Error()))
+
+		return nil, fmt.Errorf("session validation failed: %w", err)
 	}
 
 	userID, err := domainuser.NewIDFromString(userIDstr)
@@ -384,9 +402,15 @@ func (h *updateTaskHandler) UpdateTask(ctx context.Context, req *UpdateTaskReque
 
 	userIDstr, err := h.authClient.ValidateSession(ctx, req.SessionToken)
 	if err != nil {
-		h.logger.Info("session validation failed", slog.String("error", err.Error()))
+		if errors.Is(err, authclient.ErrUnauthorized) {
+			h.logger.Info("session validation failed", slog.String("error", err.Error()))
 
-		return nil, fmt.Errorf("%w: %s", ErrUnauthorized, err.Error())
+			return nil, ErrUnauthorized
+		}
+
+		h.logger.Error("session validation failed", slog.String("error", err.Error()))
+
+		return nil, fmt.Errorf("session validation failed: %w", err)
 	}
 
 	userID, err := domainuser.NewIDFromString(userIDstr)
@@ -558,9 +582,15 @@ func (h *deleteTaskHandler) DeleteTask(ctx context.Context, req *DeleteTaskReque
 
 	userIDstr, err := h.authClient.ValidateSession(ctx, req.SessionToken)
 	if err != nil {
-		h.logger.Info("session validation failed", slog.String("error", err.Error()))
+		if errors.Is(err, authclient.ErrUnauthorized) {
+			h.logger.Info("session validation failed", slog.String("error", err.Error()))
 
-		return fmt.Errorf("%w: %s", ErrUnauthorized, err.Error())
+			return ErrUnauthorized
+		}
+
+		h.logger.Error("session validation failed", slog.String("error", err.Error()))
+
+		return fmt.Errorf("session validation failed: %w", err)
 	}
 
 	userID, err := domainuser.NewIDFromString(userIDstr)
