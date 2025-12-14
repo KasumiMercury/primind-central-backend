@@ -7,6 +7,7 @@ cd "${repo_root}"
 dialect="postgres"
 packages=(
   "./internal/auth/infra/repository"
+  "./internal/device/infra/repository"
   "./internal/task/infra/repository"
 )
 
