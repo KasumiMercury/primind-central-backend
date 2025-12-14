@@ -31,6 +31,10 @@ func (s *Service) RegisterDevice(
 	ctx context.Context,
 	req *devicev1.RegisterDeviceRequest,
 ) (*devicev1.RegisterDeviceResponse, error) {
+	if req == nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("request is required"))
+	}
+
 	token := extractSessionTokenFromContext(ctx)
 	if token == "" {
 		s.logger.Warn("register device called without session token")
