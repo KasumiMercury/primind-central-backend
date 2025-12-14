@@ -105,9 +105,9 @@ func (s *Service) handleRegisterDeviceError(err error) (*devicev1.RegisterDevice
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	default:
 		s.logger.Error("unexpected register device error", slog.String("error", err.Error()))
-
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(connect.CodeInternal, errors.New("internal server error"))
 	}
+}
 }
 
 func extractSessionTokenFromContext(ctx context.Context) string {
