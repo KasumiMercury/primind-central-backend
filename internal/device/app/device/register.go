@@ -107,8 +107,6 @@ func (h *registerDeviceHandler) handleExistingDeviceID(
 	if existingDevice.UserID().String() != userID.String() {
 		h.logger.Warn("device already owned by another user",
 			slog.String("device_id", deviceID.String()),
-			slog.String("owner_id", existingDevice.UserID().String()),
-			slog.String("requester_id", userID.String()),
 		)
 
 		return nil, ErrDeviceAlreadyOwned
