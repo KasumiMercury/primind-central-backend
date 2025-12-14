@@ -206,6 +206,23 @@ func TestCreateTaskError(t *testing.T) {
 			expectedErr: ErrUnauthorized,
 		},
 		{
+			name: "auth service unavailable",
+			req: &CreateTaskRequest{
+				SessionToken: "valid-token",
+				Title:        "title",
+				TaskType:     domaintask.TypeNormal,
+				Color:        "#FF6B6B",
+			},
+			setupAuth: func(ctrl *gomock.Controller) authclient.AuthClient {
+				mockAuth := NewMockAuthClient(ctrl)
+				mockAuth.EXPECT().ValidateSession(gomock.Any(), "valid-token").
+					Return("", authclient.ErrAuthServiceUnavailable)
+
+				return mockAuth
+			},
+			expectedErr: ErrAuthServiceUnavailable,
+		},
+		{
 			name: "scheduled time required for has_scheduled_time",
 			req: &CreateTaskRequest{
 				SessionToken: "token",
@@ -535,6 +552,21 @@ func TestGetTaskError(t *testing.T) {
 			expectedErr: ErrUnauthorized,
 		},
 		{
+			name: "auth service unavailable",
+			req: &GetTaskRequest{
+				SessionToken: "token",
+				TaskID:       missingID.String(),
+			},
+			setupAuth: func(ctrl *gomock.Controller) authclient.AuthClient {
+				mockAuth := NewMockAuthClient(ctrl)
+				mockAuth.EXPECT().ValidateSession(gomock.Any(), "token").
+					Return("", authclient.ErrAuthServiceUnavailable)
+
+				return mockAuth
+			},
+			expectedErr: ErrAuthServiceUnavailable,
+		},
+		{
 			name: "empty task id",
 			req: &GetTaskRequest{
 				SessionToken: "token",
@@ -816,6 +848,21 @@ func TestListActiveTasksError(t *testing.T) {
 			expectedErr: ErrUnauthorized,
 		},
 		{
+			name: "auth service unavailable",
+			req: &ListActiveTasksRequest{
+				SessionToken: "valid-token",
+				SortType:     domaintask.SortTypeTargetAt,
+			},
+			setupAuth: func(ctrl *gomock.Controller) authclient.AuthClient {
+				mockAuth := NewMockAuthClient(ctrl)
+				mockAuth.EXPECT().ValidateSession(gomock.Any(), "valid-token").
+					Return("", authclient.ErrAuthServiceUnavailable)
+
+				return mockAuth
+			},
+			expectedErr: ErrAuthServiceUnavailable,
+		},
+		{
 			name: "invalid sort type",
 			req: &ListActiveTasksRequest{
 				SessionToken: "valid-token",
@@ -1060,6 +1107,22 @@ func TestUpdateTaskError(t *testing.T) {
 				return mockAuth
 			},
 			expectedErr: ErrUnauthorized,
+		},
+		{
+			name: "auth service unavailable",
+			req: &UpdateTaskRequest{
+				SessionToken: "token",
+				TaskID:       normalTask.ID().String(),
+				UpdateMask:   []string{"title"},
+			},
+			setupAuth: func(ctrl *gomock.Controller) authclient.AuthClient {
+				mockAuth := NewMockAuthClient(ctrl)
+				mockAuth.EXPECT().ValidateSession(gomock.Any(), "token").
+					Return("", authclient.ErrAuthServiceUnavailable)
+
+				return mockAuth
+			},
+			expectedErr: ErrAuthServiceUnavailable,
 		},
 		{
 			name: "empty task id",
@@ -1310,6 +1373,21 @@ func TestDeleteTaskError(t *testing.T) {
 				return mockAuth
 			},
 			expectedErr: ErrUnauthorized,
+		},
+		{
+			name: "auth service unavailable",
+			req: &DeleteTaskRequest{
+				SessionToken: "token",
+				TaskID:       missingID.String(),
+			},
+			setupAuth: func(ctrl *gomock.Controller) authclient.AuthClient {
+				mockAuth := NewMockAuthClient(ctrl)
+				mockAuth.EXPECT().ValidateSession(gomock.Any(), "token").
+					Return("", authclient.ErrAuthServiceUnavailable)
+
+				return mockAuth
+			},
+			expectedErr: ErrAuthServiceUnavailable,
 		},
 		{
 			name: "empty task id",

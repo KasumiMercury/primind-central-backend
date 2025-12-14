@@ -9,6 +9,7 @@ import (
 
 var (
 	ErrUnauthorized                   = authclient.ErrUnauthorized
+	ErrAuthServiceUnavailable         = authclient.ErrAuthServiceUnavailable
 	ErrCreateTaskRequestRequired      = errors.New("create task request is required")
 	ErrGetTaskRequestRequired         = errors.New("get tasks request is required")
 	ErrListActiveTasksRequestRequired = errors.New("list active tasks request is required")

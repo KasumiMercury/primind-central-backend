@@ -253,6 +253,20 @@ func TestCreateTaskError(t *testing.T) {
 			expectedCode: connect.CodeUnauthenticated,
 		},
 		{
+			name: "auth service unavailable",
+			ctx:  ctxWithSessionToken(t, "token"),
+			service: func(ctrl *gomock.Controller) *Service {
+				mockUseCase := NewMockCreateTaskUseCase(ctrl)
+				mockUseCase.EXPECT().
+					CreateTask(gomock.Any(), gomock.Any()).
+					Return(nil, apptask.ErrAuthServiceUnavailable)
+
+				return NewService(mockUseCase, nil, nil, nil, nil)
+			},
+			req:          &taskv1.CreateTaskRequest{Title: "title", TaskType: taskv1.TaskType_TASK_TYPE_NORMAL, Color: "#FF6B6B"},
+			expectedCode: connect.CodeUnavailable,
+		},
+		{
 			name: "invalid argument from usecase",
 			ctx:  ctxWithSessionToken(t, "token"),
 			service: func(ctrl *gomock.Controller) *Service {
@@ -542,6 +556,20 @@ func TestGetTaskError(t *testing.T) {
 			expectedCode: connect.CodeUnauthenticated,
 		},
 		{
+			name: "auth service unavailable",
+			ctx:  ctxWithSessionToken(t, "token"),
+			service: func(ctrl *gomock.Controller) *Service {
+				mockUseCase := NewMockGetTaskUseCase(ctrl)
+				mockUseCase.EXPECT().
+					GetTask(gomock.Any(), gomock.Any()).
+					Return(nil, apptask.ErrAuthServiceUnavailable)
+
+				return NewService(nil, mockUseCase, nil, nil, nil)
+			},
+			req:          &taskv1.GetTaskRequest{TaskId: "id"},
+			expectedCode: connect.CodeUnavailable,
+		},
+		{
 			name: "task not found",
 			ctx:  ctxWithSessionToken(t, "token"),
 			service: func(ctrl *gomock.Controller) *Service {
@@ -705,6 +733,20 @@ func TestListActiveTasksError(t *testing.T) {
 			expectedCode: connect.CodeUnauthenticated,
 		},
 		{
+			name: "auth service unavailable",
+			ctx:  ctxWithSessionToken(t, "token"),
+			service: func(ctrl *gomock.Controller) *Service {
+				mockUseCase := NewMockListActiveTasksUseCase(ctrl)
+				mockUseCase.EXPECT().
+					ListActiveTasks(gomock.Any(), gomock.Any()).
+					Return(nil, apptask.ErrAuthServiceUnavailable)
+
+				return NewService(nil, nil, mockUseCase, nil, nil)
+			},
+			req:          &taskv1.ListActiveTasksRequest{SortType: taskv1.TaskSortType_TASK_SORT_TYPE_TARGET_AT},
+			expectedCode: connect.CodeUnavailable,
+		},
+		{
 			name: "invalid sort type from use case",
 			ctx:  ctxWithSessionToken(t, "token"),
 			service: func(ctrl *gomock.Controller) *Service {
@@ -810,6 +852,18 @@ func TestDeleteTaskError(t *testing.T) {
 			},
 			req:          &taskv1.DeleteTaskRequest{TaskId: "id"},
 			expectedCode: connect.CodeUnauthenticated,
+		},
+		{
+			name: "auth service unavailable",
+			ctx:  ctxWithSessionToken(t, "token"),
+			service: func(ctrl *gomock.Controller) *Service {
+				mockUseCase := NewMockDeleteTaskUseCase(ctrl)
+				mockUseCase.EXPECT().DeleteTask(gomock.Any(), gomock.Any()).Return(apptask.ErrAuthServiceUnavailable)
+
+				return NewService(nil, nil, nil, nil, mockUseCase)
+			},
+			req:          &taskv1.DeleteTaskRequest{TaskId: "id"},
+			expectedCode: connect.CodeUnavailable,
 		},
 		{
 			name: "task not found",

@@ -83,6 +83,10 @@ func (s *Service) CreateTask(
 			s.logger.Info("unauthorized create task attempt")
 
 			return nil, connect.NewError(connect.CodeUnauthenticated, err)
+		case errors.Is(err, apptask.ErrAuthServiceUnavailable):
+			s.logger.Error("auth service unavailable during create task", slog.String("error", err.Error()))
+
+			return nil, connect.NewError(connect.CodeUnavailable, err)
 		case errors.Is(err, apptask.ErrTitleRequired),
 			errors.Is(err, domaintask.ErrTitleTooLong),
 			errors.Is(err, domaintask.ErrScheduledAtRequired),
@@ -150,6 +154,10 @@ func (s *Service) GetTask(
 			s.logger.Info("unauthorized get task attempt")
 
 			return nil, connect.NewError(connect.CodeUnauthenticated, err)
+		case errors.Is(err, apptask.ErrAuthServiceUnavailable):
+			s.logger.Error("auth service unavailable during get task", slog.String("error", err.Error()))
+
+			return nil, connect.NewError(connect.CodeUnavailable, err)
 		case errors.Is(err, apptask.ErrTaskNotFound):
 			s.logger.Info("task not found", slog.String("task_id", req.GetTaskId()))
 
@@ -222,6 +230,10 @@ func (s *Service) ListActiveTasks(
 			s.logger.Info("unauthorized list active tasks attempt")
 
 			return nil, connect.NewError(connect.CodeUnauthenticated, err)
+		case errors.Is(err, apptask.ErrAuthServiceUnavailable):
+			s.logger.Error("auth service unavailable during list active tasks", slog.String("error", err.Error()))
+
+			return nil, connect.NewError(connect.CodeUnavailable, err)
 		case errors.Is(err, apptask.ErrListActiveTasksRequestRequired),
 			errors.Is(err, apptask.ErrInvalidSortType):
 			s.logger.Warn("invalid list active tasks request", slog.String("error", err.Error()))
@@ -391,6 +403,10 @@ func (s *Service) UpdateTask(
 			s.logger.Info("unauthorized update task attempt")
 
 			return nil, connect.NewError(connect.CodeUnauthenticated, err)
+		case errors.Is(err, apptask.ErrAuthServiceUnavailable):
+			s.logger.Error("auth service unavailable during update task", slog.String("error", err.Error()))
+
+			return nil, connect.NewError(connect.CodeUnavailable, err)
 		case errors.Is(err, apptask.ErrTaskNotFound):
 			s.logger.Info("task not found", slog.String("task_id", req.GetTaskId()))
 
@@ -461,6 +477,10 @@ func (s *Service) DeleteTask(
 			s.logger.Info("unauthorized delete task attempt")
 
 			return nil, connect.NewError(connect.CodeUnauthenticated, err)
+		case errors.Is(err, apptask.ErrAuthServiceUnavailable):
+			s.logger.Error("auth service unavailable during delete task", slog.String("error", err.Error()))
+
+			return nil, connect.NewError(connect.CodeUnavailable, err)
 		case errors.Is(err, apptask.ErrTaskNotFound):
 			s.logger.Info("task not found", slog.String("task_id", req.GetTaskId()))
 
