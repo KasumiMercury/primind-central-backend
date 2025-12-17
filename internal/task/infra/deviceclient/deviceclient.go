@@ -32,9 +32,23 @@ func NewDeviceClient(baseURL string) DeviceClient {
 		Timeout: 5 * time.Second,
 	}
 
+	return NewDeviceClientWithHTTPClient(baseURL, httpClient)
+}
+
+func NewDeviceClientWithHTTPClient(baseURL string, httpClient connect.HTTPClient) DeviceClient {
+	authInterceptor := connect.UnaryInterceptorFunc(func(next connect.UnaryFunc) connect.UnaryFunc {
+		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+			if token := sessionTokenFromContext(ctx); token != "" {
+				req.Header().Set("Authorization", "Bearer "+token)
+			}
+			return next(ctx, req)
+		}
+	})
+
 	client := devicev1connect.NewDeviceServiceClient(
-		&authHTTPClient{inner: httpClient},
+		httpClient,
 		baseURL,
+		connect.WithInterceptors(authInterceptor),
 	)
 
 	return &deviceClient{
@@ -100,17 +114,4 @@ func sessionTokenFromContext(ctx context.Context) string {
 	}
 
 	return ""
-}
-
-type authHTTPClient struct {
-	inner *http.Client
-}
-
-func (c *authHTTPClient) Do(req *http.Request) (*http.Response, error) {
-	token := sessionTokenFromContext(req.Context())
-	if token != "" {
-		req.Header.Set("Authorization", "Bearer "+token)
-	}
-
-	return c.inner.Do(req)
 }
