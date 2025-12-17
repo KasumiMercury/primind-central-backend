@@ -95,6 +95,7 @@ func main() {
 		ctx,
 		taskrepository.NewTaskRepository(db),
 		taskCfg.AuthServiceURL,
+		taskCfg.DeviceServiceURL,
 	)
 	if err != nil {
 		logger.Error("failed to initialize task service", slog.String("error", err.Error()))

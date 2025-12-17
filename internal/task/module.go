@@ -11,30 +11,30 @@ import (
 	apptask "github.com/KasumiMercury/primind-central-backend/internal/task/app/task"
 	domaintask "github.com/KasumiMercury/primind-central-backend/internal/task/domain/task"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/authclient"
+	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/deviceclient"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/interceptor"
 	tasksvc "github.com/KasumiMercury/primind-central-backend/internal/task/infra/service"
 )
 
 type Repositories struct {
-	Tasks      domaintask.TaskRepository
-	AuthClient authclient.AuthClient
+	Tasks        domaintask.TaskRepository
+	AuthClient   authclient.AuthClient
+	DeviceClient deviceclient.DeviceClient
 }
 
-// NewHTTPHandler creates a new task service HTTP handler with default auth client.
-// This is the production entry point.
 func NewHTTPHandler(
 	ctx context.Context,
 	taskRepo domaintask.TaskRepository,
 	authServiceURL string,
+	deviceServiceURL string,
 ) (string, http.Handler, error) {
 	return NewHTTPHandlerWithRepositories(ctx, Repositories{
-		Tasks:      taskRepo,
-		AuthClient: authclient.NewAuthClient(authServiceURL),
+		Tasks:        taskRepo,
+		AuthClient:   authclient.NewAuthClient(authServiceURL),
+		DeviceClient: deviceclient.NewDeviceClient(deviceServiceURL),
 	})
 }
 
-// NewHTTPHandlerWithRepositories creates a new task service HTTP handler with injected dependencies.
-// This is useful for testing with mock implementations.
 func NewHTTPHandlerWithRepositories(ctx context.Context, repos Repositories) (string, http.Handler, error) {
 	logger := slog.Default().WithGroup("task")
 
@@ -48,7 +48,11 @@ func NewHTTPHandlerWithRepositories(ctx context.Context, repos Repositories) (st
 		return "", nil, fmt.Errorf("auth client is not configured")
 	}
 
-	createTaskUseCase := apptask.NewCreateTaskHandler(repos.AuthClient, repos.Tasks)
+	if repos.DeviceClient == nil {
+		return "", nil, fmt.Errorf("device client is not configured")
+	}
+
+	createTaskUseCase := apptask.NewCreateTaskHandler(repos.AuthClient, repos.DeviceClient, repos.Tasks)
 	getTaskUseCase := apptask.NewGetTaskHandler(repos.AuthClient, repos.Tasks)
 	listActiveTasksUseCase := apptask.NewListActiveTasksHandler(repos.AuthClient, repos.Tasks)
 	updateTaskUseCase := apptask.NewUpdateTaskHandler(repos.AuthClient, repos.Tasks)
