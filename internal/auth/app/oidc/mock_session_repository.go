@@ -13,7 +13,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	domain "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/session"
+	session "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/session"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -42,7 +42,7 @@ func (m *MockSessionRepository) EXPECT() *MockSessionRepositoryMockRecorder {
 }
 
 // DeleteSession mocks base method.
-func (m *MockSessionRepository) DeleteSession(ctx context.Context, sessionID domain.ID) error {
+func (m *MockSessionRepository) DeleteSession(ctx context.Context, sessionID session.ID) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteSession", ctx, sessionID)
 	ret0, _ := ret[0].(error)
@@ -56,10 +56,10 @@ func (mr *MockSessionRepositoryMockRecorder) DeleteSession(ctx, sessionID any) *
 }
 
 // GetSession mocks base method.
-func (m *MockSessionRepository) GetSession(ctx context.Context, sessionID domain.ID) (*domain.Session, error) {
+func (m *MockSessionRepository) GetSession(ctx context.Context, sessionID session.ID) (*session.Session, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetSession", ctx, sessionID)
-	ret0, _ := ret[0].(*domain.Session)
+	ret0, _ := ret[0].(*session.Session)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -71,15 +71,15 @@ func (mr *MockSessionRepositoryMockRecorder) GetSession(ctx, sessionID any) *gom
 }
 
 // SaveSession mocks base method.
-func (m *MockSessionRepository) SaveSession(ctx context.Context, session *domain.Session) error {
+func (m *MockSessionRepository) SaveSession(ctx context.Context, arg1 *session.Session) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SaveSession", ctx, session)
+	ret := m.ctrl.Call(m, "SaveSession", ctx, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SaveSession indicates an expected call of SaveSession.
-func (mr *MockSessionRepositoryMockRecorder) SaveSession(ctx, session any) *gomock.Call {
+func (mr *MockSessionRepositoryMockRecorder) SaveSession(ctx, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveSession", reflect.TypeOf((*MockSessionRepository)(nil).SaveSession), ctx, session)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveSession", reflect.TypeOf((*MockSessionRepository)(nil).SaveSession), ctx, arg1)
 }
