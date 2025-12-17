@@ -143,9 +143,11 @@ func (h *createTaskHandler) CreateTask(ctx context.Context, req *CreateTaskReque
 	h.logger.Info("task created successfully", slog.String("task_id", task.ID().String()))
 
 	var domainDevices []domaintask.DeviceInfo
+
 	devices, err := h.deviceClient.GetUserDevices(ctx, req.SessionToken)
 	if err != nil {
 		h.logger.Warn("failed to get user devices", slog.String("error", err.Error()))
+
 		domainDevices = []domaintask.DeviceInfo{}
 	} else {
 		domainDevices = make([]domaintask.DeviceInfo, 0, len(devices))

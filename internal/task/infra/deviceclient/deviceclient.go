@@ -90,6 +90,7 @@ func sessionTokenFromContext(ctx context.Context) string {
 	if token, ok := ctx.Value(sessionTokenKey{}).(string); ok {
 		return token
 	}
+
 	return ""
 }
 
@@ -102,5 +103,6 @@ func (c *authHTTPClient) Do(req *http.Request) (*http.Response, error) {
 	if token != "" {
 		req.Header.Set("Authorization", "Bearer "+token)
 	}
+
 	return c.inner.Do(req)
 }

@@ -160,10 +160,12 @@ func (s *Service) GetUserDevices(
 	for _, d := range result.Devices {
 		device := &devicev1.DeviceInfo{
 			DeviceId: d.DeviceID,
+			FcmToken: nil,
 		}
 		if d.FCMToken != nil {
 			device.FcmToken = d.FCMToken
 		}
+
 		devices = append(devices, device)
 	}
 
