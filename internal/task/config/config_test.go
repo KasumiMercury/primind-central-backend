@@ -10,12 +10,24 @@ func TestLoad(t *testing.T) {
 		name                string
 		envAuthServiceURL   string
 		envDeviceServiceURL string
+		envPrimindTasksURL  string
 		expected            *Config
 	}{
 		{
 			"valid URLs",
 			"https://auth.example.com",
 			"https://device.example.com",
+			"https://tasks.example.com",
+			&Config{
+				AuthServiceURL:   "https://auth.example.com",
+				DeviceServiceURL: "https://device.example.com",
+			},
+		},
+		{
+			"missing PRIMIND_TASKS_URL",
+			"https://auth.example.com",
+			"https://device.example.com",
+			"",
 			&Config{
 				AuthServiceURL:   "https://auth.example.com",
 				DeviceServiceURL: "https://device.example.com",
@@ -25,6 +37,7 @@ func TestLoad(t *testing.T) {
 			"default URLs",
 			"",
 			"",
+			"http://localhost:8090",
 			&Config{
 				AuthServiceURL:   "http://localhost:8080",
 				DeviceServiceURL: "http://localhost:8080",
@@ -37,6 +50,7 @@ func TestLoad(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Setenv("AUTH_SERVICE_URL", tt.envAuthServiceURL)
 			t.Setenv("DEVICE_SERVICE_URL", tt.envDeviceServiceURL)
+			t.Setenv("PRIMIND_TASKS_URL", tt.envPrimindTasksURL)
 
 			got, err := Load()
 			if err != nil {
@@ -94,6 +108,19 @@ func TestValidateSuccess(t *testing.T) {
 			Config{
 				AuthServiceURL:   "https://auth.example.com",
 				DeviceServiceURL: "https://device.example.com",
+				TaskQueue: TaskQueueConfig{
+					PrimindTasksURL: "https://tasks.example.com",
+				},
+			},
+		},
+		{
+			"empty PRIMIND_TASKS_URL",
+			Config{
+				AuthServiceURL:   "https://auth.example.com",
+				DeviceServiceURL: "https://device.example.com",
+				TaskQueue: TaskQueueConfig{
+					PrimindTasksURL: "",
+				},
 			},
 		},
 	}
