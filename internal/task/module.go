@@ -3,6 +3,7 @@ package task
 import (
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 
@@ -25,14 +26,35 @@ type Repositories struct {
 	RemindQueue  taskqueue.RemindQueue
 }
 
+func (r *Repositories) Close() error {
+	if r == nil || r.RemindQueue == nil {
+		return nil
+	}
+
+	closer, ok := r.RemindQueue.(io.Closer)
+	if !ok {
+		return nil
+	}
+
+	return closer.Close()
+}
+
 func NewHTTPHandler(
 	ctx context.Context,
 	taskRepo domaintask.TaskRepository,
 	cfg *config.Config,
-) (string, http.Handler, error) {
+) (path string, handler http.Handler, err error) {
 	remindQueue, err := NewRemindQueue(ctx, &cfg.TaskQueue)
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to create remind queue: %w", err)
+	}
+
+	if closer, ok := remindQueue.(io.Closer); ok {
+		defer func() {
+			if err != nil {
+				_ = closer.Close()
+			}
+		}()
 	}
 
 	return NewHTTPHandlerWithRepositories(ctx, Repositories{
