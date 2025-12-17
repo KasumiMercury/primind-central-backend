@@ -122,7 +122,12 @@ func (c *PrimindTasksClient) doRequest(ctx context.Context, url string, reqBody 
 
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
-	defer resp.Body.Close()
+
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			slog.Warn("failed to close response body", slog.String("error", err.Error()))
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		slog.Warn("unexpected status code from Primind Tasks",
@@ -138,7 +143,13 @@ func (c *PrimindTasksClient) doRequest(ctx context.Context, url string, reqBody 
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	createTime, _ := time.Parse(time.RFC3339, primindResp.CreateTime)
+	createTime, parseErr := time.Parse(time.RFC3339, primindResp.CreateTime)
+	if parseErr != nil {
+		slog.Warn("failed to parse create time, using zero value",
+			slog.String("raw_value", primindResp.CreateTime),
+			slog.String("error", parseErr.Error()),
+		)
+	}
 
 	slog.Info("remind task registered to Primind Tasks",
 		slog.String("task_name", primindResp.Name),
