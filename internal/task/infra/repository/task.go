@@ -139,7 +139,10 @@ func (r *taskRepository) ListActiveTasksByUserID(ctx context.Context, userID dom
 	var records []TaskModel
 
 	if err := r.db.WithContext(ctx).
-		Where("user_id = ? AND task_status = ?", userID.String(), string(domaintask.StatusActive)).
+		Where("user_id = ? AND task_status IN ?", userID.String(), []string{
+			string(domaintask.StatusActive),
+			string(domaintask.StatusPendingReminders),
+		}).
 		Order(orderQuery).
 		Find(&records).Error; err != nil {
 		return nil, err
@@ -195,6 +198,23 @@ func (r *taskRepository) DeleteTask(ctx context.Context, id domaintask.ID, userI
 	result := r.db.WithContext(ctx).
 		Where("id = ? AND user_id = ?", id.String(), userID.String()).
 		Delete(&TaskModel{})
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return domaintask.ErrTaskNotFound
+	}
+
+	return nil
+}
+
+func (r *taskRepository) UpdateTaskStatus(ctx context.Context, taskID domaintask.ID, userID domainuser.ID, status domaintask.Status) error {
+	result := r.db.WithContext(ctx).
+		Model(&TaskModel{}).
+		Where("id = ? AND user_id = ?", taskID.String(), userID.String()).
+		Update("task_status", string(status))
 
 	if result.Error != nil {
 		return result.Error
