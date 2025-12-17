@@ -167,11 +167,14 @@ func run(logger *slog.Logger) error {
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	go func() {
 		<-ctx.Done()
 
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-		defer cancel()
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer shutdownCancel()
 
 		if err := server.Shutdown(shutdownCtx); err != nil {
 			logger.Error("failed to shutdown connect api server", slog.String("error", err.Error()))
