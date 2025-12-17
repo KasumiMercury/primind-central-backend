@@ -7,22 +7,40 @@ import (
 
 func TestLoad(t *testing.T) {
 	tests := []struct {
-		name              string
-		envAuthServiceURL string
-		expected          *Config
+		name                string
+		envAuthServiceURL   string
+		envDeviceServiceURL string
+		envPrimindTasksURL  string
+		expected            *Config
 	}{
 		{
-			"valid AuthServiceURL",
+			"valid URLs",
 			"https://auth.example.com",
+			"https://device.example.com",
+			"https://tasks.example.com",
 			&Config{
-				AuthServiceURL: "https://auth.example.com",
+				AuthServiceURL:   "https://auth.example.com",
+				DeviceServiceURL: "https://device.example.com",
 			},
 		},
 		{
-			"default AuthServiceURL",
+			"missing PRIMIND_TASKS_URL",
+			"https://auth.example.com",
+			"https://device.example.com",
 			"",
 			&Config{
-				AuthServiceURL: "http://localhost:8080",
+				AuthServiceURL:   "https://auth.example.com",
+				DeviceServiceURL: "https://device.example.com",
+			},
+		},
+		{
+			"default URLs",
+			"",
+			"",
+			"http://localhost:8090",
+			&Config{
+				AuthServiceURL:   "http://localhost:8080",
+				DeviceServiceURL: "http://localhost:8080",
 			},
 		},
 	}
@@ -31,6 +49,8 @@ func TestLoad(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Setenv("AUTH_SERVICE_URL", tt.envAuthServiceURL)
+			t.Setenv("DEVICE_SERVICE_URL", tt.envDeviceServiceURL)
+			t.Setenv("PRIMIND_TASKS_URL", tt.envPrimindTasksURL)
 
 			got, err := Load()
 			if err != nil {
@@ -39,6 +59,10 @@ func TestLoad(t *testing.T) {
 
 			if got.AuthServiceURL != tt.expected.AuthServiceURL {
 				t.Fatalf("Load() AuthServiceURL = %s, want %s", got.AuthServiceURL, tt.expected.AuthServiceURL)
+			}
+
+			if got.DeviceServiceURL != tt.expected.DeviceServiceURL {
+				t.Fatalf("Load() DeviceServiceURL = %s, want %s", got.DeviceServiceURL, tt.expected.DeviceServiceURL)
 			}
 		})
 	}
@@ -82,7 +106,21 @@ func TestValidateSuccess(t *testing.T) {
 		{
 			"valid config",
 			Config{
-				AuthServiceURL: "https://auth.example.com",
+				AuthServiceURL:   "https://auth.example.com",
+				DeviceServiceURL: "https://device.example.com",
+				TaskQueue: TaskQueueConfig{
+					PrimindTasksURL: "https://tasks.example.com",
+				},
+			},
+		},
+		{
+			"empty PRIMIND_TASKS_URL",
+			Config{
+				AuthServiceURL:   "https://auth.example.com",
+				DeviceServiceURL: "https://device.example.com",
+				TaskQueue: TaskQueueConfig{
+					PrimindTasksURL: "",
+				},
 			},
 		},
 	}
@@ -111,30 +149,58 @@ func TestValidateError(t *testing.T) {
 		{
 			"empty AuthServiceURL",
 			&Config{
-				AuthServiceURL: "",
+				AuthServiceURL:   "",
+				DeviceServiceURL: "https://device.example.com",
 			},
 			ErrAuthServiceURLInvalid,
 		},
 		{
 			"parse failed AuthServiceURL",
 			&Config{
-				AuthServiceURL: "http://[::1]:namedport",
+				AuthServiceURL:   "http://[::1]:namedport",
+				DeviceServiceURL: "https://device.example.com",
 			},
 			ErrAuthServiceURLInvalid,
 		},
 		{
 			"invalid scheme AuthServiceURL",
 			&Config{
-				AuthServiceURL: "ftp://auth.example.com",
+				AuthServiceURL:   "ftp://auth.example.com",
+				DeviceServiceURL: "https://device.example.com",
 			},
 			ErrAuthServiceURLInvalid,
 		},
 		{
 			"missing host AuthServiceURL",
 			&Config{
-				AuthServiceURL: "https://",
+				AuthServiceURL:   "https://",
+				DeviceServiceURL: "https://device.example.com",
 			},
 			ErrAuthServiceURLInvalid,
+		},
+		{
+			"empty DeviceServiceURL",
+			&Config{
+				AuthServiceURL:   "https://auth.example.com",
+				DeviceServiceURL: "",
+			},
+			ErrDeviceServiceURLInvalid,
+		},
+		{
+			"invalid scheme DeviceServiceURL",
+			&Config{
+				AuthServiceURL:   "https://auth.example.com",
+				DeviceServiceURL: "ftp://device.example.com",
+			},
+			ErrDeviceServiceURLInvalid,
+		},
+		{
+			"missing host DeviceServiceURL",
+			&Config{
+				AuthServiceURL:   "https://auth.example.com",
+				DeviceServiceURL: "https://",
+			},
+			ErrDeviceServiceURLInvalid,
 		},
 	}
 

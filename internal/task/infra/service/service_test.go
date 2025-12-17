@@ -267,6 +267,34 @@ func TestCreateTaskError(t *testing.T) {
 			expectedCode: connect.CodeUnavailable,
 		},
 		{
+			name: "device service unavailable",
+			ctx:  ctxWithSessionToken(t, "token"),
+			service: func(ctrl *gomock.Controller) *Service {
+				mockUseCase := NewMockCreateTaskUseCase(ctrl)
+				mockUseCase.EXPECT().
+					CreateTask(gomock.Any(), gomock.Any()).
+					Return(nil, apptask.ErrDeviceServiceUnavailable)
+
+				return NewService(mockUseCase, nil, nil, nil, nil)
+			},
+			req:          &taskv1.CreateTaskRequest{Title: "title", TaskType: taskv1.TaskType_TASK_TYPE_NORMAL, Color: "#FF6B6B"},
+			expectedCode: connect.CodeUnavailable,
+		},
+		{
+			name: "device invalid argument",
+			ctx:  ctxWithSessionToken(t, "token"),
+			service: func(ctrl *gomock.Controller) *Service {
+				mockUseCase := NewMockCreateTaskUseCase(ctrl)
+				mockUseCase.EXPECT().
+					CreateTask(gomock.Any(), gomock.Any()).
+					Return(nil, apptask.ErrDeviceInvalidArgument)
+
+				return NewService(mockUseCase, nil, nil, nil, nil)
+			},
+			req:          &taskv1.CreateTaskRequest{Title: "title", TaskType: taskv1.TaskType_TASK_TYPE_NORMAL, Color: "#FF6B6B"},
+			expectedCode: connect.CodeInvalidArgument,
+		},
+		{
 			name: "invalid argument from usecase",
 			ctx:  ctxWithSessionToken(t, "token"),
 			service: func(ctrl *gomock.Controller) *Service {

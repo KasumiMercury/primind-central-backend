@@ -58,13 +58,14 @@ func NewType(t string) (Type, error) {
 type Status string
 
 const (
-	StatusActive    Status = "active"
-	StatusCompleted Status = "completed"
+	StatusActive           Status = "active"
+	StatusCompleted        Status = "completed"
+	StatusPendingReminders Status = "pending_reminders"
 )
 
 func NewStatus(s string) (Status, error) {
 	switch s {
-	case string(StatusActive), string(StatusCompleted):
+	case string(StatusActive), string(StatusCompleted), string(StatusPendingReminders):
 		return Status(s), nil
 	default:
 		return "", fmt.Errorf("%w: %s", ErrInvalidTaskStatus, s)
@@ -181,7 +182,7 @@ func CreateTask(
 		userID,
 		title,
 		taskType,
-		StatusActive,
+		StatusPendingReminders,
 		description,
 		scheduledAt,
 		createdAt,

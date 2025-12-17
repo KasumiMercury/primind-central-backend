@@ -9,7 +9,9 @@ import (
 	domaintask "github.com/KasumiMercury/primind-central-backend/internal/task/domain/task"
 	domainuser "github.com/KasumiMercury/primind-central-backend/internal/task/domain/user"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/authclient"
+	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/deviceclient"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/repository"
+	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/taskqueue"
 	"github.com/KasumiMercury/primind-central-backend/internal/testutil"
 	"github.com/google/uuid"
 	"go.uber.org/mock/gomock"
@@ -103,7 +105,48 @@ func TestCreateTaskSuccess(t *testing.T) {
 			mockAuth := NewMockAuthClient(ctrl)
 			mockAuth.EXPECT().ValidateSession(gomock.Any(), tt.req.SessionToken).Return(tt.userID.String(), nil)
 
-			handler := NewCreateTaskHandler(mockAuth, repo)
+			mockDevice := NewMockDeviceClient(ctrl)
+			mockDevice.EXPECT().GetUserDevicesWithRetry(gomock.Any(), tt.req.SessionToken, gomock.Any()).Return(nil, nil)
+
+			mockQueue := taskqueue.NewMockRemindQueue(ctrl)
+			mockQueue.EXPECT().
+				RegisterRemind(gomock.Any(), gomock.Any()).
+				DoAndReturn(func(_ context.Context, req *taskqueue.CreateRemindRequest) (*taskqueue.RemindResponse, error) {
+					if req == nil {
+						t.Fatalf("expected remind request, got nil")
+					}
+
+					if req.UserID != tt.userID.String() {
+						t.Fatalf("expected user id %q, got %q", tt.userID.String(), req.UserID)
+					}
+
+					if req.TaskType != string(tt.req.TaskType) {
+						t.Fatalf("expected task type %q, got %q", string(tt.req.TaskType), req.TaskType)
+					}
+
+					if tt.req.TaskID != "" {
+						if req.TaskID != tt.req.TaskID {
+							t.Fatalf("expected task id %q, got %q", tt.req.TaskID, req.TaskID)
+						}
+					} else {
+						if _, err := domaintask.NewIDFromString(req.TaskID); err != nil {
+							t.Fatalf("expected generated task id to be valid uuid v7, got %q (%v)", req.TaskID, err)
+						}
+					}
+
+					if len(req.Times) == 0 {
+						t.Fatalf("expected reminder times to be set")
+					}
+
+					if len(req.Devices) != 0 {
+						t.Fatalf("expected zero devices, got %d", len(req.Devices))
+					}
+
+					return &taskqueue.RemindResponse{Name: "test-task"}, nil
+				}).
+				Times(1)
+
+			handler := NewCreateTaskHandler(mockAuth, mockDevice, repo, mockQueue)
 
 			resp, err := handler.CreateTask(ctx, &tt.req)
 			if err != nil {
@@ -387,7 +430,9 @@ func TestCreateTaskError(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			mockAuth := tt.setupAuth(ctrl)
-			handler := NewCreateTaskHandler(mockAuth, repo)
+			mockDevice := NewMockDeviceClient(ctrl)
+			mockQueue := taskqueue.NewMockRemindQueue(ctrl)
+			handler := NewCreateTaskHandler(mockAuth, mockDevice, repo, mockQueue)
 
 			_, err := handler.CreateTask(ctx, tt.req)
 			if err == nil {
@@ -396,6 +441,134 @@ func TestCreateTaskError(t *testing.T) {
 
 			if !errors.Is(err, tt.expectedErr) && err.Error() != tt.expectedErr.Error() {
 				t.Fatalf("expected error %v, got %v", tt.expectedErr, err)
+			}
+		})
+	}
+}
+
+func TestCreateTaskReturnsFailureWhenDeviceFetchFailsAfterRetries(t *testing.T) {
+	repo := setupTaskRepository(t)
+	ctx := context.Background()
+
+	userID, err := domainuser.NewID()
+	if err != nil {
+		t.Fatalf("failed to generate user id: %v", err)
+	}
+
+	taskID, err := domaintask.NewID()
+	if err != nil {
+		t.Fatalf("failed to generate task id: %v", err)
+	}
+
+	ctrl := gomock.NewController(t)
+	mockAuth := NewMockAuthClient(ctrl)
+	mockAuth.EXPECT().ValidateSession(gomock.Any(), "token").
+		Return(userID.String(), nil)
+
+	mockDevice := NewMockDeviceClient(ctrl)
+	mockDevice.EXPECT().
+		GetUserDevicesWithRetry(gomock.Any(), "token", gomock.Any()).
+		Return(nil, deviceclient.ErrDeviceServiceUnavailable)
+
+	mockQueue := taskqueue.NewMockRemindQueue(ctrl)
+
+	handler := NewCreateTaskHandler(mockAuth, mockDevice, repo, mockQueue)
+
+	_, err = handler.CreateTask(ctx, &CreateTaskRequest{
+		TaskID:       taskID.String(),
+		SessionToken: "token",
+		Title:        "Task",
+		TaskType:     domaintask.TypeNormal,
+		Color:        "#FF6B6B",
+	})
+	if err == nil {
+		t.Fatalf("expected error, got nil")
+	}
+
+	if !errors.Is(err, ErrDeviceServiceUnavailable) {
+		t.Fatalf("expected error %v, got %v", ErrDeviceServiceUnavailable, err)
+	}
+
+	_, err = repo.GetTaskByID(ctx, taskID, userID)
+	if err == nil {
+		t.Fatalf("expected task not to be persisted when device fetch fails")
+	}
+
+	if !errors.Is(err, domaintask.ErrTaskNotFound) {
+		t.Fatalf("expected ErrTaskNotFound, got %v", err)
+	}
+}
+
+func TestCreateTaskDoesNotPersistTaskWhenDeviceReturnsUnauthorizedOrInvalidArgument(t *testing.T) {
+	repo := setupTaskRepository(t)
+	ctx := context.Background()
+
+	userID, err := domainuser.NewID()
+	if err != nil {
+		t.Fatalf("failed to generate user id: %v", err)
+	}
+
+	tests := []struct {
+		name        string
+		deviceErr   error
+		expectedErr error
+	}{
+		{
+			name:        "unauthorized",
+			deviceErr:   deviceclient.ErrUnauthorized,
+			expectedErr: ErrUnauthorized,
+		},
+		{
+			name:        "invalid argument",
+			deviceErr:   deviceclient.ErrInvalidArgument,
+			expectedErr: ErrDeviceInvalidArgument,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			taskID, err := domaintask.NewID()
+			if err != nil {
+				t.Fatalf("failed to generate task id: %v", err)
+			}
+
+			ctrl := gomock.NewController(t)
+			mockAuth := NewMockAuthClient(ctrl)
+			mockAuth.EXPECT().ValidateSession(gomock.Any(), "token").
+				Return(userID.String(), nil)
+
+			mockDevice := NewMockDeviceClient(ctrl)
+			mockDevice.EXPECT().
+				GetUserDevicesWithRetry(gomock.Any(), "token", gomock.Any()).
+				Return(nil, tt.deviceErr)
+
+			mockQueue := taskqueue.NewMockRemindQueue(ctrl)
+
+			handler := NewCreateTaskHandler(mockAuth, mockDevice, repo, mockQueue)
+
+			_, err = handler.CreateTask(ctx, &CreateTaskRequest{
+				TaskID:       taskID.String(),
+				SessionToken: "token",
+				Title:        "Task",
+				TaskType:     domaintask.TypeNormal,
+				Color:        "#FF6B6B",
+			})
+			if err == nil {
+				t.Fatalf("expected error, got nil")
+			}
+
+			if !errors.Is(err, tt.expectedErr) {
+				t.Fatalf("expected error %v, got %v", tt.expectedErr, err)
+			}
+
+			_, getErr := repo.GetTaskByID(ctx, taskID, userID)
+			if getErr == nil {
+				t.Fatalf("expected task not to be persisted, but it still exists")
+			}
+
+			if !errors.Is(getErr, domaintask.ErrTaskNotFound) {
+				t.Fatalf("expected ErrTaskNotFound, got %v", getErr)
 			}
 		})
 	}

@@ -3,38 +3,70 @@ package task
 import (
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 
 	connect "connectrpc.com/connect"
 	"github.com/KasumiMercury/primind-central-backend/internal/gen/task/v1/taskv1connect"
 	apptask "github.com/KasumiMercury/primind-central-backend/internal/task/app/task"
+	"github.com/KasumiMercury/primind-central-backend/internal/task/config"
 	domaintask "github.com/KasumiMercury/primind-central-backend/internal/task/domain/task"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/authclient"
+	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/deviceclient"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/interceptor"
 	tasksvc "github.com/KasumiMercury/primind-central-backend/internal/task/infra/service"
+	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/taskqueue"
 )
 
 type Repositories struct {
-	Tasks      domaintask.TaskRepository
-	AuthClient authclient.AuthClient
+	Tasks        domaintask.TaskRepository
+	AuthClient   authclient.AuthClient
+	DeviceClient deviceclient.DeviceClient
+	RemindQueue  taskqueue.RemindQueue
 }
 
-// NewHTTPHandler creates a new task service HTTP handler with default auth client.
-// This is the production entry point.
+func (r *Repositories) Close() error {
+	if r == nil || r.RemindQueue == nil {
+		return nil
+	}
+
+	closer, ok := r.RemindQueue.(io.Closer)
+	if !ok {
+		return nil
+	}
+
+	return closer.Close()
+}
+
 func NewHTTPHandler(
 	ctx context.Context,
 	taskRepo domaintask.TaskRepository,
-	authServiceURL string,
-) (string, http.Handler, error) {
+	cfg *config.Config,
+) (path string, handler http.Handler, err error) {
+	remindQueue, err := NewRemindQueue(ctx, &cfg.TaskQueue)
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to create remind queue: %w", err)
+	}
+
+	if closer, ok := remindQueue.(io.Closer); ok {
+		defer func() {
+			if err != nil {
+				if closeErr := closer.Close(); closeErr != nil {
+					slog.Warn("failed to close remind queue during cleanup", slog.String("error", closeErr.Error()))
+				}
+			}
+		}()
+	}
+
 	return NewHTTPHandlerWithRepositories(ctx, Repositories{
-		Tasks:      taskRepo,
-		AuthClient: authclient.NewAuthClient(authServiceURL),
+		Tasks:        taskRepo,
+		AuthClient:   authclient.NewAuthClient(cfg.AuthServiceURL),
+		DeviceClient: deviceclient.NewDeviceClient(cfg.DeviceServiceURL),
+		RemindQueue:  remindQueue,
 	})
 }
 
-// NewHTTPHandlerWithRepositories creates a new task service HTTP handler with injected dependencies.
-// This is useful for testing with mock implementations.
 func NewHTTPHandlerWithRepositories(ctx context.Context, repos Repositories) (string, http.Handler, error) {
 	logger := slog.Default().WithGroup("task")
 
@@ -48,7 +80,15 @@ func NewHTTPHandlerWithRepositories(ctx context.Context, repos Repositories) (st
 		return "", nil, fmt.Errorf("auth client is not configured")
 	}
 
-	createTaskUseCase := apptask.NewCreateTaskHandler(repos.AuthClient, repos.Tasks)
+	if repos.DeviceClient == nil {
+		return "", nil, fmt.Errorf("device client is not configured")
+	}
+
+	if repos.RemindQueue == nil {
+		return "", nil, fmt.Errorf("remind queue is not configured")
+	}
+
+	createTaskUseCase := apptask.NewCreateTaskHandler(repos.AuthClient, repos.DeviceClient, repos.Tasks, repos.RemindQueue)
 	getTaskUseCase := apptask.NewGetTaskHandler(repos.AuthClient, repos.Tasks)
 	listActiveTasksUseCase := apptask.NewListActiveTasksHandler(repos.AuthClient, repos.Tasks)
 	updateTaskUseCase := apptask.NewUpdateTaskHandler(repos.AuthClient, repos.Tasks)

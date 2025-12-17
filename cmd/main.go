@@ -2,9 +2,13 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"sync"
+	"syscall"
 	"time"
 
 	authmodule "github.com/KasumiMercury/primind-central-backend/internal/auth"
@@ -15,6 +19,8 @@ import (
 	devicerepository "github.com/KasumiMercury/primind-central-backend/internal/device/infra/repository"
 	taskmodule "github.com/KasumiMercury/primind-central-backend/internal/task"
 	taskconfig "github.com/KasumiMercury/primind-central-backend/internal/task/config"
+	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/authclient"
+	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/deviceclient"
 	taskrepository "github.com/KasumiMercury/primind-central-backend/internal/task/infra/repository"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/postgres"
@@ -27,25 +33,36 @@ func main() {
 	}))
 	slog.SetDefault(logger)
 
-	ctx := context.Background()
+	if err := run(logger); err != nil {
+		os.Exit(1)
+	}
+}
+
+func run(logger *slog.Logger) error {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
 	mux := http.NewServeMux()
 
 	appCfg, err := config.Load()
 	if err != nil {
 		logger.Error("failed to load config", slog.String("error", err.Error()))
-		os.Exit(1)
+
+		return err
 	}
 
 	db, err := gorm.Open(postgres.Open(appCfg.Persistence.PostgresDSN), &gorm.Config{})
 	if err != nil {
 		logger.Error("failed to connect postgres", slog.String("error", err.Error()))
-		os.Exit(1)
+
+		return err
 	}
 
 	sqlDB, err := db.DB()
 	if err != nil {
 		logger.Error("failed to obtain postgres handle", slog.String("error", err.Error()))
-		os.Exit(1)
+
+		return err
 	}
 
 	defer func() {
@@ -68,7 +85,8 @@ func main() {
 
 	if err := redisClient.Ping(ctx).Err(); err != nil {
 		logger.Error("failed to connect redis", slog.String("error", err.Error()))
-		os.Exit(1)
+
+		return err
 	}
 
 	authPath, authHandler, err := authmodule.NewHTTPHandler(ctx, authmodule.Repositories{
@@ -80,7 +98,8 @@ func main() {
 	})
 	if err != nil {
 		logger.Error("failed to initialize auth service", slog.String("error", err.Error()))
-		os.Exit(1)
+
+		return err
 	}
 
 	mux.Handle(authPath, authHandler)
@@ -88,17 +107,41 @@ func main() {
 	taskCfg, err := taskconfig.Load()
 	if err != nil {
 		logger.Error("failed to load task config", slog.String("error", err.Error()))
-		os.Exit(1)
+
+		return err
 	}
 
-	taskPath, taskHandler, err := taskmodule.NewHTTPHandler(
-		ctx,
-		taskrepository.NewTaskRepository(db),
-		taskCfg.AuthServiceURL,
-	)
+	remindQueue, err := taskmodule.NewRemindQueue(ctx, &taskCfg.TaskQueue)
+	if err != nil {
+		logger.Error("failed to create task remind queue", slog.String("error", err.Error()))
+
+		return err
+	}
+
+	taskRepos := taskmodule.Repositories{
+		Tasks:        taskrepository.NewTaskRepository(db),
+		AuthClient:   authclient.NewAuthClient(taskCfg.AuthServiceURL),
+		DeviceClient: deviceclient.NewDeviceClient(taskCfg.DeviceServiceURL),
+		RemindQueue:  remindQueue,
+	}
+
+	var closeTaskReposOnce sync.Once
+
+	closeTaskRepos := func() {
+		closeTaskReposOnce.Do(func() {
+			if err := taskRepos.Close(); err != nil {
+				logger.Warn("failed to close task repositories", slog.String("error", err.Error()))
+			}
+		})
+	}
+
+	defer closeTaskRepos()
+
+	taskPath, taskHandler, err := taskmodule.NewHTTPHandlerWithRepositories(ctx, taskRepos)
 	if err != nil {
 		logger.Error("failed to initialize task service", slog.String("error", err.Error()))
-		os.Exit(1)
+
+		return err
 	}
 
 	mux.Handle(taskPath, taskHandler)
@@ -106,7 +149,8 @@ func main() {
 	deviceCfg, err := deviceconfig.Load()
 	if err != nil {
 		logger.Error("failed to load device config", slog.String("error", err.Error()))
-		os.Exit(1)
+
+		return err
 	}
 
 	devicePath, deviceHandler, err := devicemodule.NewHTTPHandler(
@@ -116,7 +160,8 @@ func main() {
 	)
 	if err != nil {
 		logger.Error("failed to initialize device service", slog.String("error", err.Error()))
-		os.Exit(1)
+
+		return err
 	}
 
 	mux.Handle(devicePath, deviceHandler)
@@ -133,8 +178,28 @@ func main() {
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
-	if err := server.ListenAndServe(); err != nil {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	go func() {
+		<-ctx.Done()
+
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer shutdownCancel()
+
+		//nolint:contextcheck
+		if err := server.Shutdown(shutdownCtx); err != nil {
+			logger.Error("failed to shutdown connect api server", slog.String("error", err.Error()))
+		}
+
+		closeTaskRepos()
+	}()
+
+	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		logger.Error("connect api server exited", slog.String("error", err.Error()))
-		os.Exit(1)
+
+		return err
 	}
+
+	return nil
 }

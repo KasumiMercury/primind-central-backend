@@ -10,6 +10,8 @@ import (
 	domaintask "github.com/KasumiMercury/primind-central-backend/internal/task/domain/task"
 	domainuser "github.com/KasumiMercury/primind-central-backend/internal/task/domain/user"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/authclient"
+	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/deviceclient"
+	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/taskqueue"
 )
 
 type CreateTaskRequest struct {
@@ -39,19 +41,25 @@ type CreateTaskUseCase interface {
 }
 
 type createTaskHandler struct {
-	authClient authclient.AuthClient
-	taskRepo   domaintask.TaskRepository
-	logger     *slog.Logger
+	authClient   authclient.AuthClient
+	deviceClient deviceclient.DeviceClient
+	taskRepo     domaintask.TaskRepository
+	remindQueue  taskqueue.RemindQueue
+	logger       *slog.Logger
 }
 
 func NewCreateTaskHandler(
 	authClient authclient.AuthClient,
+	deviceClient deviceclient.DeviceClient,
 	taskRepo domaintask.TaskRepository,
+	remindQueue taskqueue.RemindQueue,
 ) CreateTaskUseCase {
 	return &createTaskHandler{
-		authClient: authClient,
-		taskRepo:   taskRepo,
-		logger:     slog.Default().WithGroup("task").WithGroup("createtask"),
+		authClient:   authClient,
+		deviceClient: deviceClient,
+		taskRepo:     taskRepo,
+		remindQueue:  remindQueue,
+		logger:       slog.Default().WithGroup("task").WithGroup("createtask"),
 	}
 }
 
@@ -130,25 +138,131 @@ func (h *createTaskHandler) CreateTask(ctx context.Context, req *CreateTaskReque
 		return nil, err
 	}
 
+	devices, err := h.deviceClient.GetUserDevicesWithRetry(ctx, req.SessionToken, deviceclient.DefaultRetryConfig())
+	if err != nil {
+		if errors.Is(err, deviceclient.ErrUnauthorized) {
+			h.logger.Info("device service: unauthorized", slog.String("error", err.Error()))
+
+			return nil, ErrUnauthorized
+		}
+
+		if errors.Is(err, deviceclient.ErrInvalidArgument) {
+			h.logger.Error("device service: invalid argument", slog.String("error", err.Error()))
+
+			return nil, ErrDeviceInvalidArgument
+		}
+
+		h.logger.Warn("device fetch failed after retries, returning create failure",
+			slog.String("task_id", task.ID().String()),
+			slog.String("error", err.Error()))
+
+		return nil, ErrDeviceServiceUnavailable
+	}
+
+	domainDevices := make([]domaintask.DeviceInfo, 0, len(devices))
+	for _, d := range devices {
+		domainDevices = append(domainDevices, domaintask.DeviceInfo{
+			DeviceID: d.DeviceID,
+			FCMToken: d.FCMToken,
+		})
+	}
+
+	reminderInfo := domaintask.CalculateReminderTimes(task, userIDstr, domainDevices)
+
+	var remindReq *taskqueue.CreateRemindRequest
+
+	if reminderInfo != nil {
+		h.logReminderInfo(reminderInfo)
+
+		remindReq = h.convertToRemindRequest(reminderInfo)
+	}
+
 	if err := h.taskRepo.SaveTask(ctx, task); err != nil {
 		h.logger.Error("failed to save task", slog.String("error", err.Error()))
 
 		return nil, err
 	}
 
-	h.logger.Info("task created successfully", slog.String("task_id", task.ID().String()))
+	if remindReq != nil {
+		if _, err := h.remindQueue.RegisterRemind(ctx, remindReq); err != nil {
+			h.logger.Error("failed to register remind to queue",
+				slog.String("task_id", task.ID().String()),
+				slog.String("error", err.Error()))
+
+			if deleteErr := h.taskRepo.DeleteTask(ctx, task.ID(), userID); deleteErr != nil {
+				h.logger.Error("failed to rollback task after queue registration failure",
+					slog.String("task_id", task.ID().String()),
+					slog.String("error", deleteErr.Error()),
+				)
+			}
+
+			return nil, ErrRemindQueueRegistrationFailed
+		}
+	}
+
+	if err := h.taskRepo.UpdateTaskStatus(ctx, task.ID(), userID, domaintask.StatusActive); err != nil {
+		h.logger.Error("failed to update task status to active",
+			slog.String("task_id", task.ID().String()),
+			slog.String("error", err.Error()))
+
+		return nil, err
+	}
+
+	h.logger.Info("task created", slog.String("task_id", task.ID().String()))
 
 	return &CreateTaskResult{
 		TaskID:      task.ID().String(),
 		Title:       task.Title(),
 		TaskType:    string(task.TaskType()),
-		TaskStatus:  string(task.TaskStatus()),
+		TaskStatus:  string(domaintask.StatusActive),
 		Description: task.Description(),
 		ScheduledAt: task.ScheduledAt(),
 		CreatedAt:   task.CreatedAt(),
 		TargetAt:    task.TargetAt(),
 		Color:       task.Color().String(),
 	}, nil
+}
+
+func (h *createTaskHandler) logReminderInfo(info *domaintask.ReminderInfo) {
+	reminderTimesStr := make([]string, len(info.ReminderTimes))
+	for i, t := range info.ReminderTimes {
+		reminderTimesStr[i] = t.Format(time.RFC3339)
+	}
+
+	h.logger.Info("reminder schedule prepared",
+		slog.String("task_id", info.TaskID.String()),
+		slog.String("task_type", string(info.TaskType)),
+		slog.Int("reminder_count", len(info.ReminderTimes)),
+		slog.Int("device_count", len(info.Devices)),
+	)
+
+	h.logger.Debug("reminder times calculated",
+		slog.String("task_id", info.TaskID.String()),
+		slog.Any("reminder_times", reminderTimesStr),
+	)
+}
+
+func (h *createTaskHandler) convertToRemindRequest(info *domaintask.ReminderInfo) *taskqueue.CreateRemindRequest {
+	devices := make([]taskqueue.DeviceRequest, 0, len(info.Devices))
+	for _, d := range info.Devices {
+		fcmToken := ""
+		if d.FCMToken != nil {
+			fcmToken = *d.FCMToken
+		}
+
+		devices = append(devices, taskqueue.DeviceRequest{
+			DeviceID: d.DeviceID,
+			FCMToken: fcmToken,
+		})
+	}
+
+	return &taskqueue.CreateRemindRequest{
+		Times:    info.ReminderTimes,
+		UserID:   info.UserID,
+		Devices:  devices,
+		TaskID:   info.TaskID.String(),
+		TaskType: string(info.TaskType),
+	}
 }
 
 type GetTaskRequest struct {

@@ -45,8 +45,9 @@ func NewHTTPHandlerWithRepositories(ctx context.Context, repos Repositories) (st
 	}
 
 	registerDeviceUseCase := appdevice.NewRegisterDeviceHandler(repos.AuthClient, repos.Devices)
+	getUserDevicesUseCase := appdevice.NewGetUserDevicesHandler(repos.AuthClient, repos.Devices)
 
-	deviceService := devicesvc.NewService(registerDeviceUseCase)
+	deviceService := devicesvc.NewService(registerDeviceUseCase, getUserDevicesUseCase)
 
 	devicePath, deviceHandler := devicev1connect.NewDeviceServiceHandler(
 		deviceService,

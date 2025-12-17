@@ -87,6 +87,18 @@ func (s *Service) CreateTask(
 			s.logger.Error("auth service unavailable during create task", slog.String("error", err.Error()))
 
 			return nil, connect.NewError(connect.CodeUnavailable, err)
+		case errors.Is(err, apptask.ErrDeviceServiceUnavailable):
+			s.logger.Error("device service unavailable during create task", slog.String("error", err.Error()))
+
+			return nil, connect.NewError(connect.CodeUnavailable, err)
+		case errors.Is(err, apptask.ErrDeviceInvalidArgument):
+			s.logger.Error("device service invalid argument during create task", slog.String("error", err.Error()))
+
+			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		case errors.Is(err, apptask.ErrRemindQueueRegistrationFailed):
+			s.logger.Error("remind queue registration failed during create task", slog.String("error", err.Error()))
+
+			return nil, connect.NewError(connect.CodeUnavailable, err)
 		case errors.Is(err, apptask.ErrTitleRequired),
 			errors.Is(err, domaintask.ErrTitleTooLong),
 			errors.Is(err, domaintask.ErrScheduledAtRequired),
@@ -315,6 +327,8 @@ func stringToProtoTaskStatus(taskStatus string) taskv1.TaskStatus {
 		return taskv1.TaskStatus_TASK_STATUS_ACTIVE
 	case string(domaintask.StatusCompleted):
 		return taskv1.TaskStatus_TASK_STATUS_COMPLETED
+	case string(domaintask.StatusPendingReminders):
+		return taskv1.TaskStatus_TASK_STATUS_UNSPECIFIED
 	default:
 		return taskv1.TaskStatus_TASK_STATUS_UNSPECIFIED
 	}

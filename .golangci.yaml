@@ -29,6 +29,7 @@ linters:
                 - 'github\.com/go-jose/go-jose/v4/jwt\.Expected'
                 - 'github\.com/coreos/go-oidc/v3/oidc\.Config'
                 - 'net/http\.Server'
+                - 'net/http\.Client'
                 - 'gorm\.io/gorm\.Config'
                 - 'github\.com/redis/go-redis/v9\.Options'
                 - 'gorm\.io/gorm/clause\.OnConflict'

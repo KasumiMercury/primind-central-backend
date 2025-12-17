@@ -12,7 +12,7 @@ package oidc
 import (
 	reflect "reflect"
 
-	domain "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/session"
+	session "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/session"
 	user "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/user"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -42,16 +42,16 @@ func (m *MockSessionTokenGenerator) EXPECT() *MockSessionTokenGeneratorMockRecor
 }
 
 // Generate mocks base method.
-func (m *MockSessionTokenGenerator) Generate(session *domain.Session, arg1 *user.User) (string, error) {
+func (m *MockSessionTokenGenerator) Generate(arg0 *session.Session, arg1 *user.User) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Generate", session, arg1)
+	ret := m.ctrl.Call(m, "Generate", arg0, arg1)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Generate indicates an expected call of Generate.
-func (mr *MockSessionTokenGeneratorMockRecorder) Generate(session, arg1 any) *gomock.Call {
+func (mr *MockSessionTokenGeneratorMockRecorder) Generate(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Generate", reflect.TypeOf((*MockSessionTokenGenerator)(nil).Generate), session, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Generate", reflect.TypeOf((*MockSessionTokenGenerator)(nil).Generate), arg0, arg1)
 }

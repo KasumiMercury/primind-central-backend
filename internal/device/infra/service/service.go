@@ -15,14 +15,19 @@ import (
 
 type Service struct {
 	registerDevice appdevice.RegisterDeviceUseCase
+	getUserDevices appdevice.GetUserDevicesUseCase
 	logger         *slog.Logger
 }
 
 var _ devicev1connect.DeviceServiceHandler = (*Service)(nil)
 
-func NewService(registerDeviceUseCase appdevice.RegisterDeviceUseCase) *Service {
+func NewService(
+	registerDeviceUseCase appdevice.RegisterDeviceUseCase,
+	getUserDevicesUseCase appdevice.GetUserDevicesUseCase,
+) *Service {
 	return &Service{
 		registerDevice: registerDeviceUseCase,
+		getUserDevices: getUserDevicesUseCase,
 		logger:         slog.Default().WithGroup("device").WithGroup("service"),
 	}
 }
@@ -130,5 +135,68 @@ func protoPlatformToDomain(platform devicev1.Platform) (domaindevice.Platform, e
 		return "", errors.New("platform is required")
 	default:
 		return "", errors.New("unsupported platform")
+	}
+}
+
+func (s *Service) GetUserDevices(
+	ctx context.Context,
+	req *devicev1.GetUserDevicesRequest,
+) (*devicev1.GetUserDevicesResponse, error) {
+	if req == nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("request is required"))
+	}
+
+	token := extractSessionTokenFromContext(ctx)
+	if token == "" {
+		s.logger.Warn("get user devices called without session token")
+
+		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("session token required"))
+	}
+
+	result, err := s.getUserDevices.GetUserDevices(ctx, &appdevice.GetUserDevicesRequest{
+		SessionToken: token,
+	})
+	if err != nil {
+		return s.handleGetUserDevicesError(err)
+	}
+
+	devices := make([]*devicev1.DeviceInfo, 0, len(result.Devices))
+	for _, d := range result.Devices {
+		device := &devicev1.DeviceInfo{
+			DeviceId: d.DeviceID,
+			FcmToken: nil,
+		}
+		if d.FCMToken != nil {
+			device.FcmToken = d.FCMToken
+		}
+
+		devices = append(devices, device)
+	}
+
+	s.logger.Info("user devices retrieved", slog.Int("device_count", len(devices)))
+
+	return &devicev1.GetUserDevicesResponse{
+		Devices: devices,
+	}, nil
+}
+
+func (s *Service) handleGetUserDevicesError(err error) (*devicev1.GetUserDevicesResponse, error) {
+	switch {
+	case errors.Is(err, appdevice.ErrUnauthorized):
+		s.logger.Info("unauthorized get user devices attempt")
+
+		return nil, connect.NewError(connect.CodeUnauthenticated, err)
+	case errors.Is(err, appdevice.ErrAuthServiceUnavailable):
+		s.logger.Error("auth service unavailable during get user devices", slog.String("error", err.Error()))
+
+		return nil, connect.NewError(connect.CodeUnavailable, err)
+	case errors.Is(err, appdevice.ErrGetUserDevicesRequestRequired):
+		s.logger.Warn("get user devices request required", slog.String("error", err.Error()))
+
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	default:
+		s.logger.Error("unexpected get user devices error", slog.String("error", err.Error()))
+
+		return nil, connect.NewError(connect.CodeInternal, errors.New("internal server error"))
 	}
 }
