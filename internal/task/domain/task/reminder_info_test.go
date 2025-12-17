@@ -229,6 +229,143 @@ func TestCalculateReminderTimes(t *testing.T) {
 		}
 	})
 
+	t.Run("filters out intervals exceeding targetAt for short scheduled task", func(t *testing.T) {
+		taskID, err := NewID()
+		if err != nil {
+			t.Fatalf("setup failed: %v", err)
+		}
+
+		// Short scheduled task: targetAt = 30 minutes from createdAt
+		// Low intervals (126, 232, 315 min) all exceed this
+		scheduledAt := baseTime.Add(30 * time.Minute)
+
+		task, err := NewTask(
+			taskID,
+			validUserID,
+			"Short Scheduled Task",
+			TypeScheduled,
+			StatusActive,
+			"",
+			&scheduledAt,
+			baseTime,
+			scheduledAt,
+			validColor,
+		)
+		if err != nil {
+			t.Fatalf("NewTask() unexpected error: %v", err)
+		}
+
+		info := CalculateReminderTimes(task, "test-user-id", nil)
+
+		if info == nil {
+			t.Fatal("CalculateReminderTimes returned nil")
+		}
+
+		// All intervals exceed targetAt, so only targetAt should remain
+		if len(info.ReminderTimes) != 1 {
+			t.Errorf("got %d reminder times, want 1 (only targetAt)", len(info.ReminderTimes))
+		}
+
+		if !info.ReminderTimes[0].Equal(scheduledAt) {
+			t.Errorf("ReminderTimes[0] = %v, want %v (targetAt)", info.ReminderTimes[0], scheduledAt)
+		}
+	})
+
+	t.Run("deduplicates when interval exactly equals targetAt", func(t *testing.T) {
+		taskID, err := NewID()
+		if err != nil {
+			t.Fatalf("setup failed: %v", err)
+		}
+
+		// targetAt = 126 minutes (matches first Low interval exactly)
+		targetAt := baseTime.Add(126 * time.Minute)
+
+		task, err := NewTask(
+			taskID,
+			validUserID,
+			"Test Dedupe Task",
+			TypeLow,
+			StatusActive,
+			"",
+			nil,
+			baseTime,
+			targetAt,
+			validColor,
+		)
+		if err != nil {
+			t.Fatalf("NewTask() unexpected error: %v", err)
+		}
+
+		info := CalculateReminderTimes(task, "test-user-id", nil)
+
+		if info == nil {
+			t.Fatal("CalculateReminderTimes returned nil")
+		}
+
+		// Only the 126min interval should remain (232, 315 filtered)
+		// targetAt equals 126min so no duplicate should be added
+		if len(info.ReminderTimes) != 1 {
+			t.Errorf("got %d reminder times, want 1 (no duplicate)", len(info.ReminderTimes))
+		}
+
+		expected := baseTime.Add(126 * time.Minute)
+		if !info.ReminderTimes[0].Equal(expected) {
+			t.Errorf("ReminderTimes[0] = %v, want %v", info.ReminderTimes[0], expected)
+		}
+	})
+
+	t.Run("partially filters intervals exceeding targetAt", func(t *testing.T) {
+		taskID, err := NewID()
+		if err != nil {
+			t.Fatalf("setup failed: %v", err)
+		}
+
+		// targetAt = 200 minutes
+		// Low intervals: 126min (kept), 232min (filtered), 315min (filtered)
+		targetAt := baseTime.Add(200 * time.Minute)
+
+		task, err := NewTask(
+			taskID,
+			validUserID,
+			"Test Partial Filter Task",
+			TypeLow,
+			StatusActive,
+			"",
+			nil,
+			baseTime,
+			targetAt,
+			validColor,
+		)
+		if err != nil {
+			t.Fatalf("NewTask() unexpected error: %v", err)
+		}
+
+		info := CalculateReminderTimes(task, "test-user-id", nil)
+
+		if info == nil {
+			t.Fatal("CalculateReminderTimes returned nil")
+		}
+
+		// Expected: 126min interval + targetAt (200min)
+		if len(info.ReminderTimes) != 2 {
+			t.Errorf("got %d reminder times, want 2", len(info.ReminderTimes))
+		}
+
+		expectedTimes := []time.Time{
+			baseTime.Add(126 * time.Minute),
+			baseTime.Add(200 * time.Minute),
+		}
+
+		for i, expected := range expectedTimes {
+			if i >= len(info.ReminderTimes) {
+				break
+			}
+			if !info.ReminderTimes[i].Equal(expected) {
+				t.Errorf("ReminderTimes[%d] = %v, want %v", i, info.ReminderTimes[i], expected)
+			}
+		}
+	})
+
 	t.Run("ReminderInfo contains correct task ID and type", func(t *testing.T) {
 		taskID, err := NewID()
 		if err != nil {

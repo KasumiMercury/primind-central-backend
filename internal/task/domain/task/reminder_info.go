@@ -28,10 +28,14 @@ func CalculateReminderTimes(task *Task, userID string, devices []DeviceInfo) *Re
 
 	for _, interval := range intervals {
 		reminderTime := createdAt.Add(time.Duration(interval))
-		reminderTimes = append(reminderTimes, reminderTime)
+		if !reminderTime.After(targetAt) {
+			reminderTimes = append(reminderTimes, reminderTime)
+		}
 	}
 
-	reminderTimes = append(reminderTimes, targetAt)
+	if len(reminderTimes) == 0 || !reminderTimes[len(reminderTimes)-1].Equal(targetAt) {
+		reminderTimes = append(reminderTimes, targetAt)
+	}
 
 	return &ReminderInfo{
 		TaskID:        task.ID(),
