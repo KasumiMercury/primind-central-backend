@@ -138,6 +138,11 @@ func (h *createTaskHandler) CreateTask(ctx context.Context, req *CreateTaskReque
 
 	h.logger.Info("task created successfully", slog.String("task_id", task.ID().String()))
 
+	reminderInfo := domaintask.CalculateReminderTimes(task)
+	if reminderInfo != nil {
+		h.logReminderInfo(reminderInfo)
+	}
+
 	return &CreateTaskResult{
 		TaskID:      task.ID().String(),
 		Title:       task.Title(),
@@ -149,6 +154,20 @@ func (h *createTaskHandler) CreateTask(ctx context.Context, req *CreateTaskReque
 		TargetAt:    task.TargetAt(),
 		Color:       task.Color().String(),
 	}, nil
+}
+
+func (h *createTaskHandler) logReminderInfo(info *domaintask.ReminderInfo) {
+	reminderTimesStr := make([]string, len(info.ReminderTimes))
+	for i, t := range info.ReminderTimes {
+		reminderTimesStr[i] = t.Format(time.RFC3339)
+	}
+
+	h.logger.Info("reminder times calculated",
+		slog.String("task_id", info.TaskID.String()),
+		slog.String("task_type", string(info.TaskType)),
+		slog.Int("reminder_count", len(info.ReminderTimes)),
+		slog.Any("reminder_times", reminderTimesStr),
+	)
 }
 
 type GetTaskRequest struct {
