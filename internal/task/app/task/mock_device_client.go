@@ -55,3 +55,18 @@ func (mr *MockDeviceClientMockRecorder) GetUserDevices(ctx, sessionToken any) *g
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserDevices", reflect.TypeOf((*MockDeviceClient)(nil).GetUserDevices), ctx, sessionToken)
 }
+
+// GetUserDevicesWithRetry mocks base method.
+func (m *MockDeviceClient) GetUserDevicesWithRetry(ctx context.Context, sessionToken string, config deviceclient.RetryConfig) ([]deviceclient.DeviceInfo, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUserDevicesWithRetry", ctx, sessionToken, config)
+	ret0, _ := ret[0].([]deviceclient.DeviceInfo)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserDevicesWithRetry indicates an expected call of GetUserDevicesWithRetry.
+func (mr *MockDeviceClientMockRecorder) GetUserDevicesWithRetry(ctx, sessionToken, config any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserDevicesWithRetry", reflect.TypeOf((*MockDeviceClient)(nil).GetUserDevicesWithRetry), ctx, sessionToken, config)
+}
