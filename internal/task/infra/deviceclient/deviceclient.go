@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"time"
 
 	connect "connectrpc.com/connect"
 	devicev1 "github.com/KasumiMercury/primind-central-backend/internal/gen/device/v1"
@@ -18,6 +19,7 @@ type DeviceInfo struct {
 
 type DeviceClient interface {
 	GetUserDevices(ctx context.Context, sessionToken string) ([]DeviceInfo, error)
+	GetUserDevicesWithRetry(ctx context.Context, sessionToken string, config RetryConfig) ([]DeviceInfo, error)
 }
 
 type deviceClient struct {
@@ -26,8 +28,12 @@ type deviceClient struct {
 }
 
 func NewDeviceClient(baseURL string) DeviceClient {
+	httpClient := &http.Client{
+		Timeout: 5 * time.Second,
+	}
+
 	client := devicev1connect.NewDeviceServiceClient(
-		&authHTTPClient{inner: http.DefaultClient},
+		&authHTTPClient{inner: httpClient},
 		baseURL,
 	)
 
@@ -48,7 +54,7 @@ func (c *deviceClient) GetUserDevices(ctx context.Context, sessionToken string) 
 
 	resp, err := c.client.GetUserDevices(ctx, &devicev1.GetUserDevicesRequest{})
 	if err != nil {
-		c.logger.Info("get user devices failed", slog.String("error", err.Error()))
+		c.logger.Debug("get user devices failed", slog.String("error", err.Error()))
 
 		connectErr := new(connect.Error)
 		if errors.As(err, &connectErr) {
