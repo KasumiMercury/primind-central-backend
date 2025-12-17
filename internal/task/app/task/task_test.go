@@ -103,7 +103,10 @@ func TestCreateTaskSuccess(t *testing.T) {
 			mockAuth := NewMockAuthClient(ctrl)
 			mockAuth.EXPECT().ValidateSession(gomock.Any(), tt.req.SessionToken).Return(tt.userID.String(), nil)
 
-			handler := NewCreateTaskHandler(mockAuth, repo)
+			mockDevice := NewMockDeviceClient(ctrl)
+			mockDevice.EXPECT().GetUserDevices(gomock.Any(), tt.req.SessionToken).Return(nil, nil)
+
+			handler := NewCreateTaskHandler(mockAuth, mockDevice, repo)
 
 			resp, err := handler.CreateTask(ctx, &tt.req)
 			if err != nil {
@@ -387,7 +390,9 @@ func TestCreateTaskError(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			mockAuth := tt.setupAuth(ctrl)
-			handler := NewCreateTaskHandler(mockAuth, repo)
+			mockDevice := NewMockDeviceClient(ctrl)
+			mockDevice.EXPECT().GetUserDevices(gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+			handler := NewCreateTaskHandler(mockAuth, mockDevice, repo)
 
 			_, err := handler.CreateTask(ctx, tt.req)
 			if err == nil {

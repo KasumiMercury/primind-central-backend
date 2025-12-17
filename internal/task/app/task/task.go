@@ -10,6 +10,7 @@ import (
 	domaintask "github.com/KasumiMercury/primind-central-backend/internal/task/domain/task"
 	domainuser "github.com/KasumiMercury/primind-central-backend/internal/task/domain/user"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/authclient"
+	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/deviceclient"
 )
 
 type CreateTaskRequest struct {
@@ -39,19 +40,22 @@ type CreateTaskUseCase interface {
 }
 
 type createTaskHandler struct {
-	authClient authclient.AuthClient
-	taskRepo   domaintask.TaskRepository
-	logger     *slog.Logger
+	authClient   authclient.AuthClient
+	deviceClient deviceclient.DeviceClient
+	taskRepo     domaintask.TaskRepository
+	logger       *slog.Logger
 }
 
 func NewCreateTaskHandler(
 	authClient authclient.AuthClient,
+	deviceClient deviceclient.DeviceClient,
 	taskRepo domaintask.TaskRepository,
 ) CreateTaskUseCase {
 	return &createTaskHandler{
-		authClient: authClient,
-		taskRepo:   taskRepo,
-		logger:     slog.Default().WithGroup("task").WithGroup("createtask"),
+		authClient:   authClient,
+		deviceClient: deviceClient,
+		taskRepo:     taskRepo,
+		logger:       slog.Default().WithGroup("task").WithGroup("createtask"),
 	}
 }
 
@@ -138,7 +142,22 @@ func (h *createTaskHandler) CreateTask(ctx context.Context, req *CreateTaskReque
 
 	h.logger.Info("task created successfully", slog.String("task_id", task.ID().String()))
 
-	reminderInfo := domaintask.CalculateReminderTimes(task)
+	var domainDevices []domaintask.DeviceInfo
+	devices, err := h.deviceClient.GetUserDevices(ctx, req.SessionToken)
+	if err != nil {
+		h.logger.Warn("failed to get user devices", slog.String("error", err.Error()))
+		domainDevices = []domaintask.DeviceInfo{}
+	} else {
+		domainDevices = make([]domaintask.DeviceInfo, 0, len(devices))
+		for _, d := range devices {
+			domainDevices = append(domainDevices, domaintask.DeviceInfo{
+				DeviceID: d.DeviceID,
+				FCMToken: d.FCMToken,
+			})
+		}
+	}
+
+	reminderInfo := domaintask.CalculateReminderTimes(task, userIDstr, domainDevices)
 	if reminderInfo != nil {
 		h.logReminderInfo(reminderInfo)
 	}
@@ -162,11 +181,19 @@ func (h *createTaskHandler) logReminderInfo(info *domaintask.ReminderInfo) {
 		reminderTimesStr[i] = t.Format(time.RFC3339)
 	}
 
+	deviceIDs := make([]string, len(info.Devices))
+	for i, d := range info.Devices {
+		deviceIDs[i] = d.DeviceID
+	}
+
 	h.logger.Info("reminder times calculated",
 		slog.String("task_id", info.TaskID.String()),
 		slog.String("task_type", string(info.TaskType)),
+		slog.String("user_id", info.UserID),
 		slog.Int("reminder_count", len(info.ReminderTimes)),
 		slog.Any("reminder_times", reminderTimesStr),
+		slog.Int("device_count", len(info.Devices)),
+		slog.Any("device_ids", deviceIDs),
 	)
 }
 
