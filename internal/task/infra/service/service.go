@@ -94,7 +94,7 @@ func (s *Service) CreateTask(
 		case errors.Is(err, apptask.ErrDeviceInvalidArgument):
 			s.logger.Error("device service invalid argument during create task", slog.String("error", err.Error()))
 
-			return nil, connect.NewError(connect.CodeInternal, err)
+			return nil, connect.NewError(connect.CodeInvalidArgument, err)
 		case errors.Is(err, apptask.ErrTitleRequired),
 			errors.Is(err, domaintask.ErrTitleTooLong),
 			errors.Is(err, domaintask.ErrScheduledAtRequired),
@@ -323,6 +323,8 @@ func stringToProtoTaskStatus(taskStatus string) taskv1.TaskStatus {
 		return taskv1.TaskStatus_TASK_STATUS_ACTIVE
 	case string(domaintask.StatusCompleted):
 		return taskv1.TaskStatus_TASK_STATUS_COMPLETED
+	case string(domaintask.StatusPendingReminders):
+		return taskv1.TaskStatus_TASK_STATUS_ACTIVE
 	default:
 		return taskv1.TaskStatus_TASK_STATUS_UNSPECIFIED
 	}
