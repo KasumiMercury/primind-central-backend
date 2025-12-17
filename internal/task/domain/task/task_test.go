@@ -966,8 +966,8 @@ func TestCreateTaskWithPreGeneratedID(t *testing.T) {
 				t.Errorf("CreateTask() taskType = %v, want %v", task.TaskType(), tt.taskType)
 			}
 
-			if task.TaskStatus() != StatusActive {
-				t.Errorf("CreateTask() taskStatus = %v, want %v", task.TaskStatus(), StatusActive)
+			if task.TaskStatus() != StatusPendingReminders {
+				t.Errorf("CreateTask() taskStatus = %v, want %v", task.TaskStatus(), StatusPendingReminders)
 			}
 
 			if task.Description() != tt.description {
