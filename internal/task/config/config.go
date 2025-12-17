@@ -23,8 +23,8 @@ const (
 	gcloudQueueIDEnv    = "GCLOUD_QUEUE_ID"
 	gcloudTargetURLEnv  = "GCLOUD_TARGET_URL"
 
-	defaultQueueName   = "default"
-	defaultMaxRetries  = 3
+	defaultQueueName  = "default"
+	defaultMaxRetries = 3
 )
 
 type Config struct {
@@ -52,6 +52,7 @@ func Load() (*Config, error) {
 	queueName := getEnv(taskQueueNameEnv, defaultQueueName)
 
 	maxRetries := defaultMaxRetries
+
 	if v := os.Getenv(taskQueueMaxRetriesEnv); v != "" {
 		if parsed, err := strconv.Atoi(v); err == nil && parsed > 0 {
 			maxRetries = parsed

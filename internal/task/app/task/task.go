@@ -168,7 +168,9 @@ func (h *createTaskHandler) CreateTask(ctx context.Context, req *CreateTaskReque
 	}
 
 	reminderInfo := domaintask.CalculateReminderTimes(task, userIDstr, domainDevices)
+
 	var remindReq *taskqueue.CreateRemindRequest
+
 	if reminderInfo != nil {
 		h.logReminderInfo(reminderInfo)
 

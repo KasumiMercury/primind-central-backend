@@ -26,10 +26,12 @@ type inMemoryHTTPClient struct {
 func (c *inMemoryHTTPClient) Do(req *http.Request) (*http.Response, error) {
 	rec := httptest.NewRecorder()
 	c.handler.ServeHTTP(rec, req)
+
 	res := rec.Result()
 	if res.Body == nil {
 		res.Body = io.NopCloser(rec.Body)
 	}
+
 	return res, nil
 }
 
@@ -41,9 +43,11 @@ func (s *testDeviceService) GetUserDevices(ctx context.Context, _ *devicev1.GetU
 	if callInfo, ok := connect.CallInfoForHandlerContext(ctx); ok && s.authHeaderCh != nil {
 		s.authHeaderCh <- callInfo.RequestHeader().Get("Authorization")
 	}
+
 	if s.getErr != nil {
 		return nil, s.getErr
 	}
+
 	return s.getResp, nil
 }
 
@@ -71,6 +75,7 @@ func TestDeviceClientGetUserDevices_SendsAuthorizationHeader(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
+
 	if len(devices) != 1 || devices[0].DeviceID != wantDeviceID {
 		t.Fatalf("unexpected devices: %#v", devices)
 	}
@@ -103,6 +108,7 @@ func TestDeviceClientGetUserDevices_MapsUnauthenticatedToErrUnauthorized(t *test
 	if err == nil {
 		t.Fatalf("expected error, got nil")
 	}
+
 	if !errors.Is(err, ErrUnauthorized) {
 		t.Fatalf("expected %v, got %v", ErrUnauthorized, err)
 	}

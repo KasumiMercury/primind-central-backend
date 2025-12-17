@@ -29,6 +29,7 @@ func (c *deviceClient) GetUserDevicesWithRetry(ctx context.Context, sessionToken
 	}
 
 	var lastErr error
+
 	interval := config.InitialInterval
 
 	for attempt := 1; attempt <= config.MaxAttempts; attempt++ {
@@ -43,6 +44,7 @@ func (c *deviceClient) GetUserDevicesWithRetry(ctx context.Context, sessionToken
 			c.logger.Debug("non-retryable error encountered, stopping retry",
 				slog.String("error", err.Error()),
 				slog.Int("attempt", attempt))
+
 			return nil, err
 		}
 
@@ -50,6 +52,7 @@ func (c *deviceClient) GetUserDevicesWithRetry(ctx context.Context, sessionToken
 			c.logger.Warn("max retry attempts reached",
 				slog.String("error", err.Error()),
 				slog.Int("attempts", attempt))
+
 			break
 		}
 

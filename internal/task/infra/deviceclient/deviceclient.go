@@ -41,6 +41,7 @@ func NewDeviceClientWithHTTPClient(baseURL string, httpClient connect.HTTPClient
 			if token := sessionTokenFromContext(ctx); token != "" {
 				req.Header().Set("Authorization", "Bearer "+token)
 			}
+
 			return next(ctx, req)
 		}
 	})

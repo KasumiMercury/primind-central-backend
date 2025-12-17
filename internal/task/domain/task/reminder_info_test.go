@@ -360,6 +360,7 @@ func TestCalculateReminderTimes(t *testing.T) {
 			if i >= len(info.ReminderTimes) {
 				break
 			}
+
 			if !info.ReminderTimes[i].Equal(expected) {
 				t.Errorf("ReminderTimes[%d] = %v, want %v", i, info.ReminderTimes[i], expected)
 			}
