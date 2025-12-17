@@ -5,11 +5,14 @@ import (
 
 	domaintask "github.com/KasumiMercury/primind-central-backend/internal/task/domain/task"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/authclient"
+	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/deviceclient"
 )
 
 var (
 	ErrUnauthorized                   = authclient.ErrUnauthorized
 	ErrAuthServiceUnavailable         = authclient.ErrAuthServiceUnavailable
+	ErrDeviceServiceUnavailable       = deviceclient.ErrDeviceServiceUnavailable
+	ErrDeviceInvalidArgument          = deviceclient.ErrInvalidArgument
 	ErrCreateTaskRequestRequired      = errors.New("create task request is required")
 	ErrGetTaskRequestRequired         = errors.New("get tasks request is required")
 	ErrListActiveTasksRequestRequired = errors.New("list active tasks request is required")

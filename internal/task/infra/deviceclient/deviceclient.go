@@ -53,8 +53,10 @@ func (c *deviceClient) GetUserDevices(ctx context.Context, sessionToken string) 
 		connectErr := new(connect.Error)
 		if errors.As(err, &connectErr) {
 			switch connectErr.Code() {
-			case connect.CodeUnauthenticated, connect.CodeInvalidArgument:
+			case connect.CodeUnauthenticated:
 				return nil, ErrUnauthorized
+			case connect.CodeInvalidArgument:
+				return nil, ErrInvalidArgument
 			case connect.CodeCanceled, connect.CodeUnknown, connect.CodeDeadlineExceeded,
 				connect.CodeNotFound, connect.CodeAlreadyExists, connect.CodePermissionDenied,
 				connect.CodeResourceExhausted, connect.CodeFailedPrecondition, connect.CodeAborted,

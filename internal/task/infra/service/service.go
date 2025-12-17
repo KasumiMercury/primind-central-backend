@@ -87,6 +87,14 @@ func (s *Service) CreateTask(
 			s.logger.Error("auth service unavailable during create task", slog.String("error", err.Error()))
 
 			return nil, connect.NewError(connect.CodeUnavailable, err)
+		case errors.Is(err, apptask.ErrDeviceServiceUnavailable):
+			s.logger.Error("device service unavailable during create task", slog.String("error", err.Error()))
+
+			return nil, connect.NewError(connect.CodeUnavailable, err)
+		case errors.Is(err, apptask.ErrDeviceInvalidArgument):
+			s.logger.Error("device service invalid argument during create task", slog.String("error", err.Error()))
+
+			return nil, connect.NewError(connect.CodeInternal, err)
 		case errors.Is(err, apptask.ErrTitleRequired),
 			errors.Is(err, domaintask.ErrTitleTooLong),
 			errors.Is(err, domaintask.ErrScheduledAtRequired),

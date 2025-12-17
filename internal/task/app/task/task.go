@@ -142,21 +142,31 @@ func (h *createTaskHandler) CreateTask(ctx context.Context, req *CreateTaskReque
 
 	h.logger.Info("task created successfully", slog.String("task_id", task.ID().String()))
 
-	var domainDevices []domaintask.DeviceInfo
-
 	devices, err := h.deviceClient.GetUserDevices(ctx, req.SessionToken)
 	if err != nil {
-		h.logger.Warn("failed to get user devices", slog.String("error", err.Error()))
+		if errors.Is(err, deviceclient.ErrUnauthorized) {
+			h.logger.Info("device service: unauthorized", slog.String("error", err.Error()))
 
-		domainDevices = []domaintask.DeviceInfo{}
-	} else {
-		domainDevices = make([]domaintask.DeviceInfo, 0, len(devices))
-		for _, d := range devices {
-			domainDevices = append(domainDevices, domaintask.DeviceInfo{
-				DeviceID: d.DeviceID,
-				FCMToken: d.FCMToken,
-			})
+			return nil, ErrUnauthorized
 		}
+
+		if errors.Is(err, deviceclient.ErrInvalidArgument) {
+			h.logger.Error("device service: invalid argument", slog.String("error", err.Error()))
+
+			return nil, ErrDeviceInvalidArgument
+		}
+
+		h.logger.Error("device service unavailable", slog.String("error", err.Error()))
+
+		return nil, ErrDeviceServiceUnavailable
+	}
+
+	domainDevices := make([]domaintask.DeviceInfo, 0, len(devices))
+	for _, d := range devices {
+		domainDevices = append(domainDevices, domaintask.DeviceInfo{
+			DeviceID: d.DeviceID,
+			FCMToken: d.FCMToken,
+		})
 	}
 
 	reminderInfo := domaintask.CalculateReminderTimes(task, userIDstr, domainDevices)
