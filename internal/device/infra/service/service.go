@@ -142,6 +142,10 @@ func (s *Service) GetUserDevices(
 	ctx context.Context,
 	req *devicev1.GetUserDevicesRequest,
 ) (*devicev1.GetUserDevicesResponse, error) {
+	if req == nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("request is required"))
+	}
+
 	token := extractSessionTokenFromContext(ctx)
 	if token == "" {
 		s.logger.Warn("get user devices called without session token")
