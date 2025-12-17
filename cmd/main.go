@@ -94,8 +94,7 @@ func main() {
 	taskPath, taskHandler, err := taskmodule.NewHTTPHandler(
 		ctx,
 		taskrepository.NewTaskRepository(db),
-		taskCfg.AuthServiceURL,
-		taskCfg.DeviceServiceURL,
+		taskCfg,
 	)
 	if err != nil {
 		logger.Error("failed to initialize task service", slog.String("error", err.Error()))
