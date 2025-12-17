@@ -458,7 +458,7 @@ func TestCreateTaskReturnsFailureWhenDeviceFetchFailsAfterRetries(t *testing.T) 
 	}
 }
 
-func TestCreateTaskDeletesTaskWhenDeviceReturnsUnauthorizedOrInvalidArgument(t *testing.T) {
+func TestCreateTaskDoesNotPersistTaskWhenDeviceReturnsUnauthorizedOrInvalidArgument(t *testing.T) {
 	repo := setupTaskRepository(t)
 	ctx := context.Background()
 
@@ -521,7 +521,7 @@ func TestCreateTaskDeletesTaskWhenDeviceReturnsUnauthorizedOrInvalidArgument(t *
 
 			_, getErr := repo.GetTaskByID(ctx, taskID, userID)
 			if getErr == nil {
-				t.Fatalf("expected task to be deleted, but it still exists")
+				t.Fatalf("expected task not to be persisted, but it still exists")
 			}
 
 			if !errors.Is(getErr, domaintask.ErrTaskNotFound) {
