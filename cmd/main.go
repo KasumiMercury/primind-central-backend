@@ -47,18 +47,21 @@ func run(logger *slog.Logger) error {
 	appCfg, err := config.Load()
 	if err != nil {
 		logger.Error("failed to load config", slog.String("error", err.Error()))
+
 		return err
 	}
 
 	db, err := gorm.Open(postgres.Open(appCfg.Persistence.PostgresDSN), &gorm.Config{})
 	if err != nil {
 		logger.Error("failed to connect postgres", slog.String("error", err.Error()))
+
 		return err
 	}
 
 	sqlDB, err := db.DB()
 	if err != nil {
 		logger.Error("failed to obtain postgres handle", slog.String("error", err.Error()))
+
 		return err
 	}
 
@@ -82,6 +85,7 @@ func run(logger *slog.Logger) error {
 
 	if err := redisClient.Ping(ctx).Err(); err != nil {
 		logger.Error("failed to connect redis", slog.String("error", err.Error()))
+
 		return err
 	}
 
@@ -94,6 +98,7 @@ func run(logger *slog.Logger) error {
 	})
 	if err != nil {
 		logger.Error("failed to initialize auth service", slog.String("error", err.Error()))
+
 		return err
 	}
 
@@ -102,12 +107,14 @@ func run(logger *slog.Logger) error {
 	taskCfg, err := taskconfig.Load()
 	if err != nil {
 		logger.Error("failed to load task config", slog.String("error", err.Error()))
+
 		return err
 	}
 
 	remindQueue, err := taskmodule.NewRemindQueue(ctx, &taskCfg.TaskQueue)
 	if err != nil {
 		logger.Error("failed to create task remind queue", slog.String("error", err.Error()))
+
 		return err
 	}
 
@@ -119,6 +126,7 @@ func run(logger *slog.Logger) error {
 	}
 
 	var closeTaskReposOnce sync.Once
+
 	closeTaskRepos := func() {
 		closeTaskReposOnce.Do(func() {
 			if err := taskRepos.Close(); err != nil {
@@ -132,6 +140,7 @@ func run(logger *slog.Logger) error {
 	taskPath, taskHandler, err := taskmodule.NewHTTPHandlerWithRepositories(ctx, taskRepos)
 	if err != nil {
 		logger.Error("failed to initialize task service", slog.String("error", err.Error()))
+
 		return err
 	}
 
@@ -140,6 +149,7 @@ func run(logger *slog.Logger) error {
 	deviceCfg, err := deviceconfig.Load()
 	if err != nil {
 		logger.Error("failed to load device config", slog.String("error", err.Error()))
+
 		return err
 	}
 
@@ -150,6 +160,7 @@ func run(logger *slog.Logger) error {
 	)
 	if err != nil {
 		logger.Error("failed to initialize device service", slog.String("error", err.Error()))
+
 		return err
 	}
 
@@ -176,6 +187,7 @@ func run(logger *slog.Logger) error {
 		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer shutdownCancel()
 
+		//nolint:contextcheck
 		if err := server.Shutdown(shutdownCtx); err != nil {
 			logger.Error("failed to shutdown connect api server", slog.String("error", err.Error()))
 		}
@@ -185,6 +197,7 @@ func run(logger *slog.Logger) error {
 
 	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		logger.Error("connect api server exited", slog.String("error", err.Error()))
+
 		return err
 	}
 

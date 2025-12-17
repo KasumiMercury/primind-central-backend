@@ -52,7 +52,9 @@ func NewHTTPHandler(
 	if closer, ok := remindQueue.(io.Closer); ok {
 		defer func() {
 			if err != nil {
-				_ = closer.Close()
+				if closeErr := closer.Close(); closeErr != nil {
+					slog.Warn("failed to close remind queue during cleanup", slog.String("error", closeErr.Error()))
+				}
 			}
 		}()
 	}
