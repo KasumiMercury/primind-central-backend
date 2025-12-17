@@ -218,6 +218,140 @@ func (x *RegisterDeviceResponse) GetIsNew() bool {
 	return false
 }
 
+// GetUserDevices returns all devices associated with the authenticated user.
+// Session token is extracted from the Authorization header.
+type GetUserDevicesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetUserDevicesRequest) Reset() {
+	*x = GetUserDevicesRequest{}
+	mi := &file_device_v1_device_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetUserDevicesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetUserDevicesRequest) ProtoMessage() {}
+
+func (x *GetUserDevicesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_device_v1_device_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetUserDevicesRequest.ProtoReflect.Descriptor instead.
+func (*GetUserDevicesRequest) Descriptor() ([]byte, []int) {
+	return file_device_v1_device_proto_rawDescGZIP(), []int{2}
+}
+
+type DeviceInfo struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	DeviceId      string                 `protobuf:"bytes,1,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
+	FcmToken      *string                `protobuf:"bytes,2,opt,name=fcm_token,json=fcmToken,proto3,oneof" json:"fcm_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeviceInfo) Reset() {
+	*x = DeviceInfo{}
+	mi := &file_device_v1_device_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeviceInfo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeviceInfo) ProtoMessage() {}
+
+func (x *DeviceInfo) ProtoReflect() protoreflect.Message {
+	mi := &file_device_v1_device_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeviceInfo.ProtoReflect.Descriptor instead.
+func (*DeviceInfo) Descriptor() ([]byte, []int) {
+	return file_device_v1_device_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *DeviceInfo) GetDeviceId() string {
+	if x != nil {
+		return x.DeviceId
+	}
+	return ""
+}
+
+func (x *DeviceInfo) GetFcmToken() string {
+	if x != nil && x.FcmToken != nil {
+		return *x.FcmToken
+	}
+	return ""
+}
+
+type GetUserDevicesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Devices       []*DeviceInfo          `protobuf:"bytes,1,rep,name=devices,proto3" json:"devices,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetUserDevicesResponse) Reset() {
+	*x = GetUserDevicesResponse{}
+	mi := &file_device_v1_device_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetUserDevicesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetUserDevicesResponse) ProtoMessage() {}
+
+func (x *GetUserDevicesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_device_v1_device_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetUserDevicesResponse.ProtoReflect.Descriptor instead.
+func (*GetUserDevicesResponse) Descriptor() ([]byte, []int) {
+	return file_device_v1_device_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *GetUserDevicesResponse) GetDevices() []*DeviceInfo {
+	if x != nil {
+		return x.Devices
+	}
+	return nil
+}
+
 var File_device_v1_device_proto protoreflect.FileDescriptor
 
 const file_device_v1_device_proto_rawDesc = "" +
@@ -238,14 +372,24 @@ const file_device_v1_device_proto_rawDesc = "" +
 	"_fcm_token\"V\n" +
 	"\x16RegisterDeviceResponse\x12%\n" +
 	"\tdevice_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\bdeviceId\x12\x15\n" +
-	"\x06is_new\x18\x02 \x01(\bR\x05isNew*^\n" +
+	"\x06is_new\x18\x02 \x01(\bR\x05isNew\"\x17\n" +
+	"\x15GetUserDevicesRequest\"c\n" +
+	"\n" +
+	"DeviceInfo\x12%\n" +
+	"\tdevice_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\bdeviceId\x12 \n" +
+	"\tfcm_token\x18\x02 \x01(\tH\x00R\bfcmToken\x88\x01\x01B\f\n" +
+	"\n" +
+	"_fcm_token\"I\n" +
+	"\x16GetUserDevicesResponse\x12/\n" +
+	"\adevices\x18\x01 \x03(\v2\x15.device.v1.DeviceInfoR\adevices*^\n" +
 	"\bPlatform\x12\x18\n" +
 	"\x14PLATFORM_UNSPECIFIED\x10\x00\x12\x10\n" +
 	"\fPLATFORM_WEB\x10\x01\x12\x14\n" +
 	"\x10PLATFORM_ANDROID\x10\x02\x12\x10\n" +
-	"\fPLATFORM_IOS\x10\x032f\n" +
+	"\fPLATFORM_IOS\x10\x032\xbd\x01\n" +
 	"\rDeviceService\x12U\n" +
-	"\x0eRegisterDevice\x12 .device.v1.RegisterDeviceRequest\x1a!.device.v1.RegisterDeviceResponseB\xb3\x01\n" +
+	"\x0eRegisterDevice\x12 .device.v1.RegisterDeviceRequest\x1a!.device.v1.RegisterDeviceResponse\x12U\n" +
+	"\x0eGetUserDevices\x12 .device.v1.GetUserDevicesRequest\x1a!.device.v1.GetUserDevicesResponseB\xb3\x01\n" +
 	"\rcom.device.v1B\vDeviceProtoP\x01ZPgithub.com/KasumiMercury/primind-central-backend/internal/gen/device/v1;devicev1\xa2\x02\x03DXX\xaa\x02\tDevice.V1\xca\x02\tDevice\\V1\xe2\x02\x15Device\\V1\\GPBMetadata\xea\x02\n" +
 	"Device::V1b\x06proto3"
 
@@ -262,21 +406,27 @@ func file_device_v1_device_proto_rawDescGZIP() []byte {
 }
 
 var file_device_v1_device_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_device_v1_device_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_device_v1_device_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_device_v1_device_proto_goTypes = []any{
 	(Platform)(0),                  // 0: device.v1.Platform
 	(*RegisterDeviceRequest)(nil),  // 1: device.v1.RegisterDeviceRequest
 	(*RegisterDeviceResponse)(nil), // 2: device.v1.RegisterDeviceResponse
+	(*GetUserDevicesRequest)(nil),  // 3: device.v1.GetUserDevicesRequest
+	(*DeviceInfo)(nil),             // 4: device.v1.DeviceInfo
+	(*GetUserDevicesResponse)(nil), // 5: device.v1.GetUserDevicesResponse
 }
 var file_device_v1_device_proto_depIdxs = []int32{
 	0, // 0: device.v1.RegisterDeviceRequest.platform:type_name -> device.v1.Platform
-	1, // 1: device.v1.DeviceService.RegisterDevice:input_type -> device.v1.RegisterDeviceRequest
-	2, // 2: device.v1.DeviceService.RegisterDevice:output_type -> device.v1.RegisterDeviceResponse
-	2, // [2:3] is the sub-list for method output_type
-	1, // [1:2] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	4, // 1: device.v1.GetUserDevicesResponse.devices:type_name -> device.v1.DeviceInfo
+	1, // 2: device.v1.DeviceService.RegisterDevice:input_type -> device.v1.RegisterDeviceRequest
+	3, // 3: device.v1.DeviceService.GetUserDevices:input_type -> device.v1.GetUserDevicesRequest
+	2, // 4: device.v1.DeviceService.RegisterDevice:output_type -> device.v1.RegisterDeviceResponse
+	5, // 5: device.v1.DeviceService.GetUserDevices:output_type -> device.v1.GetUserDevicesResponse
+	4, // [4:6] is the sub-list for method output_type
+	2, // [2:4] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_device_v1_device_proto_init() }
@@ -285,13 +435,14 @@ func file_device_v1_device_proto_init() {
 		return
 	}
 	file_device_v1_device_proto_msgTypes[0].OneofWrappers = []any{}
+	file_device_v1_device_proto_msgTypes[3].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_device_v1_device_proto_rawDesc), len(file_device_v1_device_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   2,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

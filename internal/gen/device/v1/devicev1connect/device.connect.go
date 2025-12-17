@@ -36,11 +36,15 @@ const (
 	// DeviceServiceRegisterDeviceProcedure is the fully-qualified name of the DeviceService's
 	// RegisterDevice RPC.
 	DeviceServiceRegisterDeviceProcedure = "/device.v1.DeviceService/RegisterDevice"
+	// DeviceServiceGetUserDevicesProcedure is the fully-qualified name of the DeviceService's
+	// GetUserDevices RPC.
+	DeviceServiceGetUserDevicesProcedure = "/device.v1.DeviceService/GetUserDevices"
 )
 
 // DeviceServiceClient is a client for the device.v1.DeviceService service.
 type DeviceServiceClient interface {
 	RegisterDevice(context.Context, *v1.RegisterDeviceRequest) (*v1.RegisterDeviceResponse, error)
+	GetUserDevices(context.Context, *v1.GetUserDevicesRequest) (*v1.GetUserDevicesResponse, error)
 }
 
 // NewDeviceServiceClient constructs a client for the device.v1.DeviceService service. By default,
@@ -60,12 +64,19 @@ func NewDeviceServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(deviceServiceMethods.ByName("RegisterDevice")),
 			connect.WithClientOptions(opts...),
 		),
+		getUserDevices: connect.NewClient[v1.GetUserDevicesRequest, v1.GetUserDevicesResponse](
+			httpClient,
+			baseURL+DeviceServiceGetUserDevicesProcedure,
+			connect.WithSchema(deviceServiceMethods.ByName("GetUserDevices")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // deviceServiceClient implements DeviceServiceClient.
 type deviceServiceClient struct {
 	registerDevice *connect.Client[v1.RegisterDeviceRequest, v1.RegisterDeviceResponse]
+	getUserDevices *connect.Client[v1.GetUserDevicesRequest, v1.GetUserDevicesResponse]
 }
 
 // RegisterDevice calls device.v1.DeviceService.RegisterDevice.
@@ -77,9 +88,19 @@ func (c *deviceServiceClient) RegisterDevice(ctx context.Context, req *v1.Regist
 	return nil, err
 }
 
+// GetUserDevices calls device.v1.DeviceService.GetUserDevices.
+func (c *deviceServiceClient) GetUserDevices(ctx context.Context, req *v1.GetUserDevicesRequest) (*v1.GetUserDevicesResponse, error) {
+	response, err := c.getUserDevices.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // DeviceServiceHandler is an implementation of the device.v1.DeviceService service.
 type DeviceServiceHandler interface {
 	RegisterDevice(context.Context, *v1.RegisterDeviceRequest) (*v1.RegisterDeviceResponse, error)
+	GetUserDevices(context.Context, *v1.GetUserDevicesRequest) (*v1.GetUserDevicesResponse, error)
 }
 
 // NewDeviceServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -95,10 +116,18 @@ func NewDeviceServiceHandler(svc DeviceServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(deviceServiceMethods.ByName("RegisterDevice")),
 		connect.WithHandlerOptions(opts...),
 	)
+	deviceServiceGetUserDevicesHandler := connect.NewUnaryHandlerSimple(
+		DeviceServiceGetUserDevicesProcedure,
+		svc.GetUserDevices,
+		connect.WithSchema(deviceServiceMethods.ByName("GetUserDevices")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/device.v1.DeviceService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case DeviceServiceRegisterDeviceProcedure:
 			deviceServiceRegisterDeviceHandler.ServeHTTP(w, r)
+		case DeviceServiceGetUserDevicesProcedure:
+			deviceServiceGetUserDevicesHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -110,4 +139,8 @@ type UnimplementedDeviceServiceHandler struct{}
 
 func (UnimplementedDeviceServiceHandler) RegisterDevice(context.Context, *v1.RegisterDeviceRequest) (*v1.RegisterDeviceResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("device.v1.DeviceService.RegisterDevice is not implemented"))
+}
+
+func (UnimplementedDeviceServiceHandler) GetUserDevices(context.Context, *v1.GetUserDevicesRequest) (*v1.GetUserDevicesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("device.v1.DeviceService.GetUserDevices is not implemented"))
 }
