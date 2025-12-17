@@ -11,6 +11,7 @@ import (
 	domainuser "github.com/KasumiMercury/primind-central-backend/internal/task/domain/user"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/authclient"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/deviceclient"
+	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/taskqueue"
 )
 
 type CreateTaskRequest struct {
@@ -43,6 +44,7 @@ type createTaskHandler struct {
 	authClient   authclient.AuthClient
 	deviceClient deviceclient.DeviceClient
 	taskRepo     domaintask.TaskRepository
+	remindQueue  taskqueue.RemindQueue
 	logger       *slog.Logger
 }
 
@@ -50,11 +52,13 @@ func NewCreateTaskHandler(
 	authClient authclient.AuthClient,
 	deviceClient deviceclient.DeviceClient,
 	taskRepo domaintask.TaskRepository,
+	remindQueue taskqueue.RemindQueue,
 ) CreateTaskUseCase {
 	return &createTaskHandler{
 		authClient:   authClient,
 		deviceClient: deviceClient,
 		taskRepo:     taskRepo,
+		remindQueue:  remindQueue,
 		logger:       slog.Default().WithGroup("task").WithGroup("createtask"),
 	}
 }
@@ -164,32 +168,40 @@ func (h *createTaskHandler) CreateTask(ctx context.Context, req *CreateTaskReque
 	}
 
 	reminderInfo := domaintask.CalculateReminderTimes(task, userIDstr, domainDevices)
+	var remindReq *taskqueue.CreateRemindRequest
 	if reminderInfo != nil {
 		h.logReminderInfo(reminderInfo)
+
+		remindReq = h.convertToRemindRequest(reminderInfo)
 	}
 
-	activeTask, err := domaintask.NewTask(
-		task.ID(),
-		task.UserID(),
-		task.Title(),
-		task.TaskType(),
-		domaintask.StatusActive,
-		task.Description(),
-		task.ScheduledAt(),
-		task.CreatedAt(),
-		task.TargetAt(),
-		task.Color(),
-	)
-	if err != nil {
-		h.logger.Error("failed to create active task entity",
-			slog.String("task_id", task.ID().String()),
-			slog.String("error", err.Error()))
+	if err := h.taskRepo.SaveTask(ctx, task); err != nil {
+		h.logger.Error("failed to save task", slog.String("error", err.Error()))
 
 		return nil, err
 	}
 
-	if err := h.taskRepo.SaveTask(ctx, activeTask); err != nil {
-		h.logger.Error("failed to save task", slog.String("error", err.Error()))
+	if remindReq != nil {
+		if _, err := h.remindQueue.RegisterRemind(ctx, remindReq); err != nil {
+			h.logger.Error("failed to register remind to queue",
+				slog.String("task_id", task.ID().String()),
+				slog.String("error", err.Error()))
+
+			if deleteErr := h.taskRepo.DeleteTask(ctx, task.ID(), userID); deleteErr != nil {
+				h.logger.Error("failed to rollback task after queue registration failure",
+					slog.String("task_id", task.ID().String()),
+					slog.String("error", deleteErr.Error()),
+				)
+			}
+
+			return nil, ErrRemindQueueRegistrationFailed
+		}
+	}
+
+	if err := h.taskRepo.UpdateTaskStatus(ctx, task.ID(), userID, domaintask.StatusActive); err != nil {
+		h.logger.Error("failed to update task status to active",
+			slog.String("task_id", task.ID().String()),
+			slog.String("error", err.Error()))
 
 		return nil, err
 	}
@@ -226,6 +238,29 @@ func (h *createTaskHandler) logReminderInfo(info *domaintask.ReminderInfo) {
 		slog.String("task_id", info.TaskID.String()),
 		slog.Any("reminder_times", reminderTimesStr),
 	)
+}
+
+func (h *createTaskHandler) convertToRemindRequest(info *domaintask.ReminderInfo) *taskqueue.CreateRemindRequest {
+	devices := make([]taskqueue.DeviceRequest, 0, len(info.Devices))
+	for _, d := range info.Devices {
+		fcmToken := ""
+		if d.FCMToken != nil {
+			fcmToken = *d.FCMToken
+		}
+
+		devices = append(devices, taskqueue.DeviceRequest{
+			DeviceID: d.DeviceID,
+			FCMToken: fcmToken,
+		})
+	}
+
+	return &taskqueue.CreateRemindRequest{
+		Times:    info.ReminderTimes,
+		UserID:   info.UserID,
+		Devices:  devices,
+		TaskID:   info.TaskID.String(),
+		TaskType: string(info.TaskType),
+	}
 }
 
 type GetTaskRequest struct {

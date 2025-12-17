@@ -95,6 +95,10 @@ func (s *Service) CreateTask(
 			s.logger.Error("device service invalid argument during create task", slog.String("error", err.Error()))
 
 			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		case errors.Is(err, apptask.ErrRemindQueueRegistrationFailed):
+			s.logger.Error("remind queue registration failed during create task", slog.String("error", err.Error()))
+
+			return nil, connect.NewError(connect.CodeUnavailable, err)
 		case errors.Is(err, apptask.ErrTitleRequired),
 			errors.Is(err, domaintask.ErrTitleTooLong),
 			errors.Is(err, domaintask.ErrScheduledAtRequired),

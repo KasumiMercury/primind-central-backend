@@ -23,4 +23,5 @@ var (
 	ErrTaskIDRequired                 = errors.New("task ID is required")
 	ErrTaskIDAlreadyExists            = domaintask.ErrTaskIDAlreadyExists
 	ErrInvalidSortType                = domaintask.ErrInvalidSortType
+	ErrRemindQueueRegistrationFailed  = errors.New("failed to register remind to queue")
 )

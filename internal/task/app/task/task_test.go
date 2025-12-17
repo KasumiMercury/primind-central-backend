@@ -11,6 +11,7 @@ import (
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/authclient"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/deviceclient"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/repository"
+	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/taskqueue"
 	"github.com/KasumiMercury/primind-central-backend/internal/testutil"
 	"github.com/google/uuid"
 	"go.uber.org/mock/gomock"
@@ -107,7 +108,45 @@ func TestCreateTaskSuccess(t *testing.T) {
 			mockDevice := NewMockDeviceClient(ctrl)
 			mockDevice.EXPECT().GetUserDevicesWithRetry(gomock.Any(), tt.req.SessionToken, gomock.Any()).Return(nil, nil)
 
-			handler := NewCreateTaskHandler(mockAuth, mockDevice, repo)
+			mockQueue := taskqueue.NewMockRemindQueue(ctrl)
+			mockQueue.EXPECT().
+				RegisterRemind(gomock.Any(), gomock.Any()).
+				DoAndReturn(func(_ context.Context, req *taskqueue.CreateRemindRequest) (*taskqueue.RemindResponse, error) {
+					if req == nil {
+						t.Fatalf("expected remind request, got nil")
+					}
+
+					if req.UserID != tt.userID.String() {
+						t.Fatalf("expected user id %q, got %q", tt.userID.String(), req.UserID)
+					}
+
+					if req.TaskType != string(tt.req.TaskType) {
+						t.Fatalf("expected task type %q, got %q", string(tt.req.TaskType), req.TaskType)
+					}
+
+					if tt.req.TaskID != "" {
+						if req.TaskID != tt.req.TaskID {
+							t.Fatalf("expected task id %q, got %q", tt.req.TaskID, req.TaskID)
+						}
+					} else {
+						if _, err := domaintask.NewIDFromString(req.TaskID); err != nil {
+							t.Fatalf("expected generated task id to be valid uuid v7, got %q (%v)", req.TaskID, err)
+						}
+					}
+
+					if len(req.Times) == 0 {
+						t.Fatalf("expected reminder times to be set")
+					}
+
+					if len(req.Devices) != 0 {
+						t.Fatalf("expected zero devices, got %d", len(req.Devices))
+					}
+
+					return &taskqueue.RemindResponse{Name: "test-task"}, nil
+				}).
+				Times(1)
+
+			handler := NewCreateTaskHandler(mockAuth, mockDevice, repo, mockQueue)
 
 			resp, err := handler.CreateTask(ctx, &tt.req)
 			if err != nil {
@@ -392,8 +431,8 @@ func TestCreateTaskError(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			mockAuth := tt.setupAuth(ctrl)
 			mockDevice := NewMockDeviceClient(ctrl)
-			mockDevice.EXPECT().GetUserDevicesWithRetry(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
-			handler := NewCreateTaskHandler(mockAuth, mockDevice, repo)
+			mockQueue := taskqueue.NewMockRemindQueue(ctrl)
+			handler := NewCreateTaskHandler(mockAuth, mockDevice, repo, mockQueue)
 
 			_, err := handler.CreateTask(ctx, tt.req)
 			if err == nil {
@@ -431,7 +470,9 @@ func TestCreateTaskReturnsFailureWhenDeviceFetchFailsAfterRetries(t *testing.T) 
 		GetUserDevicesWithRetry(gomock.Any(), "token", gomock.Any()).
 		Return(nil, deviceclient.ErrDeviceServiceUnavailable)
 
-	handler := NewCreateTaskHandler(mockAuth, mockDevice, repo)
+	mockQueue := taskqueue.NewMockRemindQueue(ctrl)
+
+	handler := NewCreateTaskHandler(mockAuth, mockDevice, repo, mockQueue)
 
 	_, err = handler.CreateTask(ctx, &CreateTaskRequest{
 		TaskID:       taskID.String(),
@@ -502,7 +543,9 @@ func TestCreateTaskDoesNotPersistTaskWhenDeviceReturnsUnauthorizedOrInvalidArgum
 				GetUserDevicesWithRetry(gomock.Any(), "token", gomock.Any()).
 				Return(nil, tt.deviceErr)
 
-			handler := NewCreateTaskHandler(mockAuth, mockDevice, repo)
+			mockQueue := taskqueue.NewMockRemindQueue(ctrl)
+
+			handler := NewCreateTaskHandler(mockAuth, mockDevice, repo, mockQueue)
 
 			_, err = handler.CreateTask(ctx, &CreateTaskRequest{
 				TaskID:       taskID.String(),
