@@ -134,15 +134,7 @@ func (h *createTaskHandler) CreateTask(ctx context.Context, req *CreateTaskReque
 		return nil, err
 	}
 
-	if err := h.taskRepo.SaveTask(ctx, task); err != nil {
-		h.logger.Error("failed to save task", slog.String("error", err.Error()))
-
-		return nil, err
-	}
-
-	h.logger.Info("task created successfully", slog.String("task_id", task.ID().String()))
-
-	devices, err := h.deviceClient.GetUserDevices(ctx, req.SessionToken)
+	devices, err := h.deviceClient.GetUserDevicesWithRetry(ctx, req.SessionToken, deviceclient.DefaultRetryConfig())
 	if err != nil {
 		if errors.Is(err, deviceclient.ErrUnauthorized) {
 			h.logger.Info("device service: unauthorized", slog.String("error", err.Error()))
@@ -156,7 +148,9 @@ func (h *createTaskHandler) CreateTask(ctx context.Context, req *CreateTaskReque
 			return nil, ErrDeviceInvalidArgument
 		}
 
-		h.logger.Error("device service unavailable", slog.String("error", err.Error()))
+		h.logger.Warn("device fetch failed after retries, returning create failure",
+			slog.String("task_id", task.ID().String()),
+			slog.String("error", err.Error()))
 
 		return nil, ErrDeviceServiceUnavailable
 	}
@@ -174,11 +168,39 @@ func (h *createTaskHandler) CreateTask(ctx context.Context, req *CreateTaskReque
 		h.logReminderInfo(reminderInfo)
 	}
 
+	activeTask, err := domaintask.NewTask(
+		task.ID(),
+		task.UserID(),
+		task.Title(),
+		task.TaskType(),
+		domaintask.StatusActive,
+		task.Description(),
+		task.ScheduledAt(),
+		task.CreatedAt(),
+		task.TargetAt(),
+		task.Color(),
+	)
+	if err != nil {
+		h.logger.Error("failed to create active task entity",
+			slog.String("task_id", task.ID().String()),
+			slog.String("error", err.Error()))
+
+		return nil, err
+	}
+
+	if err := h.taskRepo.SaveTask(ctx, activeTask); err != nil {
+		h.logger.Error("failed to save task", slog.String("error", err.Error()))
+
+		return nil, err
+	}
+
+	h.logger.Info("task created", slog.String("task_id", task.ID().String()))
+
 	return &CreateTaskResult{
 		TaskID:      task.ID().String(),
 		Title:       task.Title(),
 		TaskType:    string(task.TaskType()),
-		TaskStatus:  string(task.TaskStatus()),
+		TaskStatus:  string(domaintask.StatusActive),
 		Description: task.Description(),
 		ScheduledAt: task.ScheduledAt(),
 		CreatedAt:   task.CreatedAt(),
@@ -193,19 +215,16 @@ func (h *createTaskHandler) logReminderInfo(info *domaintask.ReminderInfo) {
 		reminderTimesStr[i] = t.Format(time.RFC3339)
 	}
 
-	deviceIDs := make([]string, len(info.Devices))
-	for i, d := range info.Devices {
-		deviceIDs[i] = d.DeviceID
-	}
-
-	h.logger.Info("reminder times calculated",
+	h.logger.Info("reminder schedule prepared",
 		slog.String("task_id", info.TaskID.String()),
 		slog.String("task_type", string(info.TaskType)),
-		slog.String("user_id", info.UserID),
 		slog.Int("reminder_count", len(info.ReminderTimes)),
-		slog.Any("reminder_times", reminderTimesStr),
 		slog.Int("device_count", len(info.Devices)),
-		slog.Any("device_ids", deviceIDs),
+	)
+
+	h.logger.Debug("reminder times calculated",
+		slog.String("task_id", info.TaskID.String()),
+		slog.Any("reminder_times", reminderTimesStr),
 	)
 }
 
