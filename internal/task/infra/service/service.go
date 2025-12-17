@@ -324,7 +324,7 @@ func stringToProtoTaskStatus(taskStatus string) taskv1.TaskStatus {
 	case string(domaintask.StatusCompleted):
 		return taskv1.TaskStatus_TASK_STATUS_COMPLETED
 	case string(domaintask.StatusPendingReminders):
-		return taskv1.TaskStatus_TASK_STATUS_ACTIVE
+		return taskv1.TaskStatus_TASK_STATUS_UNSPECIFIED
 	default:
 		return taskv1.TaskStatus_TASK_STATUS_UNSPECIFIED
 	}
