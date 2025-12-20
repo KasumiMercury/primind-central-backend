@@ -218,8 +218,6 @@ func (x *RegisterDeviceResponse) GetIsNew() bool {
 	return false
 }
 
-// GetUserDevices returns all devices associated with the authenticated user.
-// Session token is extracted from the Authorization header.
 type GetUserDevicesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
