@@ -291,12 +291,12 @@ func extractSessionTokenFromContext(ctx context.Context) string {
 
 func protoTaskTypeToString(taskType taskv1.TaskType) (domaintask.Type, error) {
 	switch taskType {
-	case taskv1.TaskType_TASK_TYPE_URGENT:
-		return domaintask.TypeUrgent, nil
-	case taskv1.TaskType_TASK_TYPE_NORMAL:
-		return domaintask.TypeNormal, nil
-	case taskv1.TaskType_TASK_TYPE_LOW:
-		return domaintask.TypeLow, nil
+	case taskv1.TaskType_TASK_TYPE_SHORT:
+		return domaintask.TypeShort, nil
+	case taskv1.TaskType_TASK_TYPE_NEAR:
+		return domaintask.TypeNear, nil
+	case taskv1.TaskType_TASK_TYPE_RELAXED:
+		return domaintask.TypeRelaxed, nil
 	case taskv1.TaskType_TASK_TYPE_SCHEDULED:
 		return domaintask.TypeScheduled, nil
 	case taskv1.TaskType_TASK_TYPE_UNSPECIFIED:
@@ -308,12 +308,12 @@ func protoTaskTypeToString(taskType taskv1.TaskType) (domaintask.Type, error) {
 
 func stringToProtoTaskType(taskType string) taskv1.TaskType {
 	switch taskType {
-	case string(domaintask.TypeUrgent):
-		return taskv1.TaskType_TASK_TYPE_URGENT
-	case string(domaintask.TypeNormal):
-		return taskv1.TaskType_TASK_TYPE_NORMAL
-	case string(domaintask.TypeLow):
-		return taskv1.TaskType_TASK_TYPE_LOW
+	case string(domaintask.TypeShort):
+		return taskv1.TaskType_TASK_TYPE_SHORT
+	case string(domaintask.TypeNear):
+		return taskv1.TaskType_TASK_TYPE_NEAR
+	case string(domaintask.TypeRelaxed):
+		return taskv1.TaskType_TASK_TYPE_RELAXED
 	case string(domaintask.TypeScheduled):
 		return taskv1.TaskType_TASK_TYPE_SCHEDULED
 	default:
