@@ -19,7 +19,7 @@ func TestCalculateReminderTimes(t *testing.T) {
 
 	validColor := MustColor("#FF6B6B")
 
-	t.Run("TypeUrgent returns 3 reminder times (2 intervals + targetAt)", func(t *testing.T) {
+	t.Run("TypeShort returns 3 reminder times (2 intervals + targetAt)", func(t *testing.T) {
 		taskID, err := NewID()
 		if err != nil {
 			t.Fatalf("setup failed: %v", err)
@@ -32,7 +32,7 @@ func TestCalculateReminderTimes(t *testing.T) {
 			taskID,
 			validUserID,
 			"Test Urgent Task",
-			TypeUrgent,
+			TypeShort,
 			StatusActive,
 			"",
 			nil,
@@ -69,7 +69,7 @@ func TestCalculateReminderTimes(t *testing.T) {
 		}
 	})
 
-	t.Run("TypeNormal returns 3 reminder times (2 intervals + targetAt)", func(t *testing.T) {
+	t.Run("TypeNear returns 3 reminder times (2 intervals + targetAt)", func(t *testing.T) {
 		taskID, err := NewID()
 		if err != nil {
 			t.Fatalf("setup failed: %v", err)
@@ -82,7 +82,7 @@ func TestCalculateReminderTimes(t *testing.T) {
 			taskID,
 			validUserID,
 			"Test Normal Task",
-			TypeNormal,
+			TypeNear,
 			StatusActive,
 			"",
 			nil,
@@ -119,7 +119,7 @@ func TestCalculateReminderTimes(t *testing.T) {
 		}
 	})
 
-	t.Run("TypeLow returns 4 reminder times (3 intervals + targetAt)", func(t *testing.T) {
+	t.Run("TypeRelaxed returns 4 reminder times (3 intervals + targetAt)", func(t *testing.T) {
 		taskID, err := NewID()
 		if err != nil {
 			t.Fatalf("setup failed: %v", err)
@@ -132,7 +132,7 @@ func TestCalculateReminderTimes(t *testing.T) {
 			taskID,
 			validUserID,
 			"Test Low Task",
-			TypeLow,
+			TypeRelaxed,
 			StatusActive,
 			"",
 			nil,
@@ -284,7 +284,7 @@ func TestCalculateReminderTimes(t *testing.T) {
 			taskID,
 			validUserID,
 			"Test Dedupe Task",
-			TypeLow,
+			TypeRelaxed,
 			StatusActive,
 			"",
 			nil,
@@ -328,7 +328,7 @@ func TestCalculateReminderTimes(t *testing.T) {
 			taskID,
 			validUserID,
 			"Test Partial Filter Task",
-			TypeLow,
+			TypeRelaxed,
 			StatusActive,
 			"",
 			nil,
@@ -379,7 +379,7 @@ func TestCalculateReminderTimes(t *testing.T) {
 			taskID,
 			validUserID,
 			"Test Task",
-			TypeUrgent,
+			TypeShort,
 			StatusActive,
 			"",
 			nil,
@@ -418,7 +418,7 @@ func TestCalculateReminderTimesWithCreateTask(t *testing.T) {
 			nil,
 			validUserID,
 			"Urgent Task",
-			TypeUrgent,
+			TypeShort,
 			"",
 			nil,
 			validColor,
