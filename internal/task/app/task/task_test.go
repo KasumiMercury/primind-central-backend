@@ -105,8 +105,12 @@ func TestCreateTaskSuccess(t *testing.T) {
 			mockAuth := NewMockAuthClient(ctrl)
 			mockAuth.EXPECT().ValidateSession(gomock.Any(), tt.req.SessionToken).Return(tt.userID.String(), nil)
 
+			fcmToken := "valid-fcm-token"
 			mockDevice := NewMockDeviceClient(ctrl)
-			mockDevice.EXPECT().GetUserDevicesWithRetry(gomock.Any(), tt.req.SessionToken, gomock.Any()).Return(nil, nil)
+			mockDevice.EXPECT().GetUserDevicesWithRetry(gomock.Any(), tt.req.SessionToken, gomock.Any()).
+				Return([]deviceclient.DeviceInfo{
+					{DeviceID: "device-1", FCMToken: &fcmToken},
+				}, nil)
 
 			mockQueue := taskqueue.NewMockRemindQueue(ctrl)
 			mockQueue.EXPECT().
@@ -138,8 +142,16 @@ func TestCreateTaskSuccess(t *testing.T) {
 						t.Fatalf("expected reminder times to be set")
 					}
 
-					if len(req.Devices) != 0 {
-						t.Fatalf("expected zero devices, got %d", len(req.Devices))
+					if len(req.Devices) != 1 {
+						t.Fatalf("expected 1 device, got %d", len(req.Devices))
+					}
+
+					if req.Devices[0].DeviceID != "device-1" {
+						t.Fatalf("expected device id %q, got %q", "device-1", req.Devices[0].DeviceID)
+					}
+
+					if req.Devices[0].FCMToken != fcmToken {
+						t.Fatalf("expected fcm token %q, got %q", fcmToken, req.Devices[0].FCMToken)
 					}
 
 					return &taskqueue.RemindResponse{Name: "test-task"}, nil
@@ -569,6 +581,257 @@ func TestCreateTaskDoesNotPersistTaskWhenDeviceReturnsUnauthorizedOrInvalidArgum
 
 			if !errors.Is(getErr, domaintask.ErrTaskNotFound) {
 				t.Fatalf("expected ErrTaskNotFound, got %v", getErr)
+			}
+		})
+	}
+}
+
+func TestCreateTaskSkipsReminderWhenNoDevicesHaveFCMToken(t *testing.T) {
+	repo := setupTaskRepository(t)
+	ctx := context.Background()
+
+	userID, err := domainuser.NewID()
+	if err != nil {
+		t.Fatalf("failed to generate user id: %v", err)
+	}
+
+	tests := []struct {
+		name    string
+		devices []deviceclient.DeviceInfo
+	}{
+		{
+			name: "all devices have nil FCM token",
+			devices: []deviceclient.DeviceInfo{
+				{DeviceID: "device-1", FCMToken: nil},
+				{DeviceID: "device-2", FCMToken: nil},
+			},
+		},
+		{
+			name: "all devices have empty FCM token",
+			devices: func() []deviceclient.DeviceInfo {
+				empty := ""
+
+				return []deviceclient.DeviceInfo{
+					{DeviceID: "device-1", FCMToken: &empty},
+					{DeviceID: "device-2", FCMToken: &empty},
+				}
+			}(),
+		},
+		{
+			name: "mixed nil and empty FCM tokens",
+			devices: func() []deviceclient.DeviceInfo {
+				empty := ""
+
+				return []deviceclient.DeviceInfo{
+					{DeviceID: "device-1", FCMToken: nil},
+					{DeviceID: "device-2", FCMToken: &empty},
+				}
+			}(),
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			mockAuth := NewMockAuthClient(ctrl)
+			mockAuth.EXPECT().ValidateSession(gomock.Any(), "token").Return(userID.String(), nil)
+
+			mockDevice := NewMockDeviceClient(ctrl)
+			mockDevice.EXPECT().GetUserDevicesWithRetry(gomock.Any(), "token", gomock.Any()).
+				Return(tt.devices, nil)
+
+			mockQueue := taskqueue.NewMockRemindQueue(ctrl)
+
+			handler := NewCreateTaskHandler(mockAuth, mockDevice, repo, mockQueue)
+
+			resp, err := handler.CreateTask(ctx, &CreateTaskRequest{
+				SessionToken: "token",
+				Title:        "Task without FCM devices",
+				TaskType:     domaintask.TypeNear,
+				Color:        "#FF6B6B",
+			})
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if resp == nil || resp.TaskID == "" {
+				t.Fatalf("expected task id, got %#v", resp)
+			}
+
+			// Verify task was created successfully
+			taskID, err := domaintask.NewIDFromString(resp.TaskID)
+			if err != nil {
+				t.Fatalf("invalid task id returned: %v", err)
+			}
+
+			saved, err := repo.GetTaskByID(ctx, taskID, userID)
+			if err != nil {
+				t.Fatalf("failed to fetch saved task: %v", err)
+			}
+
+			if saved.TaskStatus() != domaintask.StatusActive {
+				t.Fatalf("expected task status %q, got %q", domaintask.StatusActive, saved.TaskStatus())
+			}
+		})
+	}
+}
+
+func TestCreateTaskFiltersDevicesWithoutFCMToken(t *testing.T) {
+	repo := setupTaskRepository(t)
+	ctx := context.Background()
+
+	userID, err := domainuser.NewID()
+	if err != nil {
+		t.Fatalf("failed to generate user id: %v", err)
+	}
+
+	ctrl := gomock.NewController(t)
+	mockAuth := NewMockAuthClient(ctrl)
+	mockAuth.EXPECT().ValidateSession(gomock.Any(), "token").Return(userID.String(), nil)
+
+	validToken := "valid-fcm-token"
+	emptyToken := ""
+	mockDevice := NewMockDeviceClient(ctrl)
+	mockDevice.EXPECT().GetUserDevicesWithRetry(gomock.Any(), "token", gomock.Any()).
+		Return([]deviceclient.DeviceInfo{
+			{DeviceID: "device-1", FCMToken: &validToken},
+			{DeviceID: "device-2", FCMToken: nil},
+			{DeviceID: "device-3", FCMToken: &emptyToken},
+			{DeviceID: "device-4", FCMToken: &validToken},
+		}, nil)
+
+	mockQueue := taskqueue.NewMockRemindQueue(ctrl)
+	mockQueue.EXPECT().
+		RegisterRemind(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, req *taskqueue.CreateRemindRequest) (*taskqueue.RemindResponse, error) {
+			if len(req.Devices) != 2 {
+				t.Fatalf("expected 2 devices with valid FCM tokens, got %d", len(req.Devices))
+			}
+
+			deviceIDs := make(map[string]bool)
+			for _, d := range req.Devices {
+				deviceIDs[d.DeviceID] = true
+				if d.FCMToken != validToken {
+					t.Fatalf("expected fcm token %q, got %q", validToken, d.FCMToken)
+				}
+			}
+
+			if !deviceIDs["device-1"] || !deviceIDs["device-4"] {
+				t.Fatalf("expected device-1 and device-4, got %v", deviceIDs)
+			}
+
+			return &taskqueue.RemindResponse{Name: "test-task"}, nil
+		}).
+		Times(1)
+
+	handler := NewCreateTaskHandler(mockAuth, mockDevice, repo, mockQueue)
+
+	resp, err := handler.CreateTask(ctx, &CreateTaskRequest{
+		SessionToken: "token",
+		Title:        "Task with mixed devices",
+		TaskType:     domaintask.TypeNear,
+		Color:        "#FF6B6B",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if resp == nil || resp.TaskID == "" {
+		t.Fatalf("expected task id, got %#v", resp)
+	}
+}
+
+func TestFilterDevicesWithFCMToken(t *testing.T) {
+	validToken := "valid-token"
+	emptyToken := ""
+
+	tests := []struct {
+		name                  string
+		devices               []domaintask.DeviceInfo
+		expectedValidCount    int
+		expectedFilteredCount int
+		expectedDeviceIDs     []string
+	}{
+		{
+			name: "all devices have FCM tokens",
+			devices: []domaintask.DeviceInfo{
+				{DeviceID: "device-1", FCMToken: &validToken},
+				{DeviceID: "device-2", FCMToken: &validToken},
+			},
+			expectedValidCount:    2,
+			expectedFilteredCount: 0,
+			expectedDeviceIDs:     []string{"device-1", "device-2"},
+		},
+		{
+			name: "some devices missing FCM tokens",
+			devices: []domaintask.DeviceInfo{
+				{DeviceID: "device-1", FCMToken: &validToken},
+				{DeviceID: "device-2", FCMToken: nil},
+			},
+			expectedValidCount:    1,
+			expectedFilteredCount: 1,
+			expectedDeviceIDs:     []string{"device-1"},
+		},
+		{
+			name: "all devices missing FCM tokens",
+			devices: []domaintask.DeviceInfo{
+				{DeviceID: "device-1", FCMToken: nil},
+				{DeviceID: "device-2", FCMToken: nil},
+			},
+			expectedValidCount:    0,
+			expectedFilteredCount: 2,
+			expectedDeviceIDs:     []string{},
+		},
+		{
+			name:                  "empty slice",
+			devices:               []domaintask.DeviceInfo{},
+			expectedValidCount:    0,
+			expectedFilteredCount: 0,
+			expectedDeviceIDs:     []string{},
+		},
+		{
+			name: "FCM token is empty string",
+			devices: []domaintask.DeviceInfo{
+				{DeviceID: "device-1", FCMToken: &emptyToken},
+			},
+			expectedValidCount:    0,
+			expectedFilteredCount: 1,
+			expectedDeviceIDs:     []string{},
+		},
+		{
+			name: "mixed valid, nil, and empty tokens",
+			devices: []domaintask.DeviceInfo{
+				{DeviceID: "device-1", FCMToken: &validToken},
+				{DeviceID: "device-2", FCMToken: nil},
+				{DeviceID: "device-3", FCMToken: &emptyToken},
+				{DeviceID: "device-4", FCMToken: &validToken},
+			},
+			expectedValidCount:    2,
+			expectedFilteredCount: 2,
+			expectedDeviceIDs:     []string{"device-1", "device-4"},
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			valid, filteredCount := filterDevicesWithFCMToken(tt.devices)
+
+			if len(valid) != tt.expectedValidCount {
+				t.Fatalf("expected %d valid devices, got %d", tt.expectedValidCount, len(valid))
+			}
+
+			if filteredCount != tt.expectedFilteredCount {
+				t.Fatalf("expected %d filtered devices, got %d", tt.expectedFilteredCount, filteredCount)
+			}
+
+			if len(tt.expectedDeviceIDs) > 0 {
+				for i, expectedID := range tt.expectedDeviceIDs {
+					if valid[i].DeviceID != expectedID {
+						t.Fatalf("expected device id %q at index %d, got %q", expectedID, i, valid[i].DeviceID)
+					}
+				}
 			}
 		})
 	}

@@ -167,7 +167,24 @@ func (h *createTaskHandler) CreateTask(ctx context.Context, req *CreateTaskReque
 		})
 	}
 
-	reminderInfo := domaintask.CalculateReminderTimes(task, userIDstr, domainDevices)
+	validDevices, filteredCount := filterDevicesWithFCMToken(domainDevices)
+	if filteredCount > 0 {
+		h.logger.Warn("devices filtered out due to missing FCM token",
+			slog.Int("filtered_count", filteredCount),
+			slog.Int("remaining_count", len(validDevices)),
+			slog.Int("total_count", len(domainDevices)),
+		)
+	}
+
+	var reminderInfo *domaintask.ReminderInfo
+	if len(validDevices) > 0 {
+		reminderInfo = domaintask.CalculateReminderTimes(task, userIDstr, validDevices)
+	} else if len(domainDevices) > 0 {
+		h.logger.Info("reminder registration skipped: all devices don't have FCM tokens",
+			slog.String("task_id", task.ID().String()),
+			slog.Int("device_count", len(domainDevices)),
+		)
+	}
 
 	var remindReq *taskqueue.CreateRemindRequest
 
@@ -263,6 +280,19 @@ func (h *createTaskHandler) convertToRemindRequest(info *domaintask.ReminderInfo
 		TaskID:   info.TaskID.String(),
 		TaskType: string(info.TaskType),
 	}
+}
+
+func filterDevicesWithFCMToken(devices []domaintask.DeviceInfo) ([]domaintask.DeviceInfo, int) {
+	valid := make([]domaintask.DeviceInfo, 0, len(devices))
+	for _, d := range devices {
+		if d.FCMToken != nil && *d.FCMToken != "" {
+			valid = append(valid, d)
+		}
+	}
+
+	filteredCount := len(devices) - len(valid)
+
+	return valid, filteredCount
 }
 
 type GetTaskRequest struct {
