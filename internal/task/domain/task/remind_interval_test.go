@@ -33,7 +33,7 @@ func TestDefaultReminderIntervals(t *testing.T) {
 			exists:        true,
 		},
 		{
-			name:          "TypeScheduled uses Low intervals (3 intervals)",
+			name:          "TypeScheduled uses Relaxed intervals (3 intervals)",
 			taskType:      TypeScheduled,
 			expectedCount: 3,
 			exists:        true,
@@ -78,7 +78,7 @@ func TestDefaultReminderIntervalsValues(t *testing.T) {
 			expectedMinutes: []int{126, 232, 315},
 		},
 		{
-			name:            "TypeScheduled uses Low intervals (126, 232, 315 minutes)",
+			name:            "TypeScheduled uses Relaxed intervals (126, 232, 315 minutes)",
 			taskType:        TypeScheduled,
 			expectedMinutes: []int{126, 232, 315},
 		},
@@ -126,7 +126,7 @@ func TestGetReminderIntervalsForType(t *testing.T) {
 			expectedCount: 3,
 		},
 		{
-			name:          "TypeScheduled returns 3 intervals (using Low)",
+			name:          "TypeScheduled returns 3 intervals (using Relaxed)",
 			taskType:      TypeScheduled,
 			expectedCount: 3,
 		},
@@ -178,4 +178,3 @@ func TestReminderIntervalTypeConversion(t *testing.T) {
 		}
 	})
 }
-

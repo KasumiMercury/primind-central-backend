@@ -125,13 +125,13 @@ func TestCalculateReminderTimes(t *testing.T) {
 			t.Fatalf("setup failed: %v", err)
 		}
 
-		// targetAt = createdAt + 360 minutes (ActivePeriodLow = 6 hours)
+		// targetAt = createdAt + 360 minutes (ActivePeriodRelaxed = 6 hours)
 		targetAt := baseTime.Add(360 * time.Minute)
 
 		task, err := NewTask(
 			taskID,
 			validUserID,
-			"Test Low Task",
+			"Test Relaxed Task",
 			TypeRelaxed,
 			StatusActive,
 			"",
@@ -170,7 +170,7 @@ func TestCalculateReminderTimes(t *testing.T) {
 		}
 	})
 
-	t.Run("TypeScheduled returns 4 reminder times (using Low intervals + targetAt)", func(t *testing.T) {
+	t.Run("TypeScheduled returns 4 reminder times (using Relaxed intervals + targetAt)", func(t *testing.T) {
 		taskID, err := NewID()
 		if err != nil {
 			t.Fatalf("setup failed: %v", err)
@@ -201,7 +201,7 @@ func TestCalculateReminderTimes(t *testing.T) {
 			t.Fatal("CalculateReminderTimes returned nil")
 		}
 
-		// TypeScheduled uses Low intervals (3) + targetAt = 4 reminder times
+		// TypeScheduled uses Relaxed intervals (3) + targetAt = 4 reminder times
 		if len(info.ReminderTimes) != 4 {
 			t.Errorf("got %d reminder times, want 4", len(info.ReminderTimes))
 		}
@@ -236,7 +236,7 @@ func TestCalculateReminderTimes(t *testing.T) {
 		}
 
 		// Short scheduled task: targetAt = 30 minutes from createdAt
-		// Low intervals (126, 232, 315 min) all exceed this
+		// Relaxed intervals (126, 232, 315 min) all exceed this
 		scheduledAt := baseTime.Add(30 * time.Minute)
 
 		task, err := NewTask(
@@ -277,7 +277,7 @@ func TestCalculateReminderTimes(t *testing.T) {
 			t.Fatalf("setup failed: %v", err)
 		}
 
-		// targetAt = 126 minutes (matches first Low interval exactly)
+		// targetAt = 126 minutes (matches first Relaxed interval exactly)
 		targetAt := baseTime.Add(126 * time.Minute)
 
 		task, err := NewTask(
@@ -321,7 +321,7 @@ func TestCalculateReminderTimes(t *testing.T) {
 		}
 
 		// targetAt = 200 minutes
-		// Low intervals: 126min (kept), 232min (filtered), 315min (filtered)
+		// Relaxed intervals: 126min (kept), 232min (filtered), 315min (filtered)
 		targetAt := baseTime.Add(200 * time.Minute)
 
 		task, err := NewTask(
@@ -482,7 +482,7 @@ func TestCalculateReminderTimesWithCreateTask(t *testing.T) {
 			t.Fatal("CalculateReminderTimes returned nil")
 		}
 
-		// scheduled uses low intervals (3) + targetAt = 4 reminder times
+		// scheduled uses relaxed intervals (3) + targetAt = 4 reminder times
 		if len(info.ReminderTimes) != 4 {
 			t.Errorf("got %d reminder times, want 4", len(info.ReminderTimes))
 		}
