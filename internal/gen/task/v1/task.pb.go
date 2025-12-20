@@ -28,9 +28,9 @@ type TaskType int32
 
 const (
 	TaskType_TASK_TYPE_UNSPECIFIED TaskType = 0
-	TaskType_TASK_TYPE_URGENT      TaskType = 1
-	TaskType_TASK_TYPE_NORMAL      TaskType = 2
-	TaskType_TASK_TYPE_LOW         TaskType = 3
+	TaskType_TASK_TYPE_SHORT       TaskType = 1
+	TaskType_TASK_TYPE_NEAR        TaskType = 2
+	TaskType_TASK_TYPE_RELAXED     TaskType = 3
 	TaskType_TASK_TYPE_SCHEDULED   TaskType = 4
 )
 
@@ -38,16 +38,16 @@ const (
 var (
 	TaskType_name = map[int32]string{
 		0: "TASK_TYPE_UNSPECIFIED",
-		1: "TASK_TYPE_URGENT",
-		2: "TASK_TYPE_NORMAL",
-		3: "TASK_TYPE_LOW",
+		1: "TASK_TYPE_SHORT",
+		2: "TASK_TYPE_NEAR",
+		3: "TASK_TYPE_RELAXED",
 		4: "TASK_TYPE_SCHEDULED",
 	}
 	TaskType_value = map[string]int32{
 		"TASK_TYPE_UNSPECIFIED": 0,
-		"TASK_TYPE_URGENT":      1,
-		"TASK_TYPE_NORMAL":      2,
-		"TASK_TYPE_LOW":         3,
+		"TASK_TYPE_SHORT":       1,
+		"TASK_TYPE_NEAR":        2,
+		"TASK_TYPE_RELAXED":     3,
 		"TASK_TYPE_SCHEDULED":   4,
 	}
 )
@@ -856,12 +856,12 @@ const file_task_v1_task_proto_rawDesc = "" +
 	"\x04task\x18\x01 \x01(\v2\r.task.v1.TaskR\x04task\"6\n" +
 	"\x11DeleteTaskRequest\x12!\n" +
 	"\atask_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x06taskId\"\x14\n" +
-	"\x12DeleteTaskResponse*}\n" +
+	"\x12DeleteTaskResponse*~\n" +
 	"\bTaskType\x12\x19\n" +
-	"\x15TASK_TYPE_UNSPECIFIED\x10\x00\x12\x14\n" +
-	"\x10TASK_TYPE_URGENT\x10\x01\x12\x14\n" +
-	"\x10TASK_TYPE_NORMAL\x10\x02\x12\x11\n" +
-	"\rTASK_TYPE_LOW\x10\x03\x12\x17\n" +
+	"\x15TASK_TYPE_UNSPECIFIED\x10\x00\x12\x13\n" +
+	"\x0fTASK_TYPE_SHORT\x10\x01\x12\x12\n" +
+	"\x0eTASK_TYPE_NEAR\x10\x02\x12\x15\n" +
+	"\x11TASK_TYPE_RELAXED\x10\x03\x12\x17\n" +
 	"\x13TASK_TYPE_SCHEDULED\x10\x04*\\\n" +
 	"\n" +
 	"TaskStatus\x12\x1b\n" +

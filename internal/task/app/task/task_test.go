@@ -36,7 +36,7 @@ func TestCreateTaskSuccess(t *testing.T) {
 			req: CreateTaskRequest{
 				SessionToken: "token-normal",
 				Title:        "Test Task",
-				TaskType:     domaintask.TypeNormal,
+				TaskType:     domaintask.TypeNear,
 				Color:        "#FF6B6B",
 			},
 			userID: userID,
@@ -70,7 +70,7 @@ func TestCreateTaskSuccess(t *testing.T) {
 					TaskID:       validTaskID.String(),
 					SessionToken: "token-with-id",
 					Title:        "Task with predefined ID",
-					TaskType:     domaintask.TypeNormal,
+					TaskType:     domaintask.TypeNear,
 					Description:  "This task has a predefined ID",
 					Color:        "#FFD166",
 				}
@@ -89,7 +89,7 @@ func TestCreateTaskSuccess(t *testing.T) {
 					TaskID:       validTaskID.String(),
 					SessionToken: "token-empty-title",
 					Title:        "",
-					TaskType:     domaintask.TypeNormal,
+					TaskType:     domaintask.TypeNear,
 					Description:  "This task has an empty title",
 					Color:        "#5E60CE",
 				}
@@ -236,7 +236,7 @@ func TestCreateTaskError(t *testing.T) {
 			req: &CreateTaskRequest{
 				SessionToken: "invalid-token",
 				Title:        "title",
-				TaskType:     domaintask.TypeNormal,
+				TaskType:     domaintask.TypeNear,
 				Color:        "#FF6B6B",
 			},
 			setupAuth: func(ctrl *gomock.Controller) authclient.AuthClient {
@@ -253,7 +253,7 @@ func TestCreateTaskError(t *testing.T) {
 			req: &CreateTaskRequest{
 				SessionToken: "valid-token",
 				Title:        "title",
-				TaskType:     domaintask.TypeNormal,
+				TaskType:     domaintask.TypeNear,
 				Color:        "#FF6B6B",
 			},
 			setupAuth: func(ctrl *gomock.Controller) authclient.AuthClient {
@@ -288,7 +288,7 @@ func TestCreateTaskError(t *testing.T) {
 				TaskID:       "not-a-uuid",
 				SessionToken: "token",
 				Title:        "Task with invalid ID",
-				TaskType:     domaintask.TypeNormal,
+				TaskType:     domaintask.TypeNear,
 				Color:        "#FF6B6B",
 			},
 			setupAuth: func(ctrl *gomock.Controller) authclient.AuthClient {
@@ -309,7 +309,7 @@ func TestCreateTaskError(t *testing.T) {
 					TaskID:       uuidv4.String(),
 					SessionToken: "token",
 					Title:        "Task with UUIDv4",
-					TaskType:     domaintask.TypeNormal,
+					TaskType:     domaintask.TypeNear,
 					Color:        "#FF6B6B",
 				}
 			}(),
@@ -331,7 +331,7 @@ func TestCreateTaskError(t *testing.T) {
 					&existingTaskID,
 					validUserID,
 					"Existing Task",
-					domaintask.TypeNormal,
+					domaintask.TypeNear,
 					"",
 					nil,
 					color,
@@ -342,7 +342,7 @@ func TestCreateTaskError(t *testing.T) {
 					TaskID:       existingTaskID.String(),
 					SessionToken: "token",
 					Title:        "Duplicate Task",
-					TaskType:     domaintask.TypeNormal,
+					TaskType:     domaintask.TypeNear,
 					Color:        "#FF6B6B",
 				}
 			}(),
@@ -365,7 +365,7 @@ func TestCreateTaskError(t *testing.T) {
 					&existingTaskID,
 					user1ID,
 					"User1's Task",
-					domaintask.TypeNormal,
+					domaintask.TypeNear,
 					"",
 					nil,
 					color,
@@ -376,7 +376,7 @@ func TestCreateTaskError(t *testing.T) {
 					TaskID:       existingTaskID.String(),
 					SessionToken: "token",
 					Title:        "User2's Task with same ID",
-					TaskType:     domaintask.TypeNormal,
+					TaskType:     domaintask.TypeNear,
 					Color:        "#FF6B6B",
 				}
 			}(),
@@ -394,7 +394,7 @@ func TestCreateTaskError(t *testing.T) {
 			req: &CreateTaskRequest{
 				SessionToken: "token",
 				Title:        "Task without color",
-				TaskType:     domaintask.TypeNormal,
+				TaskType:     domaintask.TypeNear,
 				Color:        "",
 			},
 			setupAuth: func(ctrl *gomock.Controller) authclient.AuthClient {
@@ -411,7 +411,7 @@ func TestCreateTaskError(t *testing.T) {
 			req: &CreateTaskRequest{
 				SessionToken: "token",
 				Title:        "Task with invalid color",
-				TaskType:     domaintask.TypeNormal,
+				TaskType:     domaintask.TypeNear,
 				Color:        "#FFF",
 			},
 			setupAuth: func(ctrl *gomock.Controller) authclient.AuthClient {
@@ -478,7 +478,7 @@ func TestCreateTaskReturnsFailureWhenDeviceFetchFailsAfterRetries(t *testing.T) 
 		TaskID:       taskID.String(),
 		SessionToken: "token",
 		Title:        "Task",
-		TaskType:     domaintask.TypeNormal,
+		TaskType:     domaintask.TypeNear,
 		Color:        "#FF6B6B",
 	})
 	if err == nil {
@@ -551,7 +551,7 @@ func TestCreateTaskDoesNotPersistTaskWhenDeviceReturnsUnauthorizedOrInvalidArgum
 				TaskID:       taskID.String(),
 				SessionToken: "token",
 				Title:        "Task",
-				TaskType:     domaintask.TypeNormal,
+				TaskType:     domaintask.TypeNear,
 				Color:        "#FF6B6B",
 			})
 			if err == nil {
@@ -594,7 +594,7 @@ func TestGetTaskSuccess(t *testing.T) {
 	now := time.Now().UTC()
 
 	validColor := domaintask.MustColor("#FF6B6B")
-	taskWithNoscheduled := createPersistedTask(t, repo, userIDNormal, "stored", domaintask.TypeNormal, desc, nil, now, validColor)
+	taskWithNoscheduled := createPersistedTask(t, repo, userIDNormal, "stored", domaintask.TypeNear, desc, nil, now, validColor)
 	taskWithscheduled := createPersistedTask(t, repo, userIDWithscheduled, "stored with scheduled", domaintask.TypeScheduled, desc, &scheduled, now, validColor)
 
 	tests := []struct {
@@ -922,12 +922,12 @@ func TestListActiveTasksSuccess(t *testing.T) {
 	now := time.Now().UTC().Truncate(time.Microsecond)
 
 	// Create tasks with different target_at and created_at times
-	task1 := createPersistedTaskWithStatus(t, repo, userID, "Task 1", domaintask.TypeNormal, domaintask.StatusActive, now, now.Add(1*time.Hour), domaintask.MustColor("#FF6B6B"))
-	task2 := createPersistedTaskWithStatus(t, repo, userID, "Task 2", domaintask.TypeUrgent, domaintask.StatusActive, now, now.Add(30*time.Minute), domaintask.MustColor("#4ECDC4"))
+	task1 := createPersistedTaskWithStatus(t, repo, userID, "Task 1", domaintask.TypeNear, domaintask.StatusActive, now, now.Add(1*time.Hour), domaintask.MustColor("#FF6B6B"))
+	task2 := createPersistedTaskWithStatus(t, repo, userID, "Task 2", domaintask.TypeShort, domaintask.StatusActive, now, now.Add(30*time.Minute), domaintask.MustColor("#4ECDC4"))
 	// Task 3: same target_at as task2, but newer created_at - should come first
-	task3 := createPersistedTaskWithStatus(t, repo, userID, "Task 3", domaintask.TypeNormal, domaintask.StatusActive, now.Add(1*time.Second), now.Add(30*time.Minute), domaintask.MustColor("#45B7D1"))
+	task3 := createPersistedTaskWithStatus(t, repo, userID, "Task 3", domaintask.TypeNear, domaintask.StatusActive, now.Add(1*time.Second), now.Add(30*time.Minute), domaintask.MustColor("#45B7D1"))
 	// Task 4: COMPLETED status - should not be returned
-	_ = createPersistedTaskWithStatus(t, repo, userID, "Task 4", domaintask.TypeNormal, domaintask.StatusCompleted, now, now.Add(20*time.Minute), domaintask.MustColor("#96CEB4"))
+	_ = createPersistedTaskWithStatus(t, repo, userID, "Task 4", domaintask.TypeNear, domaintask.StatusCompleted, now, now.Add(20*time.Minute), domaintask.MustColor("#96CEB4"))
 
 	ctrl := gomock.NewController(t)
 	mockAuth := NewMockAuthClient(ctrl)
@@ -1085,7 +1085,7 @@ func TestUpdateTaskSuccess(t *testing.T) {
 	validColor := domaintask.MustColor("#FF6B6B")
 
 	// Create a normal task
-	normalTask := createPersistedTask(t, repo, userID, "Original Title", domaintask.TypeNormal, "Original Description", nil, now, validColor)
+	normalTask := createPersistedTask(t, repo, userID, "Original Title", domaintask.TypeNear, "Original Description", nil, now, validColor)
 
 	// Create a scheduled task
 	scheduledTask := createPersistedTask(t, repo, userID, "Scheduled Task", domaintask.TypeScheduled, "Scheduled Description", &scheduled, now, validColor)
@@ -1246,7 +1246,7 @@ func TestUpdateTaskError(t *testing.T) {
 	validColor := domaintask.MustColor("#FF6B6B")
 
 	// Create a normal task for testing
-	normalTask := createPersistedTask(t, repo, validUserID, "Test Task", domaintask.TypeNormal, "", nil, now, validColor)
+	normalTask := createPersistedTask(t, repo, validUserID, "Test Task", domaintask.TypeNear, "", nil, now, validColor)
 
 	missingID, err := domaintask.NewID()
 	if err != nil {
@@ -1483,7 +1483,7 @@ func TestDeleteTaskSuccess(t *testing.T) {
 	validColor := domaintask.MustColor("#FF6B6B")
 
 	// Create a task to delete
-	task := createPersistedTask(t, repo, userID, "Task to Delete", domaintask.TypeNormal, "", nil, now, validColor)
+	task := createPersistedTask(t, repo, userID, "Task to Delete", domaintask.TypeNear, "", nil, now, validColor)
 
 	ctrl := gomock.NewController(t)
 	mockAuth := NewMockAuthClient(ctrl)

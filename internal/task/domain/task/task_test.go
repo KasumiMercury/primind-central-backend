@@ -181,19 +181,19 @@ func TestNewTypeSuccess(t *testing.T) {
 		expected Type
 	}{
 		{
-			name:     "urgent",
-			typeStr:  "urgent",
-			expected: TypeUrgent,
+			name:     "short",
+			typeStr:  "short",
+			expected: TypeShort,
 		},
 		{
-			name:     "normal",
-			typeStr:  "normal",
-			expected: TypeNormal,
+			name:     "near",
+			typeStr:  "near",
+			expected: TypeNear,
 		},
 		{
-			name:     "low",
-			typeStr:  "low",
-			expected: TypeLow,
+			name:     "relaxed",
+			typeStr:  "relaxed",
+			expected: TypeRelaxed,
 		},
 		{
 			name:     "scheduled",
@@ -331,7 +331,7 @@ func TestNewTaskSuccess(t *testing.T) {
 		t.Fatalf("setup failed: %v", err)
 	}
 
-	taskNormalType, err := NewType("normal")
+	taskNormalType, err := NewType("near")
 	if err != nil {
 		t.Fatalf("setup failed: %v", err)
 	}
@@ -634,17 +634,17 @@ func TestNewTaskErrors(t *testing.T) {
 		t.Fatalf("setup failed: %v", err)
 	}
 
-	taskUrgentType, err := NewType("urgent")
+	taskUrgentType, err := NewType("short")
 	if err != nil {
 		t.Fatalf("setup failed: %v", err)
 	}
 
-	taskNormalType, err := NewType("normal")
+	taskNormalType, err := NewType("near")
 	if err != nil {
 		t.Fatalf("setup failed: %v", err)
 	}
 
-	taskLowType, err := NewType("low")
+	taskLowType, err := NewType("relaxed")
 	if err != nil {
 		t.Fatalf("setup failed: %v", err)
 	}
@@ -712,7 +712,7 @@ func TestNewTaskErrors(t *testing.T) {
 			expectedErr: ErrScheduledAtRequired,
 		},
 		{
-			name: "scheduled time provided for urgent type",
+			name: "scheduled time provided for short type",
 			args: args{
 				id:       validID,
 				userID:   validUserID,
@@ -731,7 +731,7 @@ func TestNewTaskErrors(t *testing.T) {
 			expectedErr: ErrScheduledAtNotAllowed,
 		},
 		{
-			name: "scheduled time provided for normal type",
+			name: "scheduled time provided for near type",
 			args: args{
 				id:       validID,
 				userID:   validUserID,
@@ -750,7 +750,7 @@ func TestNewTaskErrors(t *testing.T) {
 			expectedErr: ErrScheduledAtNotAllowed,
 		},
 		{
-			name: "scheduled time provided for low type",
+			name: "scheduled time provided for relaxed type",
 			args: args{
 				id:       validID,
 				userID:   validUserID,
@@ -850,7 +850,7 @@ func TestCreateTaskWithPreGeneratedID(t *testing.T) {
 		t.Fatalf("setup failed: %v", err)
 	}
 
-	taskNormalType, err := NewType("normal")
+	taskNormalType, err := NewType("near")
 	if err != nil {
 		t.Fatalf("setup failed: %v", err)
 	}
@@ -999,24 +999,24 @@ func TestCreateTaskTargetAtCalculation(t *testing.T) {
 		expectedOffsetFunc func(createdAt time.Time, scheduledAt *time.Time) time.Time
 	}{
 		{
-			name:        "urgent task target_at is created_at + 15 minutes",
-			taskType:    TypeUrgent,
+			name:        "short task target_at is created_at + 15 minutes",
+			taskType:    TypeShort,
 			scheduledAt: nil,
 			expectedOffsetFunc: func(createdAt time.Time, scheduledAt *time.Time) time.Time {
 				return createdAt.Add(15 * time.Minute)
 			},
 		},
 		{
-			name:        "normal task target_at is created_at + 1 hour",
-			taskType:    TypeNormal,
+			name:        "near task target_at is created_at + 1 hour",
+			taskType:    TypeNear,
 			scheduledAt: nil,
 			expectedOffsetFunc: func(createdAt time.Time, scheduledAt *time.Time) time.Time {
 				return createdAt.Add(1 * time.Hour)
 			},
 		},
 		{
-			name:        "low task target_at is created_at + 6 hours",
-			taskType:    TypeLow,
+			name:        "relaxed task target_at is created_at + 6 hours",
+			taskType:    TypeRelaxed,
 			scheduledAt: nil,
 			expectedOffsetFunc: func(createdAt time.Time, scheduledAt *time.Time) time.Time {
 				return createdAt.Add(6 * time.Hour)
@@ -1104,7 +1104,7 @@ func TestNewTaskTargetAtNormalization(t *testing.T) {
 		t.Fatalf("setup failed: %v", err)
 	}
 
-	taskNormalType, err := NewType("normal")
+	taskNormalType, err := NewType("near")
 	if err != nil {
 		t.Fatalf("setup failed: %v", err)
 	}
@@ -1116,7 +1116,7 @@ func TestNewTaskTargetAtNormalization(t *testing.T) {
 
 	validColor := MustColor("#FF6B6B")
 
-	t.Run("targetAt is normalized to UTC", func(t *testing.T) {
+	t.Run("targetAt is nearized to UTC", func(t *testing.T) {
 		createTime := time.Now().UTC().Truncate(time.Microsecond)
 		// Create targetAt in a non-UTC timezone
 		jst := time.FixedZone("JST", 9*60*60)

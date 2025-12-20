@@ -15,25 +15,25 @@ func TestDefaultReminderIntervals(t *testing.T) {
 		exists        bool
 	}{
 		{
-			name:          "TypeUrgent has 2 intervals",
-			taskType:      TypeUrgent,
+			name:          "TypeShort has 2 intervals",
+			taskType:      TypeShort,
 			expectedCount: 2,
 			exists:        true,
 		},
 		{
-			name:          "TypeNormal has 2 intervals",
-			taskType:      TypeNormal,
+			name:          "TypeNear has 2 intervals",
+			taskType:      TypeNear,
 			expectedCount: 2,
 			exists:        true,
 		},
 		{
-			name:          "TypeLow has 3 intervals",
-			taskType:      TypeLow,
+			name:          "TypeRelaxed has 3 intervals",
+			taskType:      TypeRelaxed,
 			expectedCount: 3,
 			exists:        true,
 		},
 		{
-			name:          "TypeScheduled uses Low intervals (3 intervals)",
+			name:          "TypeScheduled uses Relaxed intervals (3 intervals)",
 			taskType:      TypeScheduled,
 			expectedCount: 3,
 			exists:        true,
@@ -63,22 +63,22 @@ func TestDefaultReminderIntervalsValues(t *testing.T) {
 		expectedMinutes []int
 	}{
 		{
-			name:            "TypeUrgent intervals are 3 and 5 minutes",
-			taskType:        TypeUrgent,
+			name:            "TypeShort intervals are 3 and 5 minutes",
+			taskType:        TypeShort,
 			expectedMinutes: []int{3, 5},
 		},
 		{
-			name:            "TypeNormal intervals are 33 and 53 minutes",
-			taskType:        TypeNormal,
+			name:            "TypeNear intervals are 33 and 53 minutes",
+			taskType:        TypeNear,
 			expectedMinutes: []int{33, 53},
 		},
 		{
-			name:            "TypeLow intervals are 126, 232, and 315 minutes",
-			taskType:        TypeLow,
+			name:            "TypeRelaxed intervals are 126, 232, and 315 minutes",
+			taskType:        TypeRelaxed,
 			expectedMinutes: []int{126, 232, 315},
 		},
 		{
-			name:            "TypeScheduled uses Low intervals (126, 232, 315 minutes)",
+			name:            "TypeScheduled uses Relaxed intervals (126, 232, 315 minutes)",
 			taskType:        TypeScheduled,
 			expectedMinutes: []int{126, 232, 315},
 		},
@@ -111,22 +111,22 @@ func TestGetReminderIntervalsForType(t *testing.T) {
 		expectedCount int
 	}{
 		{
-			name:          "TypeUrgent returns 2 intervals",
-			taskType:      TypeUrgent,
+			name:          "TypeShort returns 2 intervals",
+			taskType:      TypeShort,
 			expectedCount: 2,
 		},
 		{
-			name:          "TypeNormal returns 2 intervals",
-			taskType:      TypeNormal,
+			name:          "TypeNear returns 2 intervals",
+			taskType:      TypeNear,
 			expectedCount: 2,
 		},
 		{
-			name:          "TypeLow returns 3 intervals",
-			taskType:      TypeLow,
+			name:          "TypeRelaxed returns 3 intervals",
+			taskType:      TypeRelaxed,
 			expectedCount: 3,
 		},
 		{
-			name:          "TypeScheduled returns 3 intervals (using Low)",
+			name:          "TypeScheduled returns 3 intervals (using Relaxed)",
 			taskType:      TypeScheduled,
 			expectedCount: 3,
 		},
@@ -158,7 +158,7 @@ func TestReminderIntervalTypeConversion(t *testing.T) {
 	t.Parallel()
 
 	t.Run("ReminderInterval can be converted to time.Duration", func(t *testing.T) {
-		interval := DefaultReminderIntervalsUrgent[0] // 3 minutes
+		interval := DefaultReminderIntervalsShort[0] // 3 minutes
 		duration := time.Duration(interval)
 
 		if duration != 3*time.Minute {
@@ -178,4 +178,3 @@ func TestReminderIntervalTypeConversion(t *testing.T) {
 		}
 	})
 }
-

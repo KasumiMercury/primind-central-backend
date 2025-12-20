@@ -15,21 +15,21 @@ func TestDefaultActivePeriods(t *testing.T) {
 		exists   bool
 	}{
 		{
-			name:     "TypeUrgent has active period",
-			taskType: TypeUrgent,
-			expected: ActivePeriodUrgent,
+			name:     "TypeShort has active period",
+			taskType: TypeShort,
+			expected: ActivePeriodShort,
 			exists:   true,
 		},
 		{
-			name:     "TypeNormal has active period",
-			taskType: TypeNormal,
-			expected: ActivePeriodNormal,
+			name:     "TypeNear has active period",
+			taskType: TypeNear,
+			expected: ActivePeriodNear,
 			exists:   true,
 		},
 		{
-			name:     "TypeLow has active period",
-			taskType: TypeLow,
-			expected: ActivePeriodLow,
+			name:     "TypeRelaxed has active period",
+			taskType: TypeRelaxed,
+			expected: ActivePeriodRelaxed,
 			exists:   true,
 		},
 		{
@@ -63,19 +63,19 @@ func TestGetActivePeriodForType(t *testing.T) {
 		expected ActivePeriod
 	}{
 		{
-			name:     "TypeUrgent returns 15 minutes",
-			taskType: TypeUrgent,
-			expected: ActivePeriodUrgent,
+			name:     "TypeShort returns 15 minutes",
+			taskType: TypeShort,
+			expected: ActivePeriodShort,
 		},
 		{
-			name:     "TypeNormal returns 1 hour",
-			taskType: TypeNormal,
-			expected: ActivePeriodNormal,
+			name:     "TypeNear returns 1 hour",
+			taskType: TypeNear,
+			expected: ActivePeriodNear,
 		},
 		{
-			name:     "TypeLow returns 6 hours",
-			taskType: TypeLow,
-			expected: ActivePeriodLow,
+			name:     "TypeRelaxed returns 6 hours",
+			taskType: TypeRelaxed,
+			expected: ActivePeriodRelaxed,
 		},
 		{
 			name:     "TypeScheduled returns 0",
@@ -98,23 +98,23 @@ func TestActivePeriodTypeConversion(t *testing.T) {
 	t.Parallel()
 
 	t.Run("ActivePeriod can be converted to time.Duration", func(t *testing.T) {
-		period := ActivePeriodUrgent
+		period := ActivePeriodShort
 		duration := time.Duration(period)
 
 		if duration != 15*time.Minute {
-			t.Errorf("time.Duration(ActivePeriodUrgent) = %v, want %v", duration, 15*time.Minute)
+			t.Errorf("time.Duration(ActivePeriodShort) = %v, want %v", duration, 15*time.Minute)
 		}
 	})
 
 	t.Run("ActivePeriod can be used with time.Add", func(t *testing.T) {
 		baseTime := time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)
-		period := ActivePeriodNormal
+		period := ActivePeriodNear
 
 		result := baseTime.Add(time.Duration(period))
 		expected := baseTime.Add(1 * time.Hour)
 
 		if !result.Equal(expected) {
-			t.Errorf("baseTime.Add(ActivePeriodNormal) = %v, want %v", result, expected)
+			t.Errorf("baseTime.Add(ActivePeriodNear) = %v, want %v", result, expected)
 		}
 	})
 }

@@ -5,17 +5,17 @@ import "time"
 type ReminderInterval time.Duration
 
 var (
-	DefaultReminderIntervalsUrgent = []ReminderInterval{
+	DefaultReminderIntervalsShort = []ReminderInterval{
 		ReminderInterval(3 * time.Minute),
 		ReminderInterval(5 * time.Minute),
 	}
 
-	DefaultReminderIntervalsNormal = []ReminderInterval{
+	DefaultReminderIntervalsNear = []ReminderInterval{
 		ReminderInterval(33 * time.Minute),
 		ReminderInterval(53 * time.Minute),
 	}
 
-	DefaultReminderIntervalsLow = []ReminderInterval{
+	DefaultReminderIntervalsRelaxed = []ReminderInterval{
 		ReminderInterval(126 * time.Minute),
 		ReminderInterval(232 * time.Minute),
 		ReminderInterval(315 * time.Minute),
@@ -23,10 +23,10 @@ var (
 )
 
 var DefaultReminderIntervals = map[Type][]ReminderInterval{
-	TypeUrgent:    DefaultReminderIntervalsUrgent,
-	TypeNormal:    DefaultReminderIntervalsNormal,
-	TypeLow:       DefaultReminderIntervalsLow,
-	TypeScheduled: DefaultReminderIntervalsLow, // TODO: Customize later
+	TypeShort:     DefaultReminderIntervalsShort,
+	TypeNear:      DefaultReminderIntervalsNear,
+	TypeRelaxed:   DefaultReminderIntervalsRelaxed,
+	TypeScheduled: DefaultReminderIntervalsRelaxed, // TODO: Customize later
 }
 
 func GetReminderIntervalsForType(taskType Type) []ReminderInterval {
