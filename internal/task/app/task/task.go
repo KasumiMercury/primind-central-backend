@@ -11,7 +11,8 @@ import (
 	domainuser "github.com/KasumiMercury/primind-central-backend/internal/task/domain/user"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/authclient"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/deviceclient"
-	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/taskqueue"
+	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/remindcancel"
+	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/remindregister"
 )
 
 type CreateTaskRequest struct {
@@ -44,7 +45,7 @@ type createTaskHandler struct {
 	authClient   authclient.AuthClient
 	deviceClient deviceclient.DeviceClient
 	taskRepo     domaintask.TaskRepository
-	remindQueue  taskqueue.RemindQueue
+	remindQueue  remindregister.Queue
 	logger       *slog.Logger
 }
 
@@ -52,7 +53,7 @@ func NewCreateTaskHandler(
 	authClient authclient.AuthClient,
 	deviceClient deviceclient.DeviceClient,
 	taskRepo domaintask.TaskRepository,
-	remindQueue taskqueue.RemindQueue,
+	remindQueue remindregister.Queue,
 ) CreateTaskUseCase {
 	return &createTaskHandler{
 		authClient:   authClient,
@@ -186,7 +187,7 @@ func (h *createTaskHandler) CreateTask(ctx context.Context, req *CreateTaskReque
 		)
 	}
 
-	var remindReq *taskqueue.CreateRemindRequest
+	var remindReq *remindregister.CreateRemindRequest
 
 	if reminderInfo != nil {
 		h.logReminderInfo(reminderInfo)
@@ -259,21 +260,21 @@ func (h *createTaskHandler) logReminderInfo(info *domaintask.ReminderInfo) {
 	)
 }
 
-func (h *createTaskHandler) convertToRemindRequest(info *domaintask.ReminderInfo) *taskqueue.CreateRemindRequest {
-	devices := make([]taskqueue.DeviceRequest, 0, len(info.Devices))
+func (h *createTaskHandler) convertToRemindRequest(info *domaintask.ReminderInfo) *remindregister.CreateRemindRequest {
+	devices := make([]remindregister.DeviceRequest, 0, len(info.Devices))
 	for _, d := range info.Devices {
 		fcmToken := ""
 		if d.FCMToken != nil {
 			fcmToken = *d.FCMToken
 		}
 
-		devices = append(devices, taskqueue.DeviceRequest{
+		devices = append(devices, remindregister.DeviceRequest{
 			DeviceID: d.DeviceID,
 			FCMToken: fcmToken,
 		})
 	}
 
-	return &taskqueue.CreateRemindRequest{
+	return &remindregister.CreateRemindRequest{
 		Times:    info.ReminderTimes,
 		UserID:   info.UserID,
 		Devices:  devices,
@@ -703,19 +704,22 @@ type DeleteTaskUseCase interface {
 }
 
 type deleteTaskHandler struct {
-	authClient authclient.AuthClient
-	taskRepo   domaintask.TaskRepository
-	logger     *slog.Logger
+	authClient        authclient.AuthClient
+	taskRepo          domaintask.TaskRepository
+	cancelRemindQueue remindcancel.Queue
+	logger            *slog.Logger
 }
 
 func NewDeleteTaskHandler(
 	authClient authclient.AuthClient,
 	taskRepo domaintask.TaskRepository,
+	cancelRemindQueue remindcancel.Queue,
 ) DeleteTaskUseCase {
 	return &deleteTaskHandler{
-		authClient: authClient,
-		taskRepo:   taskRepo,
-		logger:     slog.Default().WithGroup("task").WithGroup("deletetask"),
+		authClient:        authClient,
+		taskRepo:          taskRepo,
+		cancelRemindQueue: cancelRemindQueue,
+		logger:            slog.Default().WithGroup("task").WithGroup("deletetask"),
 	}
 }
 
@@ -755,6 +759,21 @@ func (h *deleteTaskHandler) DeleteTask(ctx context.Context, req *DeleteTaskReque
 		h.logger.Warn("invalid task ID format", slog.String("error", err.Error()))
 
 		return err
+	}
+
+	// Cancel remind before deleting task
+	cancelReq := &remindcancel.CancelRemindRequest{
+		TaskID: req.TaskID,
+		UserID: userIDstr,
+	}
+
+	if _, err := h.cancelRemindQueue.CancelRemind(ctx, cancelReq); err != nil {
+		h.logger.Error("failed to cancel remind",
+			slog.String("task_id", req.TaskID),
+			slog.String("error", err.Error()),
+		)
+
+		return ErrCancelRemindFailed
 	}
 
 	if err := h.taskRepo.DeleteTask(ctx, taskID, userID); err != nil {

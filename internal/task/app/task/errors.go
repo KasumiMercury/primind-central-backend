@@ -24,4 +24,5 @@ var (
 	ErrTaskIDAlreadyExists            = domaintask.ErrTaskIDAlreadyExists
 	ErrInvalidSortType                = domaintask.ErrInvalidSortType
 	ErrRemindQueueRegistrationFailed  = errors.New("failed to register remind to queue")
+	ErrCancelRemindFailed             = errors.New("failed to cancel remind")
 )

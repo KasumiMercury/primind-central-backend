@@ -10,8 +10,9 @@ import (
 	domainuser "github.com/KasumiMercury/primind-central-backend/internal/task/domain/user"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/authclient"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/deviceclient"
+	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/remindcancel"
+	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/remindregister"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/repository"
-	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/taskqueue"
 	"github.com/KasumiMercury/primind-central-backend/internal/testutil"
 	"github.com/google/uuid"
 	"go.uber.org/mock/gomock"
@@ -112,10 +113,10 @@ func TestCreateTaskSuccess(t *testing.T) {
 					{DeviceID: "device-1", FCMToken: &fcmToken},
 				}, nil)
 
-			mockQueue := taskqueue.NewMockRemindQueue(ctrl)
+			mockQueue := remindregister.NewMockQueue(ctrl)
 			mockQueue.EXPECT().
 				RegisterRemind(gomock.Any(), gomock.Any()).
-				DoAndReturn(func(_ context.Context, req *taskqueue.CreateRemindRequest) (*taskqueue.RemindResponse, error) {
+				DoAndReturn(func(_ context.Context, req *remindregister.CreateRemindRequest) (*remindregister.RemindResponse, error) {
 					if req == nil {
 						t.Fatalf("expected remind request, got nil")
 					}
@@ -154,7 +155,7 @@ func TestCreateTaskSuccess(t *testing.T) {
 						t.Fatalf("expected fcm token %q, got %q", fcmToken, req.Devices[0].FCMToken)
 					}
 
-					return &taskqueue.RemindResponse{Name: "test-task"}, nil
+					return &remindregister.RemindResponse{Name: "test-task"}, nil
 				}).
 				Times(1)
 
@@ -443,7 +444,7 @@ func TestCreateTaskError(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			mockAuth := tt.setupAuth(ctrl)
 			mockDevice := NewMockDeviceClient(ctrl)
-			mockQueue := taskqueue.NewMockRemindQueue(ctrl)
+			mockQueue := remindregister.NewMockQueue(ctrl)
 			handler := NewCreateTaskHandler(mockAuth, mockDevice, repo, mockQueue)
 
 			_, err := handler.CreateTask(ctx, tt.req)
@@ -482,7 +483,7 @@ func TestCreateTaskReturnsFailureWhenDeviceFetchFailsAfterRetries(t *testing.T) 
 		GetUserDevicesWithRetry(gomock.Any(), "token", gomock.Any()).
 		Return(nil, deviceclient.ErrDeviceServiceUnavailable)
 
-	mockQueue := taskqueue.NewMockRemindQueue(ctrl)
+	mockQueue := remindregister.NewMockQueue(ctrl)
 
 	handler := NewCreateTaskHandler(mockAuth, mockDevice, repo, mockQueue)
 
@@ -555,7 +556,7 @@ func TestCreateTaskDoesNotPersistTaskWhenDeviceReturnsUnauthorizedOrInvalidArgum
 				GetUserDevicesWithRetry(gomock.Any(), "token", gomock.Any()).
 				Return(nil, tt.deviceErr)
 
-			mockQueue := taskqueue.NewMockRemindQueue(ctrl)
+			mockQueue := remindregister.NewMockQueue(ctrl)
 
 			handler := NewCreateTaskHandler(mockAuth, mockDevice, repo, mockQueue)
 
@@ -641,7 +642,7 @@ func TestCreateTaskSkipsReminderWhenNoDevicesHaveFCMToken(t *testing.T) {
 			mockDevice.EXPECT().GetUserDevicesWithRetry(gomock.Any(), "token", gomock.Any()).
 				Return(tt.devices, nil)
 
-			mockQueue := taskqueue.NewMockRemindQueue(ctrl)
+			mockQueue := remindregister.NewMockQueue(ctrl)
 
 			handler := NewCreateTaskHandler(mockAuth, mockDevice, repo, mockQueue)
 
@@ -701,10 +702,10 @@ func TestCreateTaskFiltersDevicesWithoutFCMToken(t *testing.T) {
 			{DeviceID: "device-4", FCMToken: &validToken},
 		}, nil)
 
-	mockQueue := taskqueue.NewMockRemindQueue(ctrl)
+	mockQueue := remindregister.NewMockQueue(ctrl)
 	mockQueue.EXPECT().
 		RegisterRemind(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(_ context.Context, req *taskqueue.CreateRemindRequest) (*taskqueue.RemindResponse, error) {
+		DoAndReturn(func(_ context.Context, req *remindregister.CreateRemindRequest) (*remindregister.RemindResponse, error) {
 			if len(req.Devices) != 2 {
 				t.Fatalf("expected 2 devices with valid FCM tokens, got %d", len(req.Devices))
 			}
@@ -721,7 +722,7 @@ func TestCreateTaskFiltersDevicesWithoutFCMToken(t *testing.T) {
 				t.Fatalf("expected device-1 and device-4, got %v", deviceIDs)
 			}
 
-			return &taskqueue.RemindResponse{Name: "test-task"}, nil
+			return &remindregister.RemindResponse{Name: "test-task"}, nil
 		}).
 		Times(1)
 
@@ -1752,7 +1753,11 @@ func TestDeleteTaskSuccess(t *testing.T) {
 	mockAuth := NewMockAuthClient(ctrl)
 	mockAuth.EXPECT().ValidateSession(gomock.Any(), "valid-token").Return(userID.String(), nil)
 
-	handler := NewDeleteTaskHandler(mockAuth, repo)
+	mockCancelRemindQueue := remindcancel.NewMockQueue(ctrl)
+	mockCancelRemindQueue.EXPECT().CancelRemind(gomock.Any(), gomock.Any()).
+		Return(&remindcancel.CancelRemindResponse{Name: "test"}, nil)
+
+	handler := NewDeleteTaskHandler(mockAuth, repo, mockCancelRemindQueue)
 
 	err = handler.DeleteTask(ctx, &DeleteTaskRequest{
 		SessionToken: "valid-token",
@@ -1784,15 +1789,19 @@ func TestDeleteTaskError(t *testing.T) {
 	}
 
 	tests := []struct {
-		name        string
-		req         *DeleteTaskRequest
-		setupAuth   func(ctrl *gomock.Controller) authclient.AuthClient
-		expectedErr error
+		name               string
+		req                *DeleteTaskRequest
+		setupAuth          func(ctrl *gomock.Controller) authclient.AuthClient
+		setupCancelRemind  func(ctrl *gomock.Controller) remindcancel.Queue
+		expectedErr        error
 	}{
 		{
 			name:        "nil request",
 			req:         nil,
 			setupAuth:   func(ctrl *gomock.Controller) authclient.AuthClient { return NewMockAuthClient(ctrl) },
+			setupCancelRemind: func(ctrl *gomock.Controller) remindcancel.Queue {
+				return remindcancel.NewMockQueue(ctrl)
+			},
 			expectedErr: ErrDeleteTaskRequestRequired,
 		},
 		{
@@ -1807,6 +1816,9 @@ func TestDeleteTaskError(t *testing.T) {
 					Return("", authclient.ErrUnauthorized)
 
 				return mockAuth
+			},
+			setupCancelRemind: func(ctrl *gomock.Controller) remindcancel.Queue {
+				return remindcancel.NewMockQueue(ctrl)
 			},
 			expectedErr: ErrUnauthorized,
 		},
@@ -1823,6 +1835,9 @@ func TestDeleteTaskError(t *testing.T) {
 
 				return mockAuth
 			},
+			setupCancelRemind: func(ctrl *gomock.Controller) remindcancel.Queue {
+				return remindcancel.NewMockQueue(ctrl)
+			},
 			expectedErr: ErrAuthServiceUnavailable,
 		},
 		{
@@ -1837,6 +1852,9 @@ func TestDeleteTaskError(t *testing.T) {
 					Return(validUserID.String(), nil)
 
 				return mockAuth
+			},
+			setupCancelRemind: func(ctrl *gomock.Controller) remindcancel.Queue {
+				return remindcancel.NewMockQueue(ctrl)
 			},
 			expectedErr: ErrTaskIDRequired,
 		},
@@ -1853,7 +1871,32 @@ func TestDeleteTaskError(t *testing.T) {
 
 				return mockAuth
 			},
+			setupCancelRemind: func(ctrl *gomock.Controller) remindcancel.Queue {
+				return remindcancel.NewMockQueue(ctrl)
+			},
 			expectedErr: domaintask.ErrIDInvalidFormat,
+		},
+		{
+			name: "cancel remind failed",
+			req: &DeleteTaskRequest{
+				SessionToken: "token",
+				TaskID:       missingID.String(),
+			},
+			setupAuth: func(ctrl *gomock.Controller) authclient.AuthClient {
+				mockAuth := NewMockAuthClient(ctrl)
+				mockAuth.EXPECT().ValidateSession(gomock.Any(), "token").
+					Return(validUserID.String(), nil)
+
+				return mockAuth
+			},
+			setupCancelRemind: func(ctrl *gomock.Controller) remindcancel.Queue {
+				mockQueue := remindcancel.NewMockQueue(ctrl)
+				mockQueue.EXPECT().CancelRemind(gomock.Any(), gomock.Any()).
+					Return(nil, errors.New("queue unavailable"))
+
+				return mockQueue
+			},
+			expectedErr: ErrCancelRemindFailed,
 		},
 		{
 			name: "task not found",
@@ -1868,6 +1911,13 @@ func TestDeleteTaskError(t *testing.T) {
 
 				return mockAuth
 			},
+			setupCancelRemind: func(ctrl *gomock.Controller) remindcancel.Queue {
+				mockQueue := remindcancel.NewMockQueue(ctrl)
+				mockQueue.EXPECT().CancelRemind(gomock.Any(), gomock.Any()).
+					Return(&remindcancel.CancelRemindResponse{Name: "test"}, nil)
+
+				return mockQueue
+			},
 			expectedErr: ErrTaskNotFound,
 		},
 	}
@@ -1877,7 +1927,8 @@ func TestDeleteTaskError(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			mockAuth := tt.setupAuth(ctrl)
-			handler := NewDeleteTaskHandler(mockAuth, repo)
+			mockCancelRemind := tt.setupCancelRemind(ctrl)
+			handler := NewDeleteTaskHandler(mockAuth, repo, mockCancelRemind)
 
 			err := handler.DeleteTask(ctx, tt.req)
 			if err == nil {
