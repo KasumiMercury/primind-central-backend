@@ -111,18 +111,20 @@ func run(logger *slog.Logger) error {
 		return err
 	}
 
-	remindQueue, err := taskmodule.NewRemindQueue(ctx, &taskCfg.TaskQueue)
+	remindQueue, cancelRemindQueue, taskQueueClient, err := taskmodule.NewRemindQueues(ctx, &taskCfg.TaskQueue)
 	if err != nil {
-		logger.Error("failed to create task remind queue", slog.String("error", err.Error()))
+		logger.Error("failed to create task remind queues", slog.String("error", err.Error()))
 
 		return err
 	}
 
 	taskRepos := taskmodule.Repositories{
-		Tasks:        taskrepository.NewTaskRepository(db),
-		AuthClient:   authclient.NewAuthClient(taskCfg.AuthServiceURL),
-		DeviceClient: deviceclient.NewDeviceClient(taskCfg.DeviceServiceURL),
-		RemindQueue:  remindQueue,
+		Tasks:               taskrepository.NewTaskRepository(db),
+		AuthClient:          authclient.NewAuthClient(taskCfg.AuthServiceURL),
+		DeviceClient:        deviceclient.NewDeviceClient(taskCfg.DeviceServiceURL),
+		RemindRegisterQueue: remindQueue,
+		RemindCancelQueue:   cancelRemindQueue,
+		TaskQueueClient:     taskQueueClient,
 	}
 
 	var closeTaskReposOnce sync.Once

@@ -3,7 +3,6 @@ package task
 import (
 	"context"
 	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
 
@@ -15,28 +14,27 @@ import (
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/authclient"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/deviceclient"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/interceptor"
+	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/remindcancel"
+	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/remindregister"
 	tasksvc "github.com/KasumiMercury/primind-central-backend/internal/task/infra/service"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/taskqueue"
 )
 
 type Repositories struct {
-	Tasks        domaintask.TaskRepository
-	AuthClient   authclient.AuthClient
-	DeviceClient deviceclient.DeviceClient
-	RemindQueue  taskqueue.RemindQueue
+	Tasks               domaintask.TaskRepository
+	AuthClient          authclient.AuthClient
+	DeviceClient        deviceclient.DeviceClient
+	RemindRegisterQueue remindregister.Queue
+	RemindCancelQueue   remindcancel.Queue
+	TaskQueueClient     taskqueue.Client
 }
 
 func (r *Repositories) Close() error {
-	if r == nil || r.RemindQueue == nil {
+	if r == nil || r.TaskQueueClient == nil {
 		return nil
 	}
 
-	closer, ok := r.RemindQueue.(io.Closer)
-	if !ok {
-		return nil
-	}
-
-	return closer.Close()
+	return r.TaskQueueClient.Close()
 }
 
 func NewHTTPHandler(
@@ -44,26 +42,26 @@ func NewHTTPHandler(
 	taskRepo domaintask.TaskRepository,
 	cfg *config.Config,
 ) (path string, handler http.Handler, err error) {
-	remindQueue, err := NewRemindQueue(ctx, &cfg.TaskQueue)
+	remindQueue, cancelRemindQueue, client, err := NewRemindQueues(ctx, &cfg.TaskQueue)
 	if err != nil {
-		return "", nil, fmt.Errorf("failed to create remind queue: %w", err)
+		return "", nil, fmt.Errorf("failed to create remind queues: %w", err)
 	}
 
-	if closer, ok := remindQueue.(io.Closer); ok {
-		defer func() {
-			if err != nil {
-				if closeErr := closer.Close(); closeErr != nil {
-					slog.Warn("failed to close remind queue during cleanup", slog.String("error", closeErr.Error()))
-				}
+	defer func() {
+		if err != nil {
+			if closeErr := client.Close(); closeErr != nil {
+				slog.Warn("failed to close task queue client during cleanup", slog.String("error", closeErr.Error()))
 			}
-		}()
-	}
+		}
+	}()
 
 	return NewHTTPHandlerWithRepositories(ctx, Repositories{
-		Tasks:        taskRepo,
-		AuthClient:   authclient.NewAuthClient(cfg.AuthServiceURL),
-		DeviceClient: deviceclient.NewDeviceClient(cfg.DeviceServiceURL),
-		RemindQueue:  remindQueue,
+		Tasks:               taskRepo,
+		AuthClient:          authclient.NewAuthClient(cfg.AuthServiceURL),
+		DeviceClient:        deviceclient.NewDeviceClient(cfg.DeviceServiceURL),
+		RemindRegisterQueue: remindQueue,
+		RemindCancelQueue:   cancelRemindQueue,
+		TaskQueueClient:     client,
 	})
 }
 
@@ -84,15 +82,19 @@ func NewHTTPHandlerWithRepositories(ctx context.Context, repos Repositories) (st
 		return "", nil, fmt.Errorf("device client is not configured")
 	}
 
-	if repos.RemindQueue == nil {
-		return "", nil, fmt.Errorf("remind queue is not configured")
+	if repos.RemindRegisterQueue == nil {
+		return "", nil, fmt.Errorf("remind register queue is not configured")
 	}
 
-	createTaskUseCase := apptask.NewCreateTaskHandler(repos.AuthClient, repos.DeviceClient, repos.Tasks, repos.RemindQueue)
+	if repos.RemindCancelQueue == nil {
+		return "", nil, fmt.Errorf("remind cancel queue is not configured")
+	}
+
+	createTaskUseCase := apptask.NewCreateTaskHandler(repos.AuthClient, repos.DeviceClient, repos.Tasks, repos.RemindRegisterQueue)
 	getTaskUseCase := apptask.NewGetTaskHandler(repos.AuthClient, repos.Tasks)
 	listActiveTasksUseCase := apptask.NewListActiveTasksHandler(repos.AuthClient, repos.Tasks)
 	updateTaskUseCase := apptask.NewUpdateTaskHandler(repos.AuthClient, repos.Tasks)
-	deleteTaskUseCase := apptask.NewDeleteTaskHandler(repos.AuthClient, repos.Tasks)
+	deleteTaskUseCase := apptask.NewDeleteTaskHandler(repos.AuthClient, repos.Tasks, repos.RemindCancelQueue)
 
 	taskService := tasksvc.NewService(createTaskUseCase, getTaskUseCase, listActiveTasksUseCase, updateTaskUseCase, deleteTaskUseCase)
 

@@ -6,8 +6,9 @@ import (
 
 	apptask "github.com/KasumiMercury/primind-central-backend/internal/task/app/task"
 	domaintask "github.com/KasumiMercury/primind-central-backend/internal/task/domain/task"
+	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/remindcancel"
+	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/remindregister"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/repository"
-	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/taskqueue"
 	"github.com/KasumiMercury/primind-central-backend/internal/testutil"
 	"go.uber.org/mock/gomock"
 )
@@ -32,10 +33,11 @@ func TestNewHTTPHandlerWithRepositoriesSuccess(t *testing.T) {
 	t.Cleanup(ctrl.Finish)
 
 	path, handler, err := NewHTTPHandlerWithRepositories(context.Background(), Repositories{
-		Tasks:        repo,
-		AuthClient:   apptask.NewMockAuthClient(ctrl),
-		DeviceClient: apptask.NewMockDeviceClient(ctrl),
-		RemindQueue:  taskqueue.NewMockRemindQueue(ctrl),
+		Tasks:               repo,
+		AuthClient:          apptask.NewMockAuthClient(ctrl),
+		DeviceClient:        apptask.NewMockDeviceClient(ctrl),
+		RemindRegisterQueue: remindregister.NewMockQueue(ctrl),
+		RemindCancelQueue:   remindcancel.NewMockQueue(ctrl),
 	})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -64,10 +66,11 @@ func TestNewHTTPHandlerWithRepositoriesError(t *testing.T) {
 				t.Cleanup(ctrl.Finish)
 
 				return Repositories{
-					Tasks:        nil,
-					AuthClient:   apptask.NewMockAuthClient(ctrl),
-					DeviceClient: apptask.NewMockDeviceClient(ctrl),
-					RemindQueue:  taskqueue.NewMockRemindQueue(ctrl),
+					Tasks:               nil,
+					AuthClient:          apptask.NewMockAuthClient(ctrl),
+					DeviceClient:        apptask.NewMockDeviceClient(ctrl),
+					RemindRegisterQueue: remindregister.NewMockQueue(ctrl),
+					RemindCancelQueue:   remindcancel.NewMockQueue(ctrl),
 				}
 			},
 			ctx:         context.Background(),
@@ -80,10 +83,11 @@ func TestNewHTTPHandlerWithRepositoriesError(t *testing.T) {
 				t.Cleanup(ctrl.Finish)
 
 				return Repositories{
-					Tasks:        setupTaskRepo(t),
-					AuthClient:   nil,
-					DeviceClient: apptask.NewMockDeviceClient(ctrl),
-					RemindQueue:  taskqueue.NewMockRemindQueue(ctrl),
+					Tasks:               setupTaskRepo(t),
+					AuthClient:          nil,
+					DeviceClient:        apptask.NewMockDeviceClient(ctrl),
+					RemindRegisterQueue: remindregister.NewMockQueue(ctrl),
+					RemindCancelQueue:   remindcancel.NewMockQueue(ctrl),
 				}
 			},
 			ctx:         context.Background(),
@@ -96,26 +100,45 @@ func TestNewHTTPHandlerWithRepositoriesError(t *testing.T) {
 				t.Cleanup(ctrl.Finish)
 
 				return Repositories{
-					Tasks:        setupTaskRepo(t),
-					AuthClient:   apptask.NewMockAuthClient(ctrl),
-					DeviceClient: nil,
-					RemindQueue:  taskqueue.NewMockRemindQueue(ctrl),
+					Tasks:               setupTaskRepo(t),
+					AuthClient:          apptask.NewMockAuthClient(ctrl),
+					DeviceClient:        nil,
+					RemindRegisterQueue: remindregister.NewMockQueue(ctrl),
+					RemindCancelQueue:   remindcancel.NewMockQueue(ctrl),
 				}
 			},
 			ctx:         context.Background(),
 			expectError: true,
 		},
 		{
-			name: "missing remind queue",
+			name: "missing remind register queue",
 			repos: func(t *testing.T) Repositories {
 				ctrl := gomock.NewController(t)
 				t.Cleanup(ctrl.Finish)
 
 				return Repositories{
-					Tasks:        setupTaskRepo(t),
-					AuthClient:   apptask.NewMockAuthClient(ctrl),
-					DeviceClient: apptask.NewMockDeviceClient(ctrl),
-					RemindQueue:  nil,
+					Tasks:               setupTaskRepo(t),
+					AuthClient:          apptask.NewMockAuthClient(ctrl),
+					DeviceClient:        apptask.NewMockDeviceClient(ctrl),
+					RemindRegisterQueue: nil,
+					RemindCancelQueue:   remindcancel.NewMockQueue(ctrl),
+				}
+			},
+			ctx:         context.Background(),
+			expectError: true,
+		},
+		{
+			name: "missing remind cancel queue",
+			repos: func(t *testing.T) Repositories {
+				ctrl := gomock.NewController(t)
+				t.Cleanup(ctrl.Finish)
+
+				return Repositories{
+					Tasks:               setupTaskRepo(t),
+					AuthClient:          apptask.NewMockAuthClient(ctrl),
+					DeviceClient:        apptask.NewMockDeviceClient(ctrl),
+					RemindRegisterQueue: remindregister.NewMockQueue(ctrl),
+					RemindCancelQueue:   nil,
 				}
 			},
 			ctx:         context.Background(),
@@ -128,10 +151,11 @@ func TestNewHTTPHandlerWithRepositoriesError(t *testing.T) {
 				t.Cleanup(ctrl.Finish)
 
 				return Repositories{
-					Tasks:        setupTaskRepo(t),
-					AuthClient:   apptask.NewMockAuthClient(ctrl),
-					DeviceClient: apptask.NewMockDeviceClient(ctrl),
-					RemindQueue:  taskqueue.NewMockRemindQueue(ctrl),
+					Tasks:               setupTaskRepo(t),
+					AuthClient:          apptask.NewMockAuthClient(ctrl),
+					DeviceClient:        apptask.NewMockDeviceClient(ctrl),
+					RemindRegisterQueue: remindregister.NewMockQueue(ctrl),
+					RemindCancelQueue:   remindcancel.NewMockQueue(ctrl),
 				}
 			},
 			ctx: func() context.Context {

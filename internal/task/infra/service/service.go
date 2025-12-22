@@ -495,6 +495,10 @@ func (s *Service) DeleteTask(
 			s.logger.Error("auth service unavailable during delete task", slog.String("error", err.Error()))
 
 			return nil, connect.NewError(connect.CodeUnavailable, err)
+		case errors.Is(err, apptask.ErrCancelRemindFailed):
+			s.logger.Error("failed to cancel remind during delete task", slog.String("error", err.Error()))
+
+			return nil, connect.NewError(connect.CodeUnavailable, err)
 		case errors.Is(err, apptask.ErrTaskNotFound):
 			s.logger.Info("task not found", slog.String("task_id", req.GetTaskId()))
 
