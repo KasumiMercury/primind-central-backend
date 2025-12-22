@@ -14,17 +14,20 @@ const (
 	defaultAuthServiceURL   = "http://localhost:8080"
 	defaultDeviceServiceURL = "http://localhost:8080"
 
-	primindTasksURLEnv     = "PRIMIND_TASKS_URL"
-	taskQueueNameEnv       = "TASK_QUEUE_NAME"
-	taskQueueMaxRetriesEnv = "TASK_QUEUE_MAX_RETRIES"
+	primindTasksURLEnv            = "PRIMIND_TASKS_URL"
+	remindRegisterQueueNameEnv   = "REMIND_REGISTER_QUEUE_NAME"
+	remindCancelQueueNameEnv     = "REMIND_CANCEL_QUEUE_NAME"
+	taskQueueMaxRetriesEnv       = "TASK_QUEUE_MAX_RETRIES"
 
-	gcloudProjectIDEnv  = "GCLOUD_PROJECT_ID"
-	gcloudLocationIDEnv = "GCLOUD_LOCATION_ID"
-	gcloudQueueIDEnv    = "GCLOUD_QUEUE_ID"
-	gcloudTargetURLEnv  = "GCLOUD_TARGET_URL"
+	gcloudProjectIDEnv              = "GCLOUD_PROJECT_ID"
+	gcloudLocationIDEnv             = "GCLOUD_LOCATION_ID"
+	gcloudRemindRegisterQueueIDEnv  = "GCLOUD_REMIND_REGISTER_QUEUE_ID"
+	gcloudRemindCancelQueueIDEnv    = "GCLOUD_REMIND_CANCEL_QUEUE_ID"
+	gcloudRemindTargetURLEnv        = "GCLOUD_REMIND_TARGET_URL"
 
-	defaultQueueName  = "default"
-	defaultMaxRetries = 3
+	defaultRemindRegisterQueueName = "remind-register"
+	defaultRemindCancelQueueName   = "remind-cancel"
+	defaultMaxRetries              = 3
 )
 
 type Config struct {
@@ -34,13 +37,15 @@ type Config struct {
 }
 
 type TaskQueueConfig struct {
-	PrimindTasksURL string
-	QueueName       string
+	PrimindTasksURL         string
+	RemindRegisterQueueName string
+	RemindCancelQueueName   string
 
-	GCloudProjectID  string
-	GCloudLocationID string
-	GCloudQueueID    string
-	GCloudTargetURL  string
+	GCloudProjectID             string
+	GCloudLocationID            string
+	GCloudRemindRegisterQueueID string
+	GCloudRemindCancelQueueID   string
+	GCloudRemindTargetURL       string
 
 	MaxRetries int
 }
@@ -49,7 +54,8 @@ func Load() (*Config, error) {
 	authServiceURL := getEnv(authServiceURLEnv, defaultAuthServiceURL)
 	deviceServiceURL := getEnv(deviceServiceURLEnv, defaultDeviceServiceURL)
 
-	queueName := getEnv(taskQueueNameEnv, defaultQueueName)
+	remindRegisterQueueName := getEnv(remindRegisterQueueNameEnv, defaultRemindRegisterQueueName)
+	remindCancelQueueName := getEnv(remindCancelQueueNameEnv, defaultRemindCancelQueueName)
 
 	maxRetries := defaultMaxRetries
 
@@ -63,13 +69,15 @@ func Load() (*Config, error) {
 		AuthServiceURL:   authServiceURL,
 		DeviceServiceURL: deviceServiceURL,
 		TaskQueue: TaskQueueConfig{
-			PrimindTasksURL: os.Getenv(primindTasksURLEnv),
-			QueueName:       queueName,
+			PrimindTasksURL:         os.Getenv(primindTasksURLEnv),
+			RemindRegisterQueueName: remindRegisterQueueName,
+			RemindCancelQueueName:   remindCancelQueueName,
 
-			GCloudProjectID:  os.Getenv(gcloudProjectIDEnv),
-			GCloudLocationID: os.Getenv(gcloudLocationIDEnv),
-			GCloudQueueID:    os.Getenv(gcloudQueueIDEnv),
-			GCloudTargetURL:  os.Getenv(gcloudTargetURLEnv),
+			GCloudProjectID:             os.Getenv(gcloudProjectIDEnv),
+			GCloudLocationID:            os.Getenv(gcloudLocationIDEnv),
+			GCloudRemindRegisterQueueID: os.Getenv(gcloudRemindRegisterQueueIDEnv),
+			GCloudRemindCancelQueueID:   os.Getenv(gcloudRemindCancelQueueIDEnv),
+			GCloudRemindTargetURL:       os.Getenv(gcloudRemindTargetURLEnv),
 
 			MaxRetries: maxRetries,
 		},

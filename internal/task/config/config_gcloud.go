@@ -18,12 +18,16 @@ func (c *TaskQueueConfig) Validate() error {
 		errs = append(errs, errors.New("GCLOUD_LOCATION_ID is required"))
 	}
 
-	if c.GCloudQueueID == "" {
-		errs = append(errs, errors.New("GCLOUD_QUEUE_ID is required"))
+	if c.GCloudRemindRegisterQueueID == "" {
+		errs = append(errs, errors.New("GCLOUD_REMIND_REGISTER_QUEUE_ID is required"))
 	}
 
-	if c.GCloudTargetURL == "" {
-		errs = append(errs, errors.New("GCLOUD_TARGET_URL is required"))
+	if c.GCloudRemindCancelQueueID == "" {
+		errs = append(errs, errors.New("GCLOUD_REMIND_CANCEL_QUEUE_ID is required"))
+	}
+
+	if c.GCloudRemindTargetURL == "" {
+		errs = append(errs, errors.New("GCLOUD_REMIND_TARGET_URL is required"))
 	}
 
 	if len(errs) > 0 {
