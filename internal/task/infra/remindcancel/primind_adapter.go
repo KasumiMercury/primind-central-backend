@@ -4,10 +4,11 @@ package remindcancel
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 
+	remindv1 "github.com/KasumiMercury/primind-central-backend/internal/gen/remind/v1"
+	pjson "github.com/KasumiMercury/primind-central-backend/internal/proto"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/taskqueue"
 )
 
@@ -29,7 +30,12 @@ func NewPrimindAdapter(cfg PrimindAdapterConfig) *PrimindAdapter {
 }
 
 func (a *PrimindAdapter) CancelRemind(ctx context.Context, req *CancelRemindRequest) (*CancelRemindResponse, error) {
-	payload, err := json.Marshal(req)
+	protoReq := &remindv1.CancelRemindRequest{
+		TaskId: req.TaskID,
+		UserId: req.UserID,
+	}
+
+	payload, err := pjson.Marshal(protoReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal cancel remind request: %w", err)
 	}
