@@ -94,5 +94,6 @@ func stringToTaskType(s string) commonv1.TaskType {
 	if v, ok := commonv1.TaskType_value[upper]; ok {
 		return commonv1.TaskType(v)
 	}
+
 	return commonv1.TaskType_TASK_TYPE_UNSPECIFIED
 }

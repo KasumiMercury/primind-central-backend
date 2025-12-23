@@ -20,6 +20,7 @@ var validator protovalidate.Validator
 
 func init() {
 	var err error
+
 	validator, err = protovalidate.New()
 	if err != nil {
 		panic(err)
