@@ -6,12 +6,15 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"math"
 	"net/http"
 	"time"
+
+	taskqueuev1 "github.com/KasumiMercury/primind-central-backend/internal/gen/taskqueue/v1"
+	pjson "github.com/KasumiMercury/primind-central-backend/internal/proto"
 )
 
 type PrimindTasksClient struct {
@@ -37,18 +40,18 @@ func NewPrimindTasksClient(baseURL string, maxRetries int) *PrimindTasksClient {
 func (c *PrimindTasksClient) CreateTask(ctx context.Context, req CreateTaskRequest) (*TaskResponse, error) {
 	encodedBody := base64.StdEncoding.EncodeToString(req.Payload)
 
-	primindReq := PrimindTaskRequest{
-		Task: PrimindTask{
-			HTTPRequest: PrimindHTTPRequest{
+	taskReq := &taskqueuev1.CreateTaskRequest{
+		Task: &taskqueuev1.Task{
+			HttpRequest: &taskqueuev1.HTTPRequest{
 				Body:    encodedBody,
 				Headers: req.Headers,
 			},
 		},
 	}
 
-	reqBody, err := json.Marshal(primindReq)
+	reqBody, err := pjson.Marshal(taskReq)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal primind request: %w", err)
+		return nil, fmt.Errorf("failed to marshal task request: %w", err)
 	}
 
 	url := fmt.Sprintf("%s/tasks", c.baseURL)
@@ -124,25 +127,30 @@ func (c *PrimindTasksClient) doRequest(ctx context.Context, url string, reqBody 
 		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
-	var primindResp PrimindTaskResponse
-	if err := json.NewDecoder(resp.Body).Decode(&primindResp); err != nil {
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	var protoResp taskqueuev1.CreateTaskResponse
+	if err := pjson.Unmarshal(body, &protoResp); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	createTime, parseErr := time.Parse(time.RFC3339, primindResp.CreateTime)
+	createTime, parseErr := time.Parse(time.RFC3339, protoResp.CreateTime)
 	if parseErr != nil {
 		slog.Warn("failed to parse create time, using zero value",
-			slog.String("raw_value", primindResp.CreateTime),
+			slog.String("raw_value", protoResp.CreateTime),
 			slog.String("error", parseErr.Error()),
 		)
 	}
 
 	slog.Debug("task created in Primind Tasks",
-		slog.String("task_name", primindResp.Name),
+		slog.String("task_name", protoResp.Name),
 	)
 
 	return &TaskResponse{
-		Name:       primindResp.Name,
+		Name:       protoResp.Name,
 		CreateTime: createTime,
 	}, nil
 }
