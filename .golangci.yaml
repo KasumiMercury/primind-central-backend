@@ -38,6 +38,9 @@ linters:
                 - '.*repository\..*Model'
                 - '.*task\.TaskUpdateInput'
                 - '.*app/task\.UpdateTaskRequest'
+                - 'google\.golang\.org/protobuf/encoding/protojson\.MarshalOptions'
+                - 'google\.golang\.org/protobuf/encoding/protojson\.UnmarshalOptions'
+                - 'github\.com/KasumiMercury/primind-central-backend/internal/gen/taskqueue/v1\.Task'
         wsl_v5:
             allow-first-in-block: true
             allow-whole-block: false
