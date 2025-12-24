@@ -1,5 +1,7 @@
 pre-push:
   jobs:
+    - name: "GolangCI-Lint"
+      run: golangci-lint run ./...
     - name: "trivy scan"
       run: trivy fs . --exit-code 1
 
