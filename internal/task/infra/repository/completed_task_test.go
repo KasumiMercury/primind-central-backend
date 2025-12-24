@@ -74,6 +74,7 @@ func TestArchiveTaskSuccess(t *testing.T) {
 
 	// Create completed task
 	completedAt := time.Now()
+
 	completedTask, err := domaintask.NewCompletedTask(task, completedAt)
 	if err != nil {
 		t.Fatalf("failed to create completed task: %v", err)
