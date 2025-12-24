@@ -34,6 +34,7 @@ func TestNewHTTPHandlerWithRepositoriesSuccess(t *testing.T) {
 
 	path, handler, err := NewHTTPHandlerWithRepositories(context.Background(), Repositories{
 		Tasks:               repo,
+		TaskArchive:         domaintask.NewMockTaskArchiveRepository(ctrl),
 		AuthClient:          apptask.NewMockAuthClient(ctrl),
 		DeviceClient:        apptask.NewMockDeviceClient(ctrl),
 		RemindRegisterQueue: remindregister.NewMockQueue(ctrl),
@@ -67,6 +68,25 @@ func TestNewHTTPHandlerWithRepositoriesError(t *testing.T) {
 
 				return Repositories{
 					Tasks:               nil,
+					TaskArchive:         domaintask.NewMockTaskArchiveRepository(ctrl),
+					AuthClient:          apptask.NewMockAuthClient(ctrl),
+					DeviceClient:        apptask.NewMockDeviceClient(ctrl),
+					RemindRegisterQueue: remindregister.NewMockQueue(ctrl),
+					RemindCancelQueue:   remindcancel.NewMockQueue(ctrl),
+				}
+			},
+			ctx:         context.Background(),
+			expectError: true,
+		},
+		{
+			name: "missing task archive repository",
+			repos: func(t *testing.T) Repositories {
+				ctrl := gomock.NewController(t)
+				t.Cleanup(ctrl.Finish)
+
+				return Repositories{
+					Tasks:               setupTaskRepo(t),
+					TaskArchive:         nil,
 					AuthClient:          apptask.NewMockAuthClient(ctrl),
 					DeviceClient:        apptask.NewMockDeviceClient(ctrl),
 					RemindRegisterQueue: remindregister.NewMockQueue(ctrl),
@@ -84,6 +104,7 @@ func TestNewHTTPHandlerWithRepositoriesError(t *testing.T) {
 
 				return Repositories{
 					Tasks:               setupTaskRepo(t),
+					TaskArchive:         domaintask.NewMockTaskArchiveRepository(ctrl),
 					AuthClient:          nil,
 					DeviceClient:        apptask.NewMockDeviceClient(ctrl),
 					RemindRegisterQueue: remindregister.NewMockQueue(ctrl),
@@ -101,6 +122,7 @@ func TestNewHTTPHandlerWithRepositoriesError(t *testing.T) {
 
 				return Repositories{
 					Tasks:               setupTaskRepo(t),
+					TaskArchive:         domaintask.NewMockTaskArchiveRepository(ctrl),
 					AuthClient:          apptask.NewMockAuthClient(ctrl),
 					DeviceClient:        nil,
 					RemindRegisterQueue: remindregister.NewMockQueue(ctrl),
@@ -118,6 +140,7 @@ func TestNewHTTPHandlerWithRepositoriesError(t *testing.T) {
 
 				return Repositories{
 					Tasks:               setupTaskRepo(t),
+					TaskArchive:         domaintask.NewMockTaskArchiveRepository(ctrl),
 					AuthClient:          apptask.NewMockAuthClient(ctrl),
 					DeviceClient:        apptask.NewMockDeviceClient(ctrl),
 					RemindRegisterQueue: nil,
@@ -135,6 +158,7 @@ func TestNewHTTPHandlerWithRepositoriesError(t *testing.T) {
 
 				return Repositories{
 					Tasks:               setupTaskRepo(t),
+					TaskArchive:         domaintask.NewMockTaskArchiveRepository(ctrl),
 					AuthClient:          apptask.NewMockAuthClient(ctrl),
 					DeviceClient:        apptask.NewMockDeviceClient(ctrl),
 					RemindRegisterQueue: remindregister.NewMockQueue(ctrl),
@@ -152,6 +176,7 @@ func TestNewHTTPHandlerWithRepositoriesError(t *testing.T) {
 
 				return Repositories{
 					Tasks:               setupTaskRepo(t),
+					TaskArchive:         domaintask.NewMockTaskArchiveRepository(ctrl),
 					AuthClient:          apptask.NewMockAuthClient(ctrl),
 					DeviceClient:        apptask.NewMockDeviceClient(ctrl),
 					RemindRegisterQueue: remindregister.NewMockQueue(ctrl),

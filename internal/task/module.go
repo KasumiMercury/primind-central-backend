@@ -22,6 +22,7 @@ import (
 
 type Repositories struct {
 	Tasks               domaintask.TaskRepository
+	TaskArchive         domaintask.TaskArchiveRepository
 	AuthClient          authclient.AuthClient
 	DeviceClient        deviceclient.DeviceClient
 	RemindRegisterQueue remindregister.Queue
@@ -40,6 +41,7 @@ func (r *Repositories) Close() error {
 func NewHTTPHandler(
 	ctx context.Context,
 	taskRepo domaintask.TaskRepository,
+	taskArchiveRepo domaintask.TaskArchiveRepository,
 	cfg *config.Config,
 ) (path string, handler http.Handler, err error) {
 	remindQueue, cancelRemindQueue, client, err := NewRemindQueues(ctx, &cfg.TaskQueue)
@@ -57,6 +59,7 @@ func NewHTTPHandler(
 
 	return NewHTTPHandlerWithRepositories(ctx, Repositories{
 		Tasks:               taskRepo,
+		TaskArchive:         taskArchiveRepo,
 		AuthClient:          authclient.NewAuthClient(cfg.AuthServiceURL),
 		DeviceClient:        deviceclient.NewDeviceClient(cfg.DeviceServiceURL),
 		RemindRegisterQueue: remindQueue,
@@ -90,10 +93,14 @@ func NewHTTPHandlerWithRepositories(ctx context.Context, repos Repositories) (st
 		return "", nil, fmt.Errorf("remind cancel queue is not configured")
 	}
 
+	if repos.TaskArchive == nil {
+		return "", nil, fmt.Errorf("task archive repository is not configured")
+	}
+
 	createTaskUseCase := apptask.NewCreateTaskHandler(repos.AuthClient, repos.DeviceClient, repos.Tasks, repos.RemindRegisterQueue)
 	getTaskUseCase := apptask.NewGetTaskHandler(repos.AuthClient, repos.Tasks)
 	listActiveTasksUseCase := apptask.NewListActiveTasksHandler(repos.AuthClient, repos.Tasks)
-	updateTaskUseCase := apptask.NewUpdateTaskHandler(repos.AuthClient, repos.Tasks)
+	updateTaskUseCase := apptask.NewUpdateTaskHandler(repos.AuthClient, repos.Tasks, repos.TaskArchive, repos.RemindCancelQueue)
 	deleteTaskUseCase := apptask.NewDeleteTaskHandler(repos.AuthClient, repos.Tasks, repos.RemindCancelQueue)
 
 	taskService := tasksvc.NewService(createTaskUseCase, getTaskUseCase, listActiveTasksUseCase, updateTaskUseCase, deleteTaskUseCase)

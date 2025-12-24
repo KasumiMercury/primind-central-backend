@@ -1365,7 +1365,7 @@ func TestUpdateTaskSuccess(t *testing.T) {
 			name:   "update task_status only",
 			taskID: normalTask.ID().String(),
 			req: func() UpdateTaskRequest {
-				status := domaintask.StatusCompleted
+				status := domaintask.StatusActive
 
 				return UpdateTaskRequest{
 					SessionToken: "token",
@@ -1471,7 +1471,10 @@ func TestUpdateTaskSuccess(t *testing.T) {
 			mockAuth.EXPECT().ValidateSession(gomock.Any(), tt.req.SessionToken).
 				Return(userID.String(), nil)
 
-			handler := NewUpdateTaskHandler(mockAuth, repo)
+			mockArchiveRepo := domaintask.NewMockTaskArchiveRepository(ctrl)
+			mockCancelQueue := remindcancel.NewMockQueue(ctrl)
+
+			handler := NewUpdateTaskHandler(mockAuth, repo, mockArchiveRepo, mockCancelQueue)
 
 			resp, err := handler.UpdateTask(ctx, &tt.req)
 			if err != nil {
@@ -1716,7 +1719,10 @@ func TestUpdateTaskError(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			mockAuth := tt.setupAuth(ctrl)
-			handler := NewUpdateTaskHandler(mockAuth, repo)
+			mockArchiveRepo := domaintask.NewMockTaskArchiveRepository(ctrl)
+			mockCancelQueue := remindcancel.NewMockQueue(ctrl)
+
+			handler := NewUpdateTaskHandler(mockAuth, repo, mockArchiveRepo, mockCancelQueue)
 
 			_, err := handler.UpdateTask(ctx, tt.req)
 			if err == nil {
@@ -1732,6 +1738,157 @@ func TestUpdateTaskError(t *testing.T) {
 
 func containsError(err, target error) bool {
 	return err != nil && target != nil && (errors.Is(err, target) || (err.Error() != "" && target.Error() != "" && (err.Error() == target.Error() || len(err.Error()) > len(target.Error()) && err.Error()[:len(target.Error())] == target.Error())))
+}
+
+func TestUpdateTaskToCompleted(t *testing.T) {
+	repo := setupTaskRepository(t)
+	ctx := context.Background()
+
+	userID, err := domainuser.NewID()
+	if err != nil {
+		t.Fatalf("failed to generate user id: %v", err)
+	}
+
+	now := time.Now().UTC().Truncate(time.Microsecond)
+	validColor := domaintask.MustColor("#FF6B6B")
+
+	// Create a task to complete
+	task := createPersistedTask(t, repo, userID, "Task to Complete", domaintask.TypeNear, "Description", nil, now, validColor)
+
+	ctrl := gomock.NewController(t)
+
+	mockAuth := NewMockAuthClient(ctrl)
+	mockAuth.EXPECT().ValidateSession(gomock.Any(), "token").
+		Return(userID.String(), nil)
+
+	mockCancelQueue := remindcancel.NewMockQueue(ctrl)
+	mockCancelQueue.EXPECT().CancelRemind(gomock.Any(), &remindcancel.CancelRemindRequest{
+		TaskID: task.ID().String(),
+		UserID: userID.String(),
+	}).Return(&remindcancel.CancelRemindResponse{}, nil)
+
+	mockArchiveRepo := domaintask.NewMockTaskArchiveRepository(ctrl)
+	mockArchiveRepo.EXPECT().ArchiveTask(gomock.Any(), gomock.Any(), task.ID(), userID).
+		Return(nil)
+
+	handler := NewUpdateTaskHandler(mockAuth, repo, mockArchiveRepo, mockCancelQueue)
+
+	status := domaintask.StatusCompleted
+	req := &UpdateTaskRequest{
+		SessionToken: "token",
+		TaskID:       task.ID().String(),
+		UpdateMask:   []string{"task_status"},
+		TaskStatus:   &status,
+	}
+
+	resp, err := handler.UpdateTask(ctx, req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if resp == nil {
+		t.Fatalf("expected response, got nil")
+	}
+
+	if resp.TaskStatus != domaintask.StatusCompleted {
+		t.Fatalf("expected status %s, got %s", domaintask.StatusCompleted, resp.TaskStatus)
+	}
+}
+
+func TestUpdateTaskToCompletedCancelRemindFailed(t *testing.T) {
+	repo := setupTaskRepository(t)
+	ctx := context.Background()
+
+	userID, err := domainuser.NewID()
+	if err != nil {
+		t.Fatalf("failed to generate user id: %v", err)
+	}
+
+	now := time.Now().UTC().Truncate(time.Microsecond)
+	validColor := domaintask.MustColor("#FF6B6B")
+
+	task := createPersistedTask(t, repo, userID, "Task to Complete", domaintask.TypeNear, "Description", nil, now, validColor)
+
+	ctrl := gomock.NewController(t)
+
+	mockAuth := NewMockAuthClient(ctrl)
+	mockAuth.EXPECT().ValidateSession(gomock.Any(), "token").
+		Return(userID.String(), nil)
+
+	mockCancelQueue := remindcancel.NewMockQueue(ctrl)
+	mockCancelQueue.EXPECT().CancelRemind(gomock.Any(), gomock.Any()).
+		Return(nil, errors.New("queue unavailable"))
+
+	mockArchiveRepo := domaintask.NewMockTaskArchiveRepository(ctrl)
+	// ArchiveTask should NOT be called when CancelRemind fails
+
+	handler := NewUpdateTaskHandler(mockAuth, repo, mockArchiveRepo, mockCancelQueue)
+
+	status := domaintask.StatusCompleted
+	req := &UpdateTaskRequest{
+		SessionToken: "token",
+		TaskID:       task.ID().String(),
+		UpdateMask:   []string{"task_status"},
+		TaskStatus:   &status,
+	}
+
+	_, err = handler.UpdateTask(ctx, req)
+	if err == nil {
+		t.Fatalf("expected error, got nil")
+	}
+
+	if !errors.Is(err, ErrCancelRemindFailed) {
+		t.Fatalf("expected error %v, got %v", ErrCancelRemindFailed, err)
+	}
+}
+
+func TestUpdateTaskToCompletedArchiveFailed(t *testing.T) {
+	repo := setupTaskRepository(t)
+	ctx := context.Background()
+
+	userID, err := domainuser.NewID()
+	if err != nil {
+		t.Fatalf("failed to generate user id: %v", err)
+	}
+
+	now := time.Now().UTC().Truncate(time.Microsecond)
+	validColor := domaintask.MustColor("#FF6B6B")
+
+	task := createPersistedTask(t, repo, userID, "Task to Complete", domaintask.TypeNear, "Description", nil, now, validColor)
+
+	ctrl := gomock.NewController(t)
+
+	mockAuth := NewMockAuthClient(ctrl)
+	mockAuth.EXPECT().ValidateSession(gomock.Any(), "token").
+		Return(userID.String(), nil)
+
+	mockCancelQueue := remindcancel.NewMockQueue(ctrl)
+	mockCancelQueue.EXPECT().CancelRemind(gomock.Any(), gomock.Any()).
+		Return(&remindcancel.CancelRemindResponse{}, nil)
+
+	archiveErr := errors.New("archive failed")
+	mockArchiveRepo := domaintask.NewMockTaskArchiveRepository(ctrl)
+	mockArchiveRepo.EXPECT().ArchiveTask(gomock.Any(), gomock.Any(), task.ID(), userID).
+		Return(archiveErr)
+
+	handler := NewUpdateTaskHandler(mockAuth, repo, mockArchiveRepo, mockCancelQueue)
+
+	status := domaintask.StatusCompleted
+	req := &UpdateTaskRequest{
+		SessionToken: "token",
+		TaskID:       task.ID().String(),
+		UpdateMask:   []string{"task_status"},
+		TaskStatus:   &status,
+	}
+
+	_, err = handler.UpdateTask(ctx, req)
+	if err == nil {
+		t.Fatalf("expected error, got nil")
+	}
+
+	if !errors.Is(err, archiveErr) {
+		t.Fatalf("expected error %v, got %v", archiveErr, err)
+	}
 }
 
 func TestDeleteTaskSuccess(t *testing.T) {
@@ -1789,16 +1946,16 @@ func TestDeleteTaskError(t *testing.T) {
 	}
 
 	tests := []struct {
-		name               string
-		req                *DeleteTaskRequest
-		setupAuth          func(ctrl *gomock.Controller) authclient.AuthClient
-		setupCancelRemind  func(ctrl *gomock.Controller) remindcancel.Queue
-		expectedErr        error
+		name              string
+		req               *DeleteTaskRequest
+		setupAuth         func(ctrl *gomock.Controller) authclient.AuthClient
+		setupCancelRemind func(ctrl *gomock.Controller) remindcancel.Queue
+		expectedErr       error
 	}{
 		{
-			name:        "nil request",
-			req:         nil,
-			setupAuth:   func(ctrl *gomock.Controller) authclient.AuthClient { return NewMockAuthClient(ctrl) },
+			name:      "nil request",
+			req:       nil,
+			setupAuth: func(ctrl *gomock.Controller) authclient.AuthClient { return NewMockAuthClient(ctrl) },
 			setupCancelRemind: func(ctrl *gomock.Controller) remindcancel.Queue {
 				return remindcancel.NewMockQueue(ctrl)
 			},
