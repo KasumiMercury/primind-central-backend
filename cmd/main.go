@@ -120,6 +120,7 @@ func run(logger *slog.Logger) error {
 
 	taskRepos := taskmodule.Repositories{
 		Tasks:               taskrepository.NewTaskRepository(db),
+		TaskArchive:         taskrepository.NewTaskArchiveRepository(db),
 		AuthClient:          authclient.NewAuthClient(taskCfg.AuthServiceURL),
 		DeviceClient:        deviceclient.NewDeviceClient(taskCfg.DeviceServiceURL),
 		RemindRegisterQueue: remindQueue,

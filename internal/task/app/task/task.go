@@ -524,19 +524,25 @@ type UpdateTaskUseCase interface {
 }
 
 type updateTaskHandler struct {
-	authClient authclient.AuthClient
-	taskRepo   domaintask.TaskRepository
-	logger     *slog.Logger
+	authClient        authclient.AuthClient
+	taskRepo          domaintask.TaskRepository
+	archiveRepo       domaintask.TaskArchiveRepository
+	cancelRemindQueue remindcancel.Queue
+	logger            *slog.Logger
 }
 
 func NewUpdateTaskHandler(
 	authClient authclient.AuthClient,
 	taskRepo domaintask.TaskRepository,
+	archiveRepo domaintask.TaskArchiveRepository,
+	cancelRemindQueue remindcancel.Queue,
 ) UpdateTaskUseCase {
 	return &updateTaskHandler{
-		authClient: authClient,
-		taskRepo:   taskRepo,
-		logger:     slog.Default().WithGroup("task").WithGroup("updatetask"),
+		authClient:        authClient,
+		taskRepo:          taskRepo,
+		cancelRemindQueue: cancelRemindQueue,
+		archiveRepo:       archiveRepo,
+		logger:            slog.Default().WithGroup("task").WithGroup("updatetask"),
 	}
 }
 
@@ -611,13 +617,38 @@ func (h *updateTaskHandler) UpdateTask(ctx context.Context, req *UpdateTaskReque
 		return nil, err
 	}
 
-	if err := h.taskRepo.UpdateTask(ctx, updatedTask); err != nil {
-		h.logger.Error("failed to update task", slog.String("error", err.Error()))
+	if updatedTask.TaskStatus() == domaintask.StatusCompleted {
+		cancelReq := &remindcancel.CancelRemindRequest{
+			TaskID: req.TaskID,
+			UserID: userIDstr,
+		}
 
-		return nil, err
+		if _, err := h.cancelRemindQueue.CancelRemind(ctx, cancelReq); err != nil {
+			h.logger.Error("failed to cancel remind",
+				slog.String("task_id", req.TaskID),
+				slog.String("error", err.Error()),
+			)
+
+			return nil, ErrCancelRemindFailed
+		}
+
+		completedTask := domaintask.NewCompletedTask(updatedTask, time.Now())
+		if err := h.archiveRepo.ArchiveTask(ctx, completedTask, taskID, userID); err != nil {
+			h.logger.Error("failed to archive task", slog.String("error", err.Error()))
+
+			return nil, err
+		}
+
+		h.logger.Info("task completed and archived", slog.String("task_id", updatedTask.ID().String()))
+	} else {
+		if err := h.taskRepo.UpdateTask(ctx, updatedTask); err != nil {
+			h.logger.Error("failed to update task", slog.String("error", err.Error()))
+
+			return nil, err
+		}
+
+		h.logger.Info("task updated successfully", slog.String("task_id", updatedTask.ID().String()))
 	}
-
-	h.logger.Info("task updated successfully", slog.String("task_id", updatedTask.ID().String()))
 
 	return &UpdateTaskResult{
 		TaskID:      updatedTask.ID().String(),
