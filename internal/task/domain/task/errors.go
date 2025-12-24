@@ -21,4 +21,5 @@ var (
 	ErrInvalidSortType            = errors.New("invalid sort type")
 	ErrNoFieldsToUpdate           = errors.New("at least one field must be specified for update")
 	ErrInvalidUpdateField         = errors.New("invalid field in update mask")
+	ErrTaskNil                    = errors.New("task cannot be nil")
 )

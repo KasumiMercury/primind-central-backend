@@ -74,7 +74,10 @@ func TestArchiveTaskSuccess(t *testing.T) {
 
 	// Create completed task
 	completedAt := time.Now()
-	completedTask := domaintask.NewCompletedTask(task, completedAt)
+	completedTask, err := domaintask.NewCompletedTask(task, completedAt)
+	if err != nil {
+		t.Fatalf("failed to create completed task: %v", err)
+	}
 
 	// Archive the task
 	err = archiveRepo.ArchiveTask(ctx, completedTask, task.ID(), userID)
@@ -159,7 +162,10 @@ func TestArchiveTaskNotFound(t *testing.T) {
 		t.Fatalf("failed to create task: %v", err)
 	}
 
-	completedTask := domaintask.NewCompletedTask(task, time.Now())
+	completedTask, err := domaintask.NewCompletedTask(task, time.Now())
+	if err != nil {
+		t.Fatalf("failed to create completed task: %v", err)
+	}
 
 	// Try to archive a task that doesn't exist in the database
 	err = archiveRepo.ArchiveTask(ctx, completedTask, taskID, userID)
@@ -190,7 +196,10 @@ func TestArchiveTaskTransactionRollback(t *testing.T) {
 	// Create a task in the tasks table
 	task := createTestTask(t, db, userID)
 
-	completedTask := domaintask.NewCompletedTask(task, time.Now())
+	completedTask, err := domaintask.NewCompletedTask(task, time.Now())
+	if err != nil {
+		t.Fatalf("failed to create completed task: %v", err)
+	}
 
 	// Try to archive with wrong userID (should fail on delete)
 	wrongUserID, err := domainuser.NewID()

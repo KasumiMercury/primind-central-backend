@@ -60,7 +60,10 @@ func TestNewCompletedTask(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			completed := NewCompletedTask(task, tt.completedAt)
+			completed, err := NewCompletedTask(task, tt.completedAt)
+			if err != nil {
+				t.Fatalf("NewCompletedTask returned error: %v", err)
+			}
 
 			if completed == nil {
 				t.Fatal("NewCompletedTask returned nil")
@@ -152,9 +155,23 @@ func TestNewCompletedTaskWithNilScheduledAt(t *testing.T) {
 		t.Fatalf("failed to create task: %v", err)
 	}
 
-	completed := NewCompletedTask(task, time.Now())
+	completed, err := NewCompletedTask(task, time.Now())
+	if err != nil {
+		t.Fatalf("NewCompletedTask returned error: %v", err)
+	}
 
 	if completed.ScheduledAt() != nil {
 		t.Errorf("ScheduledAt should be nil, got %v", completed.ScheduledAt())
+	}
+}
+
+func TestNewCompletedTaskWithNilTask(t *testing.T) {
+	_, err := NewCompletedTask(nil, time.Now())
+	if err == nil {
+		t.Fatal("NewCompletedTask should return error for nil task")
+	}
+
+	if err != ErrTaskNil {
+		t.Errorf("expected ErrTaskNil, got %v", err)
 	}
 }

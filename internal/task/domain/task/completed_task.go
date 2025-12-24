@@ -19,7 +19,11 @@ type CompletedTask struct {
 	completedAt time.Time
 }
 
-func NewCompletedTask(task *Task, completedAt time.Time) *CompletedTask {
+func NewCompletedTask(task *Task, completedAt time.Time) (*CompletedTask, error) {
+	if task == nil {
+		return nil, ErrTaskNil
+	}
+
 	return &CompletedTask{
 		id:          task.ID(),
 		userID:      task.UserID(),
@@ -31,7 +35,7 @@ func NewCompletedTask(task *Task, completedAt time.Time) *CompletedTask {
 		targetAt:    task.TargetAt(),
 		color:       task.Color(),
 		completedAt: completedAt.UTC().Truncate(time.Microsecond),
-	}
+	}, nil
 }
 
 func (ct *CompletedTask) ID() ID {

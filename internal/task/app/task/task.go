@@ -632,7 +632,13 @@ func (h *updateTaskHandler) UpdateTask(ctx context.Context, req *UpdateTaskReque
 			return nil, ErrCancelRemindFailed
 		}
 
-		completedTask := domaintask.NewCompletedTask(updatedTask, time.Now())
+		completedTask, err := domaintask.NewCompletedTask(updatedTask, time.Now())
+		if err != nil {
+			h.logger.Error("failed to create completed task", slog.String("error", err.Error()))
+
+			return nil, err
+		}
+
 		if err := h.archiveRepo.ArchiveTask(ctx, completedTask, taskID, userID); err != nil {
 			h.logger.Error("failed to archive task", slog.String("error", err.Error()))
 
