@@ -18,6 +18,7 @@ func NewProvider(ctx context.Context, cfg Config) (*Provider, error) {
 	if endpoint == "" {
 		endpoint = os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
 	}
+
 	if endpoint == "" {
 		endpoint = "localhost:9090"
 	}
