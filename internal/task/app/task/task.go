@@ -60,7 +60,7 @@ func NewCreateTaskHandler(
 		deviceClient: deviceClient,
 		taskRepo:     taskRepo,
 		remindQueue:  remindQueue,
-		logger:       slog.Default().WithGroup("task").WithGroup("createtask"),
+		logger:       slog.Default().With(slog.String("module", "task")).WithGroup("task").WithGroup("createtask"),
 	}
 }
 
@@ -330,7 +330,7 @@ func NewGetTaskHandler(
 	return &getTaskHandler{
 		authClient: authClient,
 		taskRepo:   taskRepo,
-		logger:     slog.Default().WithGroup("task").WithGroup("gettask"),
+		logger:     slog.Default().With(slog.String("module", "task")).WithGroup("task").WithGroup("gettask"),
 	}
 }
 
@@ -436,7 +436,7 @@ func NewListActiveTasksHandler(
 	return &listActiveTasksHandler{
 		authClient: authClient,
 		taskRepo:   taskRepo,
-		logger:     slog.Default().WithGroup("task").WithGroup("listactivetasks"),
+		logger:     slog.Default().With(slog.String("module", "task")).WithGroup("task").WithGroup("listactivetasks"),
 	}
 }
 
@@ -542,7 +542,7 @@ func NewUpdateTaskHandler(
 		taskRepo:          taskRepo,
 		cancelRemindQueue: cancelRemindQueue,
 		archiveRepo:       archiveRepo,
-		logger:            slog.Default().WithGroup("task").WithGroup("updatetask"),
+		logger:            slog.Default().With(slog.String("module", "task")).WithGroup("task").WithGroup("updatetask"),
 	}
 }
 
@@ -756,7 +756,7 @@ func NewDeleteTaskHandler(
 		authClient:        authClient,
 		taskRepo:          taskRepo,
 		cancelRemindQueue: cancelRemindQueue,
-		logger:            slog.Default().WithGroup("task").WithGroup("deletetask"),
+		logger:            slog.Default().With(slog.String("module", "task")).WithGroup("task").WithGroup("deletetask"),
 	}
 }
 

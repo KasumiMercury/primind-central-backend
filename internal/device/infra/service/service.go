@@ -28,7 +28,7 @@ func NewService(
 	return &Service{
 		registerDevice: registerDeviceUseCase,
 		getUserDevices: getUserDevicesUseCase,
-		logger:         slog.Default().WithGroup("device").WithGroup("service"),
+		logger:         slog.Default().With(slog.String("module", "device")).WithGroup("device").WithGroup("service"),
 	}
 }
 

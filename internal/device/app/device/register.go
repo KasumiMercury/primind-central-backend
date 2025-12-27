@@ -44,7 +44,7 @@ func NewRegisterDeviceHandler(
 	return &registerDeviceHandler{
 		authClient: authClient,
 		deviceRepo: deviceRepo,
-		logger:     slog.Default().WithGroup("device").WithGroup("registerdevice"),
+		logger:     slog.Default().With(slog.String("module", "device")).WithGroup("device").WithGroup("registerdevice"),
 	}
 }
 

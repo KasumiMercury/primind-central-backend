@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"net/http"
 
+	"connectrpc.com/connect"
+	"connectrpc.com/otelconnect"
 	applogout "github.com/KasumiMercury/primind-central-backend/internal/auth/app/logout"
 	appoidc "github.com/KasumiMercury/primind-central-backend/internal/auth/app/oidc"
 	appsession "github.com/KasumiMercury/primind-central-backend/internal/auth/app/session"
@@ -18,7 +20,11 @@ import (
 	infraoidc "github.com/KasumiMercury/primind-central-backend/internal/auth/infra/oidc"
 	authsvc "github.com/KasumiMercury/primind-central-backend/internal/auth/infra/service"
 	authv1connect "github.com/KasumiMercury/primind-central-backend/internal/gen/auth/v1/authv1connect"
+	"github.com/KasumiMercury/primind-central-backend/internal/observability/logging"
+	"github.com/KasumiMercury/primind-central-backend/internal/observability/middleware"
 )
+
+const moduleName logging.Module = "auth"
 
 type Repositories struct {
 	Params       domainoidc.ParamsRepository
@@ -31,7 +37,9 @@ type Repositories struct {
 // NewHTTPHandler wires the auth module and returns the Connect HTTP handler
 // and its base path for registration into an HTTP mux.
 func NewHTTPHandler(ctx context.Context, repos Repositories) (string, http.Handler, error) {
-	logger := slog.Default().WithGroup("auth")
+	logger := slog.Default().With(
+		slog.String("module", string(moduleName)),
+	).WithGroup("auth")
 
 	logger.Debug("loading auth configuration")
 
@@ -118,7 +126,21 @@ func NewHTTPHandler(ctx context.Context, repos Repositories) (string, http.Handl
 
 	authService := authsvc.NewService(paramsGenerator, loginHandler, sessionValidateCase, logoutHandler)
 
-	authPath, authHandler := authv1connect.NewAuthServiceHandler(authService)
+	// Create OpenTelemetry interceptor for tracing
+	otelInterceptor, err := otelconnect.NewInterceptor()
+	if err != nil {
+		logger.Error("failed to create otelconnect interceptor", slog.String("error", err.Error()))
+
+		return "", nil, fmt.Errorf("failed to create otelconnect interceptor: %w", err)
+	}
+
+	authPath, authHandler := authv1connect.NewAuthServiceHandler(
+		authService,
+		connect.WithInterceptors(
+			otelInterceptor,
+			middleware.ConnectLoggingInterceptor(moduleName),
+		),
+	)
 	logger.Info("auth service handler registered", slog.String("path", authPath))
 
 	return authPath, authHandler, nil

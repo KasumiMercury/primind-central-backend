@@ -6,15 +6,17 @@ import (
 	"context"
 	"log/slog"
 
+	"github.com/KasumiMercury/primind-central-backend/internal/observability/logging"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/config"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/remindcancel"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/remindregister"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/taskqueue"
 )
 
-func NewRemindQueues(_ context.Context, cfg *config.TaskQueueConfig) (remindregister.Queue, remindcancel.Queue, taskqueue.Client, error) {
+func NewRemindQueues(ctx context.Context, cfg *config.TaskQueueConfig) (remindregister.Queue, remindcancel.Queue, taskqueue.Client, error) {
+	ctx = logging.WithModule(ctx, logging.Module("task"))
 	if cfg.PrimindTasksURL == "" {
-		slog.Warn("PRIMIND_TASKS_URL is not set; remind queues will be disabled")
+		slog.WarnContext(ctx, "PRIMIND_TASKS_URL is not set; remind queues will be disabled")
 
 		return remindregister.NewNoopQueue(), remindcancel.NewNoopQueue(), taskqueue.NewNoopClient(), nil
 	}

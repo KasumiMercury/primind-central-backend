@@ -36,7 +36,7 @@ func NewService(
 		oidcLogin:       oidcLoginUseCase,
 		validateSession: validateSessionUseCase,
 		logout:          logoutUseCase,
-		logger:          slog.Default().WithGroup("auth").WithGroup("service"),
+		logger:          slog.Default().With(slog.String("module", "auth")).WithGroup("auth").WithGroup("service"),
 	}
 }
 

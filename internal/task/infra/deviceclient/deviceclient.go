@@ -10,6 +10,7 @@ import (
 	connect "connectrpc.com/connect"
 	devicev1 "github.com/KasumiMercury/primind-central-backend/internal/gen/device/v1"
 	devicev1connect "github.com/KasumiMercury/primind-central-backend/internal/gen/device/v1/devicev1connect"
+	"github.com/KasumiMercury/primind-central-backend/internal/observability/middleware"
 )
 
 type DeviceInfo struct {
@@ -49,12 +50,15 @@ func NewDeviceClientWithHTTPClient(baseURL string, httpClient connect.HTTPClient
 	client := devicev1connect.NewDeviceServiceClient(
 		httpClient,
 		baseURL,
-		connect.WithInterceptors(authInterceptor),
+		connect.WithInterceptors(
+			authInterceptor,
+			middleware.ConnectClientInterceptor(),
+		),
 	)
 
 	return &deviceClient{
 		client: client,
-		logger: slog.Default().WithGroup("task").WithGroup("deviceclient"),
+		logger: slog.Default().With(slog.String("module", "task")).WithGroup("task").WithGroup("deviceclient"),
 	}
 }
 

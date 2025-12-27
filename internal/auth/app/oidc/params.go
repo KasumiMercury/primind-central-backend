@@ -44,7 +44,7 @@ func newParamsGenerator(
 		providers: providers,
 		repo:      repo,
 		clock:     clk,
-		logger:    slog.Default().WithGroup("auth").WithGroup("oidc").WithGroup("params"),
+		logger:    slog.Default().With(slog.String("module", "auth")).WithGroup("auth").WithGroup("oidc").WithGroup("params"),
 	}
 }
 

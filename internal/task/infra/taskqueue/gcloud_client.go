@@ -11,6 +11,7 @@ import (
 
 	cloudtasks "cloud.google.com/go/cloudtasks/apiv2"
 	taskspb "cloud.google.com/go/cloudtasks/apiv2/cloudtaskspb"
+	"github.com/KasumiMercury/primind-central-backend/internal/observability/logging"
 )
 
 type CloudTasksClient struct {
@@ -41,6 +42,7 @@ func NewCloudTasksClient(ctx context.Context, cfg CloudTasksClientConfig) (*Clou
 
 // CreateTask creates a task in Google Cloud Tasks.
 func (c *CloudTasksClient) CreateTask(ctx context.Context, req CreateTaskRequest) (*TaskResponse, error) {
+	ctx = logging.WithModule(ctx, logging.Module("task"))
 	cloudTask := &taskspb.Task{
 		MessageType: &taskspb.Task_HttpRequest{
 			HttpRequest: &taskspb.HttpRequest{
@@ -62,7 +64,7 @@ func (c *CloudTasksClient) CreateTask(ctx context.Context, req CreateTaskRequest
 	for attempt := 0; attempt < c.maxRetries; attempt++ {
 		if attempt > 0 {
 			backoff := time.Duration(math.Pow(2, float64(attempt-1))) * 100 * time.Millisecond
-			slog.Debug("retrying task creation",
+			slog.DebugContext(ctx, "retrying task creation",
 				slog.Int("attempt", attempt+1),
 				slog.Duration("backoff", backoff),
 			)
@@ -82,7 +84,7 @@ func (c *CloudTasksClient) CreateTask(ctx context.Context, req CreateTaskRequest
 		lastErr = err
 	}
 
-	slog.Error("all retries exhausted for task creation",
+	slog.ErrorContext(ctx, "all retries exhausted for task creation",
 		slog.Int("max_retries", c.maxRetries),
 		slog.String("error", lastErr.Error()),
 	)
@@ -91,20 +93,20 @@ func (c *CloudTasksClient) CreateTask(ctx context.Context, req CreateTaskRequest
 }
 
 func (c *CloudTasksClient) doCreateTask(ctx context.Context, req *taskspb.CreateTaskRequest) (*TaskResponse, error) {
-	slog.Debug("creating task in Cloud Tasks",
+	slog.DebugContext(ctx, "creating task in Cloud Tasks",
 		slog.String("queue_path", req.Parent),
 	)
 
 	createdTask, err := c.client.CreateTask(ctx, req)
 	if err != nil {
-		slog.Warn("failed to create cloud task",
+		slog.WarnContext(ctx, "failed to create cloud task",
 			slog.String("error", err.Error()),
 		)
 
 		return nil, fmt.Errorf("failed to create cloud task: %w", err)
 	}
 
-	slog.Debug("task created in Cloud Tasks",
+	slog.DebugContext(ctx, "task created in Cloud Tasks",
 		slog.String("task_name", createdTask.Name),
 	)
 

@@ -6,14 +6,19 @@ import (
 	"log/slog"
 	"net/http"
 
-	connect "connectrpc.com/connect"
+	"connectrpc.com/connect"
+	"connectrpc.com/otelconnect"
 	appdevice "github.com/KasumiMercury/primind-central-backend/internal/device/app/device"
 	domaindevice "github.com/KasumiMercury/primind-central-backend/internal/device/domain/device"
 	"github.com/KasumiMercury/primind-central-backend/internal/device/infra/authclient"
 	"github.com/KasumiMercury/primind-central-backend/internal/device/infra/interceptor"
 	devicesvc "github.com/KasumiMercury/primind-central-backend/internal/device/infra/service"
 	"github.com/KasumiMercury/primind-central-backend/internal/gen/device/v1/devicev1connect"
+	"github.com/KasumiMercury/primind-central-backend/internal/observability/logging"
+	"github.com/KasumiMercury/primind-central-backend/internal/observability/middleware"
 )
+
+const moduleName logging.Module = "device"
 
 type Repositories struct {
 	Devices    domaindevice.DeviceRepository
@@ -32,7 +37,9 @@ func NewHTTPHandler(
 }
 
 func NewHTTPHandlerWithRepositories(ctx context.Context, repos Repositories) (string, http.Handler, error) {
-	logger := slog.Default().WithGroup("device")
+	logger := slog.Default().With(
+		slog.String("module", string(moduleName)),
+	).WithGroup("device")
 
 	logger.Debug("initializing device module")
 
@@ -49,9 +56,21 @@ func NewHTTPHandlerWithRepositories(ctx context.Context, repos Repositories) (st
 
 	deviceService := devicesvc.NewService(registerDeviceUseCase, getUserDevicesUseCase)
 
+	// Create OpenTelemetry interceptor for tracing
+	otelInterceptor, err := otelconnect.NewInterceptor()
+	if err != nil {
+		logger.Error("failed to create otelconnect interceptor", slog.String("error", err.Error()))
+
+		return "", nil, fmt.Errorf("failed to create otelconnect interceptor: %w", err)
+	}
+
 	devicePath, deviceHandler := devicev1connect.NewDeviceServiceHandler(
 		deviceService,
-		connect.WithInterceptors(interceptor.AuthInterceptor()),
+		connect.WithInterceptors(
+			otelInterceptor,
+			middleware.ConnectLoggingInterceptor(moduleName),
+			interceptor.AuthInterceptor(),
+		),
 	)
 	logger.Info("device service handler registered", slog.String("path", devicePath))
 

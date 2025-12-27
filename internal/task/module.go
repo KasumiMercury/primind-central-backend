@@ -6,8 +6,11 @@ import (
 	"log/slog"
 	"net/http"
 
-	connect "connectrpc.com/connect"
+	"connectrpc.com/connect"
+	"connectrpc.com/otelconnect"
 	"github.com/KasumiMercury/primind-central-backend/internal/gen/task/v1/taskv1connect"
+	"github.com/KasumiMercury/primind-central-backend/internal/observability/logging"
+	"github.com/KasumiMercury/primind-central-backend/internal/observability/middleware"
 	apptask "github.com/KasumiMercury/primind-central-backend/internal/task/app/task"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/config"
 	domaintask "github.com/KasumiMercury/primind-central-backend/internal/task/domain/task"
@@ -19,6 +22,8 @@ import (
 	tasksvc "github.com/KasumiMercury/primind-central-backend/internal/task/infra/service"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/taskqueue"
 )
+
+const moduleName logging.Module = "task"
 
 type Repositories struct {
 	Tasks               domaintask.TaskRepository
@@ -44,6 +49,10 @@ func NewHTTPHandler(
 	taskArchiveRepo domaintask.TaskArchiveRepository,
 	cfg *config.Config,
 ) (path string, handler http.Handler, err error) {
+	logger := slog.Default().With(
+		slog.String("module", string(moduleName)),
+	).WithGroup("task")
+
 	remindQueue, cancelRemindQueue, client, err := NewRemindQueues(ctx, &cfg.TaskQueue)
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to create remind queues: %w", err)
@@ -52,7 +61,7 @@ func NewHTTPHandler(
 	defer func() {
 		if err != nil {
 			if closeErr := client.Close(); closeErr != nil {
-				slog.Warn("failed to close task queue client during cleanup", slog.String("error", closeErr.Error()))
+				logger.Warn("failed to close task queue client during cleanup", slog.String("error", closeErr.Error()))
 			}
 		}
 	}()
@@ -69,7 +78,9 @@ func NewHTTPHandler(
 }
 
 func NewHTTPHandlerWithRepositories(ctx context.Context, repos Repositories) (string, http.Handler, error) {
-	logger := slog.Default().WithGroup("task")
+	logger := slog.Default().With(
+		slog.String("module", string(moduleName)),
+	).WithGroup("task")
 
 	logger.Debug("initializing task module")
 
@@ -105,10 +116,22 @@ func NewHTTPHandlerWithRepositories(ctx context.Context, repos Repositories) (st
 
 	taskService := tasksvc.NewService(createTaskUseCase, getTaskUseCase, listActiveTasksUseCase, updateTaskUseCase, deleteTaskUseCase)
 
-	// Register interceptor for session token extraction
+	// Create OpenTelemetry interceptor for tracing
+	otelInterceptor, err := otelconnect.NewInterceptor()
+	if err != nil {
+		logger.Error("failed to create otelconnect interceptor", slog.String("error", err.Error()))
+
+		return "", nil, fmt.Errorf("failed to create otelconnect interceptor: %w", err)
+	}
+
+	// Register interceptors for tracing, logging, and session token extraction
 	taskPath, taskHandler := taskv1connect.NewTaskServiceHandler(
 		taskService,
-		connect.WithInterceptors(interceptor.AuthInterceptor()),
+		connect.WithInterceptors(
+			otelInterceptor,
+			middleware.ConnectLoggingInterceptor(moduleName),
+			interceptor.AuthInterceptor(),
+		),
 	)
 	logger.Info("task service handler registered", slog.String("path", taskPath))
 
