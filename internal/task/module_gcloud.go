@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/KasumiMercury/primind-central-backend/internal/observability/logging"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/config"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/remindcancel"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/remindregister"
@@ -13,6 +14,8 @@ import (
 )
 
 func NewRemindQueues(ctx context.Context, cfg *config.TaskQueueConfig) (remindregister.Queue, remindcancel.Queue, taskqueue.Client, error) {
+	ctx = logging.WithModule(ctx, logging.Module("task"))
+
 	client, err := taskqueue.NewCloudTasksClient(ctx, taskqueue.CloudTasksClientConfig{
 		MaxRetries: cfg.MaxRetries,
 	})
