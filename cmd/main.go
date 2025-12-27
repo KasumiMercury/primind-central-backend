@@ -275,7 +275,7 @@ func run() error {
 	go func() {
 		<-ctx.Done()
 
-		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 15*time.Second)
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.WithoutCancel(ctx), 15*time.Second)
 		defer shutdownCancel()
 
 		if err := server.Shutdown(shutdownCtx); err != nil {
