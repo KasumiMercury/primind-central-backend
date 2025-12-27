@@ -38,7 +38,7 @@ func NewLogoutHandler(
 	return &logoutHandler{
 		sessionRepo:   sessionRepo,
 		tokenVerifier: tokenVerifier,
-		logger:        slog.Default().WithGroup("auth").WithGroup("logout"),
+		logger:        slog.Default().With(slog.String("module", "auth")).WithGroup("auth").WithGroup("logout"),
 	}
 }
 

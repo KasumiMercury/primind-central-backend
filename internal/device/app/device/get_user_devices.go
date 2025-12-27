@@ -41,7 +41,7 @@ func NewGetUserDevicesHandler(
 	return &getUserDevicesHandler{
 		authClient: authClient,
 		deviceRepo: deviceRepo,
-		logger:     slog.Default().WithGroup("device").WithGroup("getuserdevices"),
+		logger:     slog.Default().With(slog.String("module", "device")).WithGroup("device").WithGroup("getuserdevices"),
 	}
 }
 

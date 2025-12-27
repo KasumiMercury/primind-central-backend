@@ -10,6 +10,7 @@ import (
 
 	commonv1 "github.com/KasumiMercury/primind-central-backend/internal/gen/common/v1"
 	remindv1 "github.com/KasumiMercury/primind-central-backend/internal/gen/remind/v1"
+	"github.com/KasumiMercury/primind-central-backend/internal/observability/logging"
 	pjson "github.com/KasumiMercury/primind-central-backend/internal/proto"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/taskqueue"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -33,6 +34,8 @@ func NewPrimindAdapter(cfg PrimindAdapterConfig) *PrimindAdapter {
 }
 
 func (a *PrimindAdapter) RegisterRemind(ctx context.Context, req *CreateRemindRequest) (*RemindResponse, error) {
+	ctx = logging.WithModule(ctx, logging.Module("task"))
+
 	protoTimes := make([]*timestamppb.Timestamp, 0, len(req.Times))
 	for _, t := range req.Times {
 		protoTimes = append(protoTimes, timestamppb.New(t))
@@ -65,10 +68,11 @@ func (a *PrimindAdapter) RegisterRemind(ctx context.Context, req *CreateRemindRe
 		Payload:   payload,
 		Headers: map[string]string{
 			"Content-Type": "application/json",
+			"message_type": "remind.register",
 		},
 	}
 
-	slog.Debug("registering remind to Primind Tasks",
+	slog.DebugContext(ctx, "registering remind to Primind Tasks",
 		slog.String("queue_name", a.queueName),
 		slog.String("task_id", req.TaskID),
 	)
@@ -78,7 +82,7 @@ func (a *PrimindAdapter) RegisterRemind(ctx context.Context, req *CreateRemindRe
 		return nil, fmt.Errorf("failed to register remind: %w", err)
 	}
 
-	slog.Info("remind task registered to Primind Tasks",
+	slog.InfoContext(ctx, "remind task registered to Primind Tasks",
 		slog.String("task_name", resp.Name),
 		slog.String("task_id", req.TaskID),
 	)

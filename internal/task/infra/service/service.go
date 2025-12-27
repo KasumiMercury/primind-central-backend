@@ -39,7 +39,7 @@ func NewService(
 		listActiveTasks: listActiveTasksUseCase,
 		updateTask:      updateTaskUseCase,
 		deleteTask:      deleteTaskUseCase,
-		logger:          slog.Default().WithGroup("task").WithGroup("service"),
+		logger:          slog.Default().With(slog.String("module", "task")).WithGroup("task").WithGroup("service"),
 	}
 }
 

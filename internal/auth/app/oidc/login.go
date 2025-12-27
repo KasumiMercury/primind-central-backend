@@ -128,7 +128,7 @@ func newLoginHandler(
 		jwtGenerator:     jwtGenerator,
 		sessionCfg:       sessionCfg,
 		clock:            clk,
-		logger:           slog.Default().WithGroup("auth").WithGroup("oidc").WithGroup("login"),
+		logger:           slog.Default().With(slog.String("module", "auth")).WithGroup("auth").WithGroup("oidc").WithGroup("login"),
 	}
 }
 

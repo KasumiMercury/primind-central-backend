@@ -43,7 +43,7 @@ func newValidateSessionHandler(
 		sessionRepo:   sessionRepo,
 		tokenVerifier: tokenVerifier,
 		clock:         clk,
-		logger:        slog.Default().WithGroup("auth").WithGroup("session").WithGroup("validate"),
+		logger:        slog.Default().With(slog.String("module", "auth")).WithGroup("auth").WithGroup("session").WithGroup("validate"),
 	}
 }
 

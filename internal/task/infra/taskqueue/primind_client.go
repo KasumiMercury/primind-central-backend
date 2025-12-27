@@ -14,6 +14,8 @@ import (
 	"time"
 
 	taskqueuev1 "github.com/KasumiMercury/primind-central-backend/internal/gen/taskqueue/v1"
+	"github.com/KasumiMercury/primind-central-backend/internal/observability/logging"
+	"github.com/KasumiMercury/primind-central-backend/internal/observability/tracing"
 	pjson "github.com/KasumiMercury/primind-central-backend/internal/proto"
 )
 
@@ -38,6 +40,7 @@ func NewPrimindTasksClient(baseURL string, maxRetries int) *PrimindTasksClient {
 }
 
 func (c *PrimindTasksClient) CreateTask(ctx context.Context, req CreateTaskRequest) (*TaskResponse, error) {
+	ctx = logging.WithModule(ctx, logging.Module("task"))
 	encodedBody := base64.StdEncoding.EncodeToString(req.Payload)
 
 	taskReq := &taskqueuev1.CreateTaskRequest{
@@ -64,7 +67,7 @@ func (c *PrimindTasksClient) CreateTask(ctx context.Context, req CreateTaskReque
 	for attempt := 0; attempt < c.maxRetries; attempt++ {
 		if attempt > 0 {
 			backoff := time.Duration(math.Pow(2, float64(attempt-1))) * 100 * time.Millisecond
-			slog.Debug("retrying task creation",
+			slog.DebugContext(ctx, "retrying task creation",
 				slog.Int("attempt", attempt+1),
 				slog.Duration("backoff", backoff),
 			)
@@ -84,7 +87,7 @@ func (c *PrimindTasksClient) CreateTask(ctx context.Context, req CreateTaskReque
 		lastErr = err
 	}
 
-	slog.Error("all retries exhausted for task creation",
+	slog.ErrorContext(ctx, "all retries exhausted for task creation",
 		slog.Int("max_retries", c.maxRetries),
 		slog.String("error", lastErr.Error()),
 	)
@@ -93,7 +96,7 @@ func (c *PrimindTasksClient) CreateTask(ctx context.Context, req CreateTaskReque
 }
 
 func (c *PrimindTasksClient) doRequest(ctx context.Context, url string, reqBody []byte) (*TaskResponse, error) {
-	slog.Debug("creating task in Primind Tasks",
+	slog.DebugContext(ctx, "creating task in Primind Tasks",
 		slog.String("url", url),
 	)
 
@@ -104,9 +107,17 @@ func (c *PrimindTasksClient) doRequest(ctx context.Context, url string, reqBody 
 
 	req.Header.Set("Content-Type", "application/json")
 
+	reqID := logging.RequestIDFromContext(ctx)
+	if reqID == "" {
+		reqID = logging.ValidateAndExtractRequestID("")
+	}
+
+	req.Header.Set("x-request-id", reqID)
+	tracing.InjectToHTTPRequest(ctx, req)
+
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		slog.Warn("failed to send request to Primind Tasks",
+		slog.WarnContext(ctx, "failed to send request to Primind Tasks",
 			slog.String("error", err.Error()),
 		)
 
@@ -115,12 +126,12 @@ func (c *PrimindTasksClient) doRequest(ctx context.Context, url string, reqBody 
 
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
-			slog.Warn("failed to close response body", slog.String("error", err.Error()))
+			slog.WarnContext(ctx, "failed to close response body", slog.String("error", err.Error()))
 		}
 	}()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-		slog.Warn("unexpected status code from Primind Tasks",
+		slog.WarnContext(ctx, "unexpected status code from Primind Tasks",
 			slog.Int("status_code", resp.StatusCode),
 		)
 
@@ -139,13 +150,13 @@ func (c *PrimindTasksClient) doRequest(ctx context.Context, url string, reqBody 
 
 	createTime, parseErr := time.Parse(time.RFC3339, protoResp.CreateTime)
 	if parseErr != nil {
-		slog.Warn("failed to parse create time, using zero value",
+		slog.WarnContext(ctx, "failed to parse create time, using zero value",
 			slog.String("raw_value", protoResp.CreateTime),
 			slog.String("error", parseErr.Error()),
 		)
 	}
 
-	slog.Debug("task created in Primind Tasks",
+	slog.DebugContext(ctx, "task created in Primind Tasks",
 		slog.String("task_name", protoResp.Name),
 	)
 

@@ -8,6 +8,7 @@ import (
 	"log/slog"
 
 	remindv1 "github.com/KasumiMercury/primind-central-backend/internal/gen/remind/v1"
+	"github.com/KasumiMercury/primind-central-backend/internal/observability/logging"
 	pjson "github.com/KasumiMercury/primind-central-backend/internal/proto"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/taskqueue"
 )
@@ -30,6 +31,7 @@ func NewPrimindAdapter(cfg PrimindAdapterConfig) *PrimindAdapter {
 }
 
 func (a *PrimindAdapter) CancelRemind(ctx context.Context, req *CancelRemindRequest) (*CancelRemindResponse, error) {
+	ctx = logging.WithModule(ctx, logging.Module("task"))
 	protoReq := &remindv1.CancelRemindRequest{
 		TaskId: req.TaskID,
 		UserId: req.UserID,
@@ -46,10 +48,11 @@ func (a *PrimindAdapter) CancelRemind(ctx context.Context, req *CancelRemindRequ
 		Payload:   payload,
 		Headers: map[string]string{
 			"Content-Type": "application/json",
+			"message_type": "remind.cancel",
 		},
 	}
 
-	slog.Debug("sending cancel remind to Primind Tasks",
+	slog.DebugContext(ctx, "sending cancel remind to Primind Tasks",
 		slog.String("queue_name", a.queueName),
 		slog.String("task_id", req.TaskID),
 	)
@@ -59,7 +62,7 @@ func (a *PrimindAdapter) CancelRemind(ctx context.Context, req *CancelRemindRequ
 		return nil, fmt.Errorf("failed to send cancel remind: %w", err)
 	}
 
-	slog.Info("cancel remind task sent to Primind Tasks",
+	slog.InfoContext(ctx, "cancel remind task sent to Primind Tasks",
 		slog.String("task_name", resp.Name),
 		slog.String("task_id", req.TaskID),
 	)

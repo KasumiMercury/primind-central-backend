@@ -9,6 +9,7 @@ import (
 	connect "connectrpc.com/connect"
 	authv1 "github.com/KasumiMercury/primind-central-backend/internal/gen/auth/v1"
 	authv1connect "github.com/KasumiMercury/primind-central-backend/internal/gen/auth/v1/authv1connect"
+	"github.com/KasumiMercury/primind-central-backend/internal/observability/middleware"
 )
 
 type AuthClient interface {
@@ -24,11 +25,12 @@ func NewAuthClient(baseURL string) AuthClient {
 	client := authv1connect.NewAuthServiceClient(
 		http.DefaultClient,
 		baseURL,
+		connect.WithInterceptors(middleware.ConnectClientInterceptor()),
 	)
 
 	return &authClient{
 		client: client,
-		logger: slog.Default().WithGroup("task").WithGroup("authclient"),
+		logger: slog.Default().With(slog.String("module", "task")).WithGroup("task").WithGroup("authclient"),
 	}
 }
 
