@@ -24,6 +24,7 @@ func NewProvider(ctx context.Context, cfg Config) (*Provider, error) {
 	if endpoint == "" {
 		endpoint = os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
 	}
+
 	if endpoint == "" {
 		return nil, errors.New("OTEL_EXPORTER_OTLP_METRICS_ENDPOINT or OTEL_EXPORTER_OTLP_ENDPOINT is required when OTEL_EXPORTER_DISABLED is not set to 'true'")
 	}
