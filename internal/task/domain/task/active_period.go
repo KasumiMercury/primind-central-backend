@@ -5,9 +5,9 @@ import "time"
 type ActivePeriod time.Duration
 
 const (
-	ActivePeriodShort   ActivePeriod = ActivePeriod(15 * time.Minute)
-	ActivePeriodNear    ActivePeriod = ActivePeriod(1 * time.Hour)
-	ActivePeriodRelaxed ActivePeriod = ActivePeriod(6 * time.Hour)
+	ActivePeriodShort   ActivePeriod = ActivePeriod(30 * time.Minute)
+	ActivePeriodNear    ActivePeriod = ActivePeriod(3 * time.Hour)
+	ActivePeriodRelaxed ActivePeriod = ActivePeriod(24 * time.Hour)
 )
 
 var DefaultActivePeriods = map[Type]ActivePeriod{

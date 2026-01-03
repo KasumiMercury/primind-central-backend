@@ -63,17 +63,17 @@ func TestGetActivePeriodForType(t *testing.T) {
 		expected ActivePeriod
 	}{
 		{
-			name:     "TypeShort returns 15 minutes",
+			name:     "TypeShort returns 30 minutes",
 			taskType: TypeShort,
 			expected: ActivePeriodShort,
 		},
 		{
-			name:     "TypeNear returns 1 hour",
+			name:     "TypeNear returns 3 hours",
 			taskType: TypeNear,
 			expected: ActivePeriodNear,
 		},
 		{
-			name:     "TypeRelaxed returns 6 hours",
+			name:     "TypeRelaxed returns 24 hours",
 			taskType: TypeRelaxed,
 			expected: ActivePeriodRelaxed,
 		},
@@ -101,8 +101,8 @@ func TestActivePeriodTypeConversion(t *testing.T) {
 		period := ActivePeriodShort
 		duration := time.Duration(period)
 
-		if duration != 15*time.Minute {
-			t.Errorf("time.Duration(ActivePeriodShort) = %v, want %v", duration, 15*time.Minute)
+		if duration != 30*time.Minute {
+			t.Errorf("time.Duration(ActivePeriodShort) = %v, want %v", duration, 30*time.Minute)
 		}
 	})
 
@@ -111,7 +111,7 @@ func TestActivePeriodTypeConversion(t *testing.T) {
 		period := ActivePeriodNear
 
 		result := baseTime.Add(time.Duration(period))
-		expected := baseTime.Add(1 * time.Hour)
+		expected := baseTime.Add(3 * time.Hour)
 
 		if !result.Equal(expected) {
 			t.Errorf("baseTime.Add(ActivePeriodNear) = %v, want %v", result, expected)

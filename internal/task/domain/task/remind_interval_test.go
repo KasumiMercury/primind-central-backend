@@ -2,7 +2,6 @@ package task
 
 import (
 	"testing"
-	"time"
 )
 
 func TestDefaultReminderIntervals(t *testing.T) {
@@ -58,29 +57,29 @@ func TestDefaultReminderIntervalsValues(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name            string
-		taskType        Type
-		expectedMinutes []int
+		name                string
+		taskType            Type
+		expectedPercentages []float64
 	}{
 		{
-			name:            "TypeShort intervals are 3 and 5 minutes",
-			taskType:        TypeShort,
-			expectedMinutes: []int{3, 5},
+			name:                "TypeShort percentages are 0.70 and 0.96",
+			taskType:            TypeShort,
+			expectedPercentages: []float64{0.70, 0.96},
 		},
 		{
-			name:            "TypeNear intervals are 33 and 53 minutes",
-			taskType:        TypeNear,
-			expectedMinutes: []int{33, 53},
+			name:                "TypeNear percentages are 0.56 and 0.89",
+			taskType:            TypeNear,
+			expectedPercentages: []float64{0.56, 0.89},
 		},
 		{
-			name:            "TypeRelaxed intervals are 126, 232, and 315 minutes",
-			taskType:        TypeRelaxed,
-			expectedMinutes: []int{126, 232, 315},
+			name:                "TypeRelaxed percentages are 0.35, 0.65, and 0.87",
+			taskType:            TypeRelaxed,
+			expectedPercentages: []float64{0.35, 0.65, 0.87},
 		},
 		{
-			name:            "TypeScheduled uses Relaxed intervals (126, 232, 315 minutes)",
-			taskType:        TypeScheduled,
-			expectedMinutes: []int{126, 232, 315},
+			name:                "TypeScheduled uses Relaxed percentages (0.35, 0.65, 0.87)",
+			taskType:            TypeScheduled,
+			expectedPercentages: []float64{0.35, 0.65, 0.87},
 		},
 	}
 
@@ -88,12 +87,12 @@ func TestDefaultReminderIntervalsValues(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			intervals := DefaultReminderIntervals[tt.taskType]
 
-			if len(intervals) != len(tt.expectedMinutes) {
-				t.Fatalf("len(intervals) = %d, want %d", len(intervals), len(tt.expectedMinutes))
+			if len(intervals) != len(tt.expectedPercentages) {
+				t.Fatalf("len(intervals) = %d, want %d", len(intervals), len(tt.expectedPercentages))
 			}
 
-			for i, expectedMin := range tt.expectedMinutes {
-				expected := ReminderInterval(time.Duration(expectedMin) * time.Minute)
+			for i, expectedPct := range tt.expectedPercentages {
+				expected := ReminderInterval(expectedPct)
 				if intervals[i] != expected {
 					t.Errorf("intervals[%d] = %v, want %v", i, intervals[i], expected)
 				}
@@ -154,27 +153,3 @@ func TestGetReminderIntervalsForTypeUnknown(t *testing.T) {
 	})
 }
 
-func TestReminderIntervalTypeConversion(t *testing.T) {
-	t.Parallel()
-
-	t.Run("ReminderInterval can be converted to time.Duration", func(t *testing.T) {
-		interval := DefaultReminderIntervalsShort[0] // 3 minutes
-		duration := time.Duration(interval)
-
-		if duration != 3*time.Minute {
-			t.Errorf("time.Duration(interval) = %v, want %v", duration, 3*time.Minute)
-		}
-	})
-
-	t.Run("ReminderInterval can be used with time.Add", func(t *testing.T) {
-		baseTime := time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)
-		interval := ReminderInterval(33 * time.Minute)
-
-		result := baseTime.Add(time.Duration(interval))
-		expected := baseTime.Add(33 * time.Minute)
-
-		if !result.Equal(expected) {
-			t.Errorf("baseTime.Add(interval) = %v, want %v", result, expected)
-		}
-	})
-}
