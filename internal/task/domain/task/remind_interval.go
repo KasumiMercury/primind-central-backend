@@ -2,31 +2,30 @@ package task
 
 import "time"
 
-type ReminderInterval time.Duration
+type ReminderInterval float64
 
 var (
 	DefaultReminderIntervalsShort = []ReminderInterval{
-		ReminderInterval(3 * time.Minute),
-		ReminderInterval(5 * time.Minute),
+		ReminderInterval(0.70),
+		ReminderInterval(0.96),
 	}
 
 	DefaultReminderIntervalsNear = []ReminderInterval{
-		ReminderInterval(33 * time.Minute),
-		ReminderInterval(53 * time.Minute),
+		ReminderInterval(0.56),
+		ReminderInterval(0.89),
 	}
 
 	DefaultReminderIntervalsRelaxed = []ReminderInterval{
-		ReminderInterval(126 * time.Minute),
-		ReminderInterval(232 * time.Minute),
-		ReminderInterval(315 * time.Minute),
+		ReminderInterval(0.35),
+		ReminderInterval(0.65),
+		ReminderInterval(0.87),
 	}
 )
 
 var DefaultReminderIntervals = map[Type][]ReminderInterval{
-	TypeShort:     DefaultReminderIntervalsShort,
-	TypeNear:      DefaultReminderIntervalsNear,
-	TypeRelaxed:   DefaultReminderIntervalsRelaxed,
-	TypeScheduled: DefaultReminderIntervalsRelaxed, // TODO: Customize later
+	TypeShort:   DefaultReminderIntervalsShort,
+	TypeNear:    DefaultReminderIntervalsNear,
+	TypeRelaxed: DefaultReminderIntervalsRelaxed,
 }
 
 func GetReminderIntervalsForType(taskType Type) []ReminderInterval {
@@ -35,4 +34,15 @@ func GetReminderIntervalsForType(taskType Type) []ReminderInterval {
 	}
 
 	return nil
+}
+
+func GetReminderIntervalsForDuration(duration time.Duration) []ReminderInterval {
+	switch {
+	case duration <= time.Duration(ActivePeriodShort):
+		return DefaultReminderIntervalsShort
+	case duration <= time.Duration(ActivePeriodNear):
+		return DefaultReminderIntervalsNear
+	default:
+		return DefaultReminderIntervalsRelaxed
+	}
 }

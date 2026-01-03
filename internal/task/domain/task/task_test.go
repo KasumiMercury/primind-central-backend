@@ -999,27 +999,27 @@ func TestCreateTaskTargetAtCalculation(t *testing.T) {
 		expectedOffsetFunc func(createdAt time.Time, scheduledAt *time.Time) time.Time
 	}{
 		{
-			name:        "short task target_at is created_at + 15 minutes",
+			name:        "short task target_at is created_at + 30 minutes",
 			taskType:    TypeShort,
 			scheduledAt: nil,
 			expectedOffsetFunc: func(createdAt time.Time, scheduledAt *time.Time) time.Time {
-				return createdAt.Add(15 * time.Minute)
+				return createdAt.Add(30 * time.Minute)
 			},
 		},
 		{
-			name:        "near task target_at is created_at + 1 hour",
+			name:        "near task target_at is created_at + 3 hours",
 			taskType:    TypeNear,
 			scheduledAt: nil,
 			expectedOffsetFunc: func(createdAt time.Time, scheduledAt *time.Time) time.Time {
-				return createdAt.Add(1 * time.Hour)
+				return createdAt.Add(3 * time.Hour)
 			},
 		},
 		{
-			name:        "relaxed task target_at is created_at + 6 hours",
+			name:        "relaxed task target_at is created_at + 24 hours",
 			taskType:    TypeRelaxed,
 			scheduledAt: nil,
 			expectedOffsetFunc: func(createdAt time.Time, scheduledAt *time.Time) time.Time {
-				return createdAt.Add(6 * time.Hour)
+				return createdAt.Add(24 * time.Hour)
 			},
 		},
 		{

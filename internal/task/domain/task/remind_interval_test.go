@@ -33,10 +33,10 @@ func TestDefaultReminderIntervals(t *testing.T) {
 			exists:        true,
 		},
 		{
-			name:          "TypeScheduled uses Relaxed intervals (3 intervals)",
+			name:          "TypeScheduled is not in map (uses dynamic mapping)",
 			taskType:      TypeScheduled,
-			expectedCount: 3,
-			exists:        true,
+			expectedCount: 0,
+			exists:        false,
 		},
 	}
 
@@ -58,29 +58,24 @@ func TestDefaultReminderIntervalsValues(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name            string
-		taskType        Type
-		expectedMinutes []int
+		name                string
+		taskType            Type
+		expectedPercentages []float64
 	}{
 		{
-			name:            "TypeShort intervals are 3 and 5 minutes",
-			taskType:        TypeShort,
-			expectedMinutes: []int{3, 5},
+			name:                "TypeShort percentages are 0.70 and 0.96",
+			taskType:            TypeShort,
+			expectedPercentages: []float64{0.70, 0.96},
 		},
 		{
-			name:            "TypeNear intervals are 33 and 53 minutes",
-			taskType:        TypeNear,
-			expectedMinutes: []int{33, 53},
+			name:                "TypeNear percentages are 0.56 and 0.89",
+			taskType:            TypeNear,
+			expectedPercentages: []float64{0.56, 0.89},
 		},
 		{
-			name:            "TypeRelaxed intervals are 126, 232, and 315 minutes",
-			taskType:        TypeRelaxed,
-			expectedMinutes: []int{126, 232, 315},
-		},
-		{
-			name:            "TypeScheduled uses Relaxed intervals (126, 232, 315 minutes)",
-			taskType:        TypeScheduled,
-			expectedMinutes: []int{126, 232, 315},
+			name:                "TypeRelaxed percentages are 0.35, 0.65, and 0.87",
+			taskType:            TypeRelaxed,
+			expectedPercentages: []float64{0.35, 0.65, 0.87},
 		},
 	}
 
@@ -88,12 +83,12 @@ func TestDefaultReminderIntervalsValues(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			intervals := DefaultReminderIntervals[tt.taskType]
 
-			if len(intervals) != len(tt.expectedMinutes) {
-				t.Fatalf("len(intervals) = %d, want %d", len(intervals), len(tt.expectedMinutes))
+			if len(intervals) != len(tt.expectedPercentages) {
+				t.Fatalf("len(intervals) = %d, want %d", len(intervals), len(tt.expectedPercentages))
 			}
 
-			for i, expectedMin := range tt.expectedMinutes {
-				expected := ReminderInterval(time.Duration(expectedMin) * time.Minute)
+			for i, expectedPct := range tt.expectedPercentages {
+				expected := ReminderInterval(expectedPct)
 				if intervals[i] != expected {
 					t.Errorf("intervals[%d] = %v, want %v", i, intervals[i], expected)
 				}
@@ -109,35 +104,47 @@ func TestGetReminderIntervalsForType(t *testing.T) {
 		name          string
 		taskType      Type
 		expectedCount int
+		expectNil     bool
 	}{
 		{
 			name:          "TypeShort returns 2 intervals",
 			taskType:      TypeShort,
 			expectedCount: 2,
+			expectNil:     false,
 		},
 		{
 			name:          "TypeNear returns 2 intervals",
 			taskType:      TypeNear,
 			expectedCount: 2,
+			expectNil:     false,
 		},
 		{
 			name:          "TypeRelaxed returns 3 intervals",
 			taskType:      TypeRelaxed,
 			expectedCount: 3,
+			expectNil:     false,
 		},
 		{
-			name:          "TypeScheduled returns 3 intervals (using Relaxed)",
+			name:          "TypeScheduled returns nil (uses dynamic mapping)",
 			taskType:      TypeScheduled,
-			expectedCount: 3,
+			expectedCount: 0,
+			expectNil:     true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := GetReminderIntervalsForType(tt.taskType)
-			if len(result) != tt.expectedCount {
-				t.Errorf("GetReminderIntervalsForType(%v) returned %d intervals, want %d",
-					tt.taskType, len(result), tt.expectedCount)
+
+			if tt.expectNil {
+				if result != nil {
+					t.Errorf("GetReminderIntervalsForType(%v) = %v, want nil", tt.taskType, result)
+				}
+			} else {
+				if len(result) != tt.expectedCount {
+					t.Errorf("GetReminderIntervalsForType(%v) returned %d intervals, want %d",
+						tt.taskType, len(result), tt.expectedCount)
+				}
 			}
 		})
 	}
@@ -154,27 +161,69 @@ func TestGetReminderIntervalsForTypeUnknown(t *testing.T) {
 	})
 }
 
-func TestReminderIntervalTypeConversion(t *testing.T) {
+func TestGetReminderIntervalsForDuration(t *testing.T) {
 	t.Parallel()
 
-	t.Run("ReminderInterval can be converted to time.Duration", func(t *testing.T) {
-		interval := DefaultReminderIntervalsShort[0] // 3 minutes
-		duration := time.Duration(interval)
+	tests := []struct {
+		name                string
+		duration            time.Duration
+		expectedPercentages []float64
+		expectedCount       int
+	}{
+		{
+			name:                "duration <= 30m returns short percentages",
+			duration:            25 * time.Minute,
+			expectedPercentages: []float64{0.70, 0.96},
+			expectedCount:       2,
+		},
+		{
+			name:                "duration exactly 30m returns short percentages",
+			duration:            30 * time.Minute,
+			expectedPercentages: []float64{0.70, 0.96},
+			expectedCount:       2,
+		},
+		{
+			name:                "duration > 30m and <= 3h returns near percentages",
+			duration:            2 * time.Hour,
+			expectedPercentages: []float64{0.56, 0.89},
+			expectedCount:       2,
+		},
+		{
+			name:                "duration exactly 3h returns near percentages",
+			duration:            3 * time.Hour,
+			expectedPercentages: []float64{0.56, 0.89},
+			expectedCount:       2,
+		},
+		{
+			name:                "duration > 3h returns relaxed percentages",
+			duration:            12 * time.Hour,
+			expectedPercentages: []float64{0.35, 0.65, 0.87},
+			expectedCount:       3,
+		},
+		{
+			name:                "duration 48h returns relaxed percentages",
+			duration:            48 * time.Hour,
+			expectedPercentages: []float64{0.35, 0.65, 0.87},
+			expectedCount:       3,
+		},
+	}
 
-		if duration != 3*time.Minute {
-			t.Errorf("time.Duration(interval) = %v, want %v", duration, 3*time.Minute)
-		}
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := GetReminderIntervalsForDuration(tt.duration)
 
-	t.Run("ReminderInterval can be used with time.Add", func(t *testing.T) {
-		baseTime := time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)
-		interval := ReminderInterval(33 * time.Minute)
+			if len(result) != tt.expectedCount {
+				t.Fatalf("GetReminderIntervalsForDuration(%v) returned %d intervals, want %d",
+					tt.duration, len(result), tt.expectedCount)
+			}
 
-		result := baseTime.Add(time.Duration(interval))
-		expected := baseTime.Add(33 * time.Minute)
-
-		if !result.Equal(expected) {
-			t.Errorf("baseTime.Add(interval) = %v, want %v", result, expected)
-		}
-	})
+			for i, expectedPct := range tt.expectedPercentages {
+				expected := ReminderInterval(expectedPct)
+				if result[i] != expected {
+					t.Errorf("intervals[%d] = %v, want %v", i, result[i], expected)
+				}
+			}
+		})
+	}
 }
+
