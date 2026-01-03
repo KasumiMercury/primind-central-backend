@@ -1,0 +1,4 @@
+# Ignore ch-go vulnerability
+# ch-go is used only in gorm.io/plugin/opentelemetry examples
+CVE-2025-1386 exp:2026-02-01
+
