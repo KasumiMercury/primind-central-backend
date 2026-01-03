@@ -229,15 +229,14 @@ func TestCalculateReminderTimes(t *testing.T) {
 		}
 	})
 
-	t.Run("short scheduled task uses percentage-based reminders", func(t *testing.T) {
+	t.Run("short duration scheduled task uses short percentages", func(t *testing.T) {
 		taskID, err := NewID()
 		if err != nil {
 			t.Fatalf("setup failed: %v", err)
 		}
 
-		// Short scheduled task: targetAt = 30 minutes from createdAt
-		// Relaxed percentages (0.35, 0.65, 0.87) are applied to 30 minutes
-		scheduledAt := baseTime.Add(30 * time.Minute)
+		// Scheduled task with 25 minutes duration uses short percentages (0.70, 0.96)
+		scheduledAt := baseTime.Add(25 * time.Minute)
 
 		task, err := NewTask(
 			taskID,
@@ -261,16 +260,65 @@ func TestCalculateReminderTimes(t *testing.T) {
 			t.Fatal("CalculateReminderTimes returned nil")
 		}
 
-		// 3 percentages + targetAt = 4 reminder times
-		if len(info.ReminderTimes) != 4 {
-			t.Errorf("got %d reminder times, want 4", len(info.ReminderTimes))
+		// 2 short percentages + targetAt = 3 reminder times
+		if len(info.ReminderTimes) != 3 {
+			t.Errorf("got %d reminder times, want 3", len(info.ReminderTimes))
 		}
 
-		// Expected: 0.35*30min=10.5min, 0.65*30min=19.5min, 0.87*30min=26.1min, 30min
+		// Expected: 0.70*25min=17.5min, 0.96*25min=24min, 25min (targetAt)
 		expectedTimes := []time.Time{
-			baseTime.Add(10*time.Minute + 30*time.Second),
-			baseTime.Add(19*time.Minute + 30*time.Second),
-			baseTime.Add(26*time.Minute + 6*time.Second),
+			baseTime.Add(17*time.Minute + 30*time.Second),
+			baseTime.Add(24 * time.Minute),
+			scheduledAt,
+		}
+
+		for i, expected := range expectedTimes {
+			if !info.ReminderTimes[i].Equal(expected) {
+				t.Errorf("ReminderTimes[%d] = %v, want %v", i, info.ReminderTimes[i], expected)
+			}
+		}
+	})
+
+	t.Run("near duration scheduled task uses near percentages", func(t *testing.T) {
+		taskID, err := NewID()
+		if err != nil {
+			t.Fatalf("setup failed: %v", err)
+		}
+
+		// Scheduled task with 2 hours duration uses near percentages (0.56, 0.89)
+		scheduledAt := baseTime.Add(2 * time.Hour)
+
+		task, err := NewTask(
+			taskID,
+			validUserID,
+			"Near Scheduled Task",
+			TypeScheduled,
+			StatusActive,
+			"",
+			&scheduledAt,
+			baseTime,
+			scheduledAt,
+			validColor,
+		)
+		if err != nil {
+			t.Fatalf("NewTask() unexpected error: %v", err)
+		}
+
+		info := CalculateReminderTimes(task, "test-user-id", nil)
+
+		if info == nil {
+			t.Fatal("CalculateReminderTimes returned nil")
+		}
+
+		// 2 near percentages + targetAt = 3 reminder times
+		if len(info.ReminderTimes) != 3 {
+			t.Errorf("got %d reminder times, want 3", len(info.ReminderTimes))
+		}
+
+		// Expected: 0.56*120min=67.2min, 0.89*120min=106.8min, 120min (targetAt)
+		expectedTimes := []time.Time{
+			baseTime.Add(67*time.Minute + 12*time.Second),
+			baseTime.Add(106*time.Minute + 48*time.Second),
 			scheduledAt,
 		}
 

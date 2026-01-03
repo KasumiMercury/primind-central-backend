@@ -20,15 +20,23 @@ func CalculateReminderTimes(task *Task, userID string, devices []DeviceInfo) *Re
 		return nil
 	}
 
-	percentages := GetReminderIntervalsForType(task.TaskType())
 	createdAt := task.CreatedAt()
 	targetAt := task.TargetAt()
-
 	totalDuration := targetAt.Sub(createdAt)
+
+	var percentages []ReminderInterval
+	if task.TaskType() == TypeScheduled {
+		percentages = GetReminderIntervalsForDuration(totalDuration)
+	} else {
+		percentages = GetReminderIntervalsForType(task.TaskType())
+	}
+
 	reminderTimes := make([]time.Time, 0, len(percentages)+1)
 
 	for _, percentage := range percentages {
 		offset := time.Duration(float64(totalDuration) * float64(percentage))
+
+		offset = offset.Round(time.Microsecond)
 		reminderTime := createdAt.Add(offset)
 
 		if !reminderTime.After(targetAt) {
