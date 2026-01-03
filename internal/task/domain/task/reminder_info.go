@@ -36,7 +36,7 @@ func CalculateReminderTimes(task *Task, userID string, devices []DeviceInfo) *Re
 	for _, percentage := range percentages {
 		offset := time.Duration(float64(totalDuration) * float64(percentage))
 
-		offset = offset.Round(time.Microsecond)
+		offset = offset.Round(time.Minute)
 		reminderTime := createdAt.Add(offset)
 
 		if !reminderTime.After(targetAt) {

@@ -54,10 +54,10 @@ func TestCalculateReminderTimes(t *testing.T) {
 			t.Errorf("got %d reminder times, want 3", len(info.ReminderTimes))
 		}
 
-		// Expected: 0.70*30min=21min, 0.96*30min=28min48s, 30min (targetAt)
+		// Expected: 0.70*30min=21min, 0.96*30min=28.8min→29min (rounded), 30min (targetAt)
 		expectedTimes := []time.Time{
 			baseTime.Add(21 * time.Minute),
-			baseTime.Add(28*time.Minute + 48*time.Second),
+			baseTime.Add(29 * time.Minute),
 			baseTime.Add(30 * time.Minute),
 		}
 
@@ -104,10 +104,10 @@ func TestCalculateReminderTimes(t *testing.T) {
 			t.Errorf("got %d reminder times, want 3", len(info.ReminderTimes))
 		}
 
-		// Expected: 0.56*180min=100min48s, 0.89*180min=160min12s, 180min (targetAt)
+		// Expected: 0.56*180min=100.8min→101min, 0.89*180min=160.2min→160min (rounded), 180min (targetAt)
 		expectedTimes := []time.Time{
-			baseTime.Add(100*time.Minute + 48*time.Second),
-			baseTime.Add(160*time.Minute + 12*time.Second),
+			baseTime.Add(101 * time.Minute),
+			baseTime.Add(160 * time.Minute),
 			baseTime.Add(180 * time.Minute),
 		}
 
@@ -154,11 +154,11 @@ func TestCalculateReminderTimes(t *testing.T) {
 			t.Errorf("got %d reminder times, want 4", len(info.ReminderTimes))
 		}
 
-		// Expected: 0.35*1440min=504min, 0.65*1440min=936min, 0.87*1440min=1252min48s, 1440min (targetAt)
+		// Expected: 0.35*1440min=504min, 0.65*1440min=936min, 0.87*1440min=1252.8min→1253min (rounded), 1440min (targetAt)
 		expectedTimes := []time.Time{
 			baseTime.Add(504 * time.Minute),
 			baseTime.Add(936 * time.Minute),
-			baseTime.Add(1252*time.Minute + 48*time.Second),
+			baseTime.Add(1253 * time.Minute),
 			baseTime.Add(24 * time.Hour),
 		}
 
@@ -206,11 +206,11 @@ func TestCalculateReminderTimes(t *testing.T) {
 			t.Errorf("got %d reminder times, want 4", len(info.ReminderTimes))
 		}
 
-		// Expected: 0.35*24h=504min, 0.65*24h=936min, 0.87*24h=1252min48s, then scheduledAt
+		// Expected: 0.35*24h=504min, 0.65*24h=936min, 0.87*24h=1252.8min→1253min (rounded), then scheduledAt
 		expectedTimes := []time.Time{
 			baseTime.Add(504 * time.Minute),
 			baseTime.Add(936 * time.Minute),
-			baseTime.Add(1252*time.Minute + 48*time.Second),
+			baseTime.Add(1253 * time.Minute),
 			scheduledAt,
 		}
 
@@ -265,9 +265,9 @@ func TestCalculateReminderTimes(t *testing.T) {
 			t.Errorf("got %d reminder times, want 3", len(info.ReminderTimes))
 		}
 
-		// Expected: 0.70*25min=17.5min, 0.96*25min=24min, 25min (targetAt)
+		// Expected: 0.70*25min=17.5min→17min (rounded), 0.96*25min=24min, 25min (targetAt)
 		expectedTimes := []time.Time{
-			baseTime.Add(17*time.Minute + 30*time.Second),
+			baseTime.Add(17 * time.Minute),
 			baseTime.Add(24 * time.Minute),
 			scheduledAt,
 		}
@@ -315,10 +315,10 @@ func TestCalculateReminderTimes(t *testing.T) {
 			t.Errorf("got %d reminder times, want 3", len(info.ReminderTimes))
 		}
 
-		// Expected: 0.56*120min=67.2min, 0.89*120min=106.8min, 120min (targetAt)
+		// Expected: 0.56*120min=67.2min→67min, 0.89*120min=106.8min→107min (rounded), 120min (targetAt)
 		expectedTimes := []time.Time{
-			baseTime.Add(67*time.Minute + 12*time.Second),
-			baseTime.Add(106*time.Minute + 48*time.Second),
+			baseTime.Add(67 * time.Minute),
+			baseTime.Add(107 * time.Minute),
 			scheduledAt,
 		}
 
