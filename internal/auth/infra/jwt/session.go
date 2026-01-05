@@ -59,6 +59,7 @@ func (g *SessionJWTGenerator) Generate(session *domain.Session, u *user.User) (s
 	claims := SessionClaims{
 		Claims: jwt.Claims{
 			ID:       session.ID().String(),
+			Issuer:   g.sessionCfg.Issuer,
 			IssuedAt: jwt.NewNumericDate(now),
 			Expiry:   jwt.NewNumericDate(session.ExpiresAt()),
 		},

@@ -9,6 +9,7 @@ import (
 const (
 	sessionSecretEnv   = "SESSION_SECRET"
 	sessionDurationEnv = "SESSION_DURATION"
+	sessionIssuerEnv   = "SESSION_ISSUER"
 
 	defaultSessionDuration = 24 * time.Hour
 )
@@ -17,6 +18,7 @@ const (
 type Config struct {
 	Duration time.Duration
 	Secret   string
+	Issuer   string
 }
 
 func Load() (*Config, error) {
@@ -28,6 +30,7 @@ func Load() (*Config, error) {
 	return &Config{
 		Duration: getEnvDuration(sessionDurationEnv, defaultSessionDuration),
 		Secret:   secret,
+		Issuer:   os.Getenv(sessionIssuerEnv),
 	}, nil
 }
 
