@@ -35,14 +35,17 @@ proto:
   primind-tasks連携用
 
 連携:
-  - Auth Module（セッション検証）
-  - Device Module（デバイス情報取得）
-  - Remind Time Managemnt （リマインド登録・キャンセル）
-  - Cloud Tasks / Primind Tasks
+- Auth Module（セッション検証）
+- Device Module（デバイス情報取得）
+- [Remind Time Managemnt](https://github.com/KasumiMercury/primind-remind-time-mgmt) （リマインド登録・キャンセル）
+- Cloud Tasks / [Primind Tasks](https://github.com/KasumiMercury/primind-tasks)
 
 ## 依存
 
 - PostgreSQL v18
 - Redis v8
-- Remind Time Managemnt
-- Cloud Tasks / Primind Tasks
+- [Remind Time Managemnt](https://github.com/KasumiMercury/primind-remind-time-mgmt)
+- Cloud Tasks / [Primind Tasks](https://github.com/KasumiMercury/primind-tasks)
+
+## 関連リポジトリ
+[KasumiMercury/primind-root](https://github.com/KasumiMercury/primind-root)
