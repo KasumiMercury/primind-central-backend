@@ -85,6 +85,52 @@ func TestSessionJWTGenerateRequiresUser(t *testing.T) {
 	}
 }
 
+func TestSessionJWTIncludesIssuerClaim(t *testing.T) {
+	t.Parallel()
+
+	expectedIssuer := "https://api.primind.app"
+	cfg := &sessionCfg.Config{
+		Duration: time.Hour,
+		Secret:   "test-secret-issuer",
+		Issuer:   expectedIssuer,
+	}
+	generator := NewSessionJWTGenerator(cfg)
+
+	userID, err := user.NewID()
+	if err != nil {
+		t.Fatalf("failed to create user id: %v", err)
+	}
+
+	color := user.MustColor("#123456")
+	u := user.NewUser(userID, color)
+
+	now := time.Now().UTC()
+
+	session, err := domain.NewSession(u.ID(), now, now.Add(time.Hour))
+	if err != nil {
+		t.Fatalf("failed to create session: %v", err)
+	}
+
+	token, err := generator.Generate(session, u)
+	if err != nil {
+		t.Fatalf("failed to generate token: %v", err)
+	}
+
+	parsed, err := jwt.ParseSigned(token, []jose.SignatureAlgorithm{jose.HS256})
+	if err != nil {
+		t.Fatalf("failed to parse token: %v", err)
+	}
+
+	var claims jwt.Claims
+	if err := parsed.Claims(deriveHMACKey(cfg.Secret), &claims); err != nil {
+		t.Fatalf("failed to extract claims: %v", err)
+	}
+
+	if claims.Issuer != expectedIssuer {
+		t.Fatalf("expected issuer %q, got %q", expectedIssuer, claims.Issuer)
+	}
+}
+
 func TestSessionJWTDoesNotIncludeUserIDInSubject(t *testing.T) {
 	t.Parallel()
 
