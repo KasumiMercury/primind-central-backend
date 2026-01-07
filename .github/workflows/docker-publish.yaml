@@ -21,6 +21,15 @@ jobs:
     permissions:
       contents: read
       packages: write
+    strategy:
+      matrix:
+        include:
+          - variant: local
+            build_tags: ""
+            suffix: ""
+          - variant: gcloud
+            build_tags: gcloud
+            suffix: -gcloud
 
     steps:
       - name: Checkout repository
@@ -41,6 +50,8 @@ jobs:
         uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          flavor: |
+            suffix=${{ matrix.suffix }}
           tags: |
             type=semver,pattern={{version}}
             type=sha,prefix=sha-
@@ -56,6 +67,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             VERSION=${{ github.ref_name }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+            BUILD_TAGS=${{ matrix.build_tags }}
+          cache-from: type=gha,scope=${{ matrix.variant }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.variant }}
 
