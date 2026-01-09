@@ -55,6 +55,7 @@ func (a *PrimindAdapter) RegisterRemind(ctx context.Context, req *CreateRemindRe
 		Devices:  protoDevices,
 		TaskId:   req.TaskID,
 		TaskType: stringToTaskType(req.TaskType),
+		Color:    req.Color,
 	}
 
 	payload, err := pjson.Marshal(protoReq)

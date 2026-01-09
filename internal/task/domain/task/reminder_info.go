@@ -13,6 +13,7 @@ type ReminderInfo struct {
 	UserID        string
 	ReminderTimes []time.Time
 	Devices       []DeviceInfo
+	Color         string
 }
 
 func CalculateReminderTimes(task *Task, userID string, devices []DeviceInfo) *ReminderInfo {
@@ -54,5 +55,6 @@ func CalculateReminderTimes(task *Task, userID string, devices []DeviceInfo) *Re
 		UserID:        userID,
 		ReminderTimes: reminderTimes,
 		Devices:       devices,
+		Color:         task.Color().String(),
 	}
 }

@@ -280,6 +280,7 @@ func (h *createTaskHandler) convertToRemindRequest(info *domaintask.ReminderInfo
 		Devices:  devices,
 		TaskID:   info.TaskID.String(),
 		TaskType: string(info.TaskType),
+		Color:    info.Color,
 	}
 }
 

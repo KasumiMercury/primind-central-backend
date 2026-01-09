@@ -8,6 +8,7 @@ type CreateRemindRequest struct {
 	Devices  []DeviceRequest `json:"devices"`
 	TaskID   string          `json:"task_id"`
 	TaskType string          `json:"task_type"`
+	Color    string          `json:"color"`
 }
 
 type DeviceRequest struct {
