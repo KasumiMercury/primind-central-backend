@@ -61,6 +61,7 @@ func (c *Checker) Check(ctx context.Context) *HealthStatus {
 	// PostgreSQL check
 	if c.db != nil {
 		start := time.Now()
+
 		if err := c.db.PingContext(checkCtx); err != nil {
 			status.Status = StatusUnhealthy
 			status.Checks["postgres"] = CheckResult{
@@ -78,6 +79,7 @@ func (c *Checker) Check(ctx context.Context) *HealthStatus {
 	// Redis check
 	if c.redisClient != nil {
 		start := time.Now()
+
 		if err := c.redisClient.Ping(checkCtx).Err(); err != nil {
 			status.Status = StatusUnhealthy
 			status.Checks["redis"] = CheckResult{
@@ -117,6 +119,7 @@ func (g *GRPCChecker) Check(ctx context.Context, req *grpchealth.CheckRequest) (
 			Status: grpchealth.StatusServing,
 		}, nil
 	}
+
 	return &grpchealth.CheckResponse{
 		Status: grpchealth.StatusNotServing,
 	}, nil
