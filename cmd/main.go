@@ -15,6 +15,7 @@ import (
 	authrepository "github.com/KasumiMercury/primind-central-backend/internal/auth/infra/repository"
 	"github.com/KasumiMercury/primind-central-backend/internal/config"
 	devicemodule "github.com/KasumiMercury/primind-central-backend/internal/device"
+	"github.com/KasumiMercury/primind-central-backend/internal/health"
 	deviceconfig "github.com/KasumiMercury/primind-central-backend/internal/device/config"
 	devicerepository "github.com/KasumiMercury/primind-central-backend/internal/device/infra/repository"
 	"github.com/KasumiMercury/primind-central-backend/internal/observability/logging"
@@ -24,6 +25,7 @@ import (
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/authclient"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/deviceclient"
 	taskrepository "github.com/KasumiMercury/primind-central-backend/internal/task/infra/repository"
+	"connectrpc.com/grpchealth"
 	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/postgres"
@@ -249,6 +251,19 @@ func run() error {
 	}
 
 	mux.Handle(devicePath, deviceHandler)
+
+	// Health check setup
+	healthChecker := health.NewChecker(sqlDB, redisClient, Version)
+
+	// gRPC Health Checking Protocol (grpc.health.v1.Health/Check)
+	grpcHealthChecker := health.NewGRPCChecker(healthChecker)
+	grpcHealthPath, grpcHealthHandler := grpchealth.NewHandler(grpcHealthChecker)
+	mux.Handle(grpcHealthPath, grpcHealthHandler)
+
+	// HTTP Health endpoints
+	mux.HandleFunc("GET /health/live", healthChecker.LiveHandler)
+	mux.HandleFunc("GET /health/ready", healthChecker.ReadyHandler)
+	mux.HandleFunc("GET /health", healthChecker.ReadyHandler)
 
 	// wrap by middleware
 	handler := middleware.PanicRecoveryHTTP(mux)
