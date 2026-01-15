@@ -13,6 +13,12 @@ services:
             - .env
         environment:
             - OTEL_EXPORTER_DISABLED=true
+        healthcheck:
+            test: ["CMD", "/grpc_health_probe", "-addr=localhost:8080"]
+            interval: 10s
+            timeout: 5s
+            retries: 10
+            start_period: 120s
         depends_on:
             postgres:
                 condition: service_healthy
