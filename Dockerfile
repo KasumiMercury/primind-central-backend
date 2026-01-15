@@ -23,6 +23,8 @@ ENV GO111MODULE=auto
 RUN apk update && \
     apk add --no-cache bash
 
+COPY --from=builder /grpc_health_probe /grpc_health_probe
+
 WORKDIR /app
 
 RUN go install github.com/air-verse/air@latest
