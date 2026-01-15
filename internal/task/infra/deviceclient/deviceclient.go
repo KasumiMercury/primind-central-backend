@@ -29,11 +29,21 @@ type deviceClient struct {
 }
 
 func NewDeviceClient(baseURL string) DeviceClient {
-	httpClient := &http.Client{
-		Timeout: 5 * time.Second,
-	}
+	return NewDeviceClientWithHTTPClient(baseURL, newH2CClient(5*time.Second))
+}
 
-	return NewDeviceClientWithHTTPClient(baseURL, httpClient)
+// newH2CClient creates an HTTP client with h2c (HTTP/2 Cleartext) support.
+func newH2CClient(timeout time.Duration) *http.Client {
+	protocols := new(http.Protocols)
+	protocols.SetHTTP1(true)
+	protocols.SetUnencryptedHTTP2(true)
+
+	return &http.Client{
+		Transport: &http.Transport{
+			Protocols: protocols,
+		},
+		Timeout: timeout,
+	}
 }
 
 func NewDeviceClientWithHTTPClient(baseURL string, httpClient connect.HTTPClient) DeviceClient {
