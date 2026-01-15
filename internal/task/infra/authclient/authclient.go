@@ -23,7 +23,7 @@ type authClient struct {
 
 func NewAuthClient(baseURL string) AuthClient {
 	client := authv1connect.NewAuthServiceClient(
-		http.DefaultClient,
+		newH2CClient(),
 		baseURL,
 		connect.WithInterceptors(middleware.ConnectClientInterceptor()),
 	)
@@ -31,6 +31,19 @@ func NewAuthClient(baseURL string) AuthClient {
 	return &authClient{
 		client: client,
 		logger: slog.Default().With(slog.String("module", "task")).WithGroup("task").WithGroup("authclient"),
+	}
+}
+
+// newH2CClient creates an HTTP client with h2c (HTTP/2 Cleartext) support.
+func newH2CClient() *http.Client {
+	protocols := new(http.Protocols)
+	protocols.SetHTTP1(true)
+	protocols.SetUnencryptedHTTP2(true)
+
+	return &http.Client{
+		Transport: &http.Transport{
+			Protocols: protocols,
+		},
 	}
 }
 

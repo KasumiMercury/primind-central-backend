@@ -30,6 +30,7 @@ linters:
                 - 'github\.com/coreos/go-oidc/v3/oidc\.Config'
                 - 'net/http\.Server'
                 - 'net/http\.Client'
+                - 'net/http\.Transport'
                 - 'gorm\.io/gorm\.Config'
                 - 'github\.com/redis/go-redis/v9\.Options'
                 - 'gorm\.io/gorm/clause\.OnConflict'

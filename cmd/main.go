@@ -275,9 +275,14 @@ func run() error {
 		slog.String("version", Version),
 	)
 
+	protocols := new(http.Protocols)
+	protocols.SetHTTP1(true)
+	protocols.SetUnencryptedHTTP2(true)
+
 	server := &http.Server{
 		Addr:              addr,
 		Handler:           handler,
+		Protocols:         protocols,
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      10 * time.Second,
 		IdleTimeout:       120 * time.Second,
