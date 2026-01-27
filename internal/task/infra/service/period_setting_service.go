@@ -30,7 +30,7 @@ func NewPeriodSettingService(
 	return &PeriodSettingService{
 		getPeriodSettings:    getPeriodSettingsUseCase,
 		updatePeriodSettings: updatePeriodSettingsUseCase,
-		logger:               slog.Default().With(slog.String("module", "task")).WithGroup("task").WithGroup("period.ervice"),
+		logger:               slog.Default().With(slog.String("module", "task")).WithGroup("task").WithGroup("periodsetting"),
 	}
 }
 
