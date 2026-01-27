@@ -77,22 +77,26 @@ func (h *getPeriodSettingsHandler) GetPeriodSettings(ctx context.Context, req *G
 	if err != nil {
 		if errors.Is(err, authclient.ErrUnauthorized) {
 			h.logger.Info("session validation failed", slog.String("error", err.Error()))
+
 			return nil, ErrUnauthorized
 		}
 
 		h.logger.Error("session validation failed", slog.String("error", err.Error()))
+
 		return nil, fmt.Errorf("session validation failed: %w", err)
 	}
 
 	userID, err := domainuser.NewIDFromString(userIDstr)
 	if err != nil {
 		h.logger.Warn("invalid user ID format", slog.String("error", err.Error()))
+
 		return nil, err
 	}
 
 	settings, err := h.periodRepo.GetByUserID(ctx, userID)
 	if err != nil {
 		h.logger.Error("failed to get period settings", slog.String("error", err.Error()))
+
 		return nil, err
 	}
 
@@ -107,6 +111,7 @@ func (h *getPeriodSettingsHandler) GetPeriodSettings(ctx context.Context, req *G
 
 	// Get defaults
 	defaults := period.DefaultPeriodSettings()
+
 	defaultItems := make([]PeriodSettingItem, 0, len(defaults))
 	for taskType, minutes := range defaults {
 		defaultItems = append(defaultItems, PeriodSettingItem{
@@ -150,16 +155,19 @@ func (h *updatePeriodSettingsHandler) UpdatePeriodSettings(ctx context.Context, 
 	if err != nil {
 		if errors.Is(err, authclient.ErrUnauthorized) {
 			h.logger.Info("session validation failed", slog.String("error", err.Error()))
+
 			return nil, ErrUnauthorized
 		}
 
 		h.logger.Error("session validation failed", slog.String("error", err.Error()))
+
 		return nil, fmt.Errorf("session validation failed: %w", err)
 	}
 
 	userID, err := domainuser.NewIDFromString(userIDstr)
 	if err != nil {
 		h.logger.Warn("invalid user ID format", slog.String("error", err.Error()))
+
 		return nil, err
 	}
 
@@ -173,12 +181,14 @@ func (h *updatePeriodSettingsHandler) UpdatePeriodSettings(ctx context.Context, 
 	settings, err := period.NewUserPeriodSettings(userID, periods)
 	if err != nil {
 		h.logger.Warn("invalid period settings", slog.String("error", err.Error()))
+
 		return nil, err
 	}
 
 	// Save settings
 	if err := h.periodRepo.Save(ctx, settings); err != nil {
 		h.logger.Error("failed to save period settings", slog.String("error", err.Error()))
+
 		return nil, err
 	}
 

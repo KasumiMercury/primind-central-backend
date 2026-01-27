@@ -42,6 +42,7 @@ func (s *PeriodSettingService) GetUserPeriodSettings(
 	token := interceptor.ExtractSessionToken(ctx)
 	if token == "" {
 		s.logger.Warn("get period settings called without session token")
+
 		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("session token required"))
 	}
 
@@ -52,12 +53,15 @@ func (s *PeriodSettingService) GetUserPeriodSettings(
 		switch {
 		case errors.Is(err, appperiod.ErrUnauthorized):
 			s.logger.Info("unauthorized get period settings attempt")
+
 			return nil, connect.NewError(connect.CodeUnauthenticated, err)
 		case errors.Is(err, appperiod.ErrAuthServiceUnavailable):
 			s.logger.Error("auth service unavailable during get period settings", slog.String("error", err.Error()))
+
 			return nil, connect.NewError(connect.CodeUnavailable, err)
 		default:
 			s.logger.Error("unexpected get period settings error", slog.String("error", err.Error()))
+
 			return nil, connect.NewError(connect.CodeInternal, err)
 		}
 	}
@@ -78,6 +82,7 @@ func (s *PeriodSettingService) UpdateUserPeriodSettings(
 	token := interceptor.ExtractSessionToken(ctx)
 	if token == "" {
 		s.logger.Warn("update period settings called without session token")
+
 		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("session token required"))
 	}
 
@@ -87,6 +92,7 @@ func (s *PeriodSettingService) UpdateUserPeriodSettings(
 		taskType, err := protoTaskTypeToDomain(ps.GetTaskType())
 		if err != nil {
 			s.logger.Warn("invalid task type in period settings", slog.String("error", err.Error()))
+
 			return nil, connect.NewError(connect.CodeInvalidArgument, err)
 		}
 
@@ -104,17 +110,21 @@ func (s *PeriodSettingService) UpdateUserPeriodSettings(
 		switch {
 		case errors.Is(err, appperiod.ErrUnauthorized):
 			s.logger.Info("unauthorized update period settings attempt")
+
 			return nil, connect.NewError(connect.CodeUnauthenticated, err)
 		case errors.Is(err, appperiod.ErrAuthServiceUnavailable):
 			s.logger.Error("auth service unavailable during update period settings", slog.String("error", err.Error()))
+
 			return nil, connect.NewError(connect.CodeUnavailable, err)
 		case errors.Is(err, appperiod.ErrScheduledTypeNotAllowed),
 			errors.Is(err, appperiod.ErrInvalidPeriodMinutes),
 			errors.Is(err, appperiod.ErrInvalidTaskType):
 			s.logger.Warn("invalid update period settings request", slog.String("error", err.Error()))
+
 			return nil, connect.NewError(connect.CodeInvalidArgument, err)
 		default:
 			s.logger.Error("unexpected update period settings error", slog.String("error", err.Error()))
+
 			return nil, connect.NewError(connect.CodeInternal, err)
 		}
 	}

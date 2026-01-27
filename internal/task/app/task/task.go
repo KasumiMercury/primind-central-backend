@@ -130,6 +130,7 @@ func (h *createTaskHandler) CreateTask(ctx context.Context, req *CreateTaskReque
 
 	// Fetch user period settings for custom period
 	var customPeriod *time.Duration
+
 	if req.TaskType != domaintask.TypeScheduled && h.periodSettingRepo != nil {
 		periodSettings, err := h.periodSettingRepo.GetByUserID(ctx, userID)
 		if err != nil {
