@@ -81,6 +81,7 @@ func (s *UserPeriodSettings) GetPeriodOrDefault(taskType task.Type) time.Duratio
 // HasCustomPeriod checks if the user has a custom period for the given task type
 func (s *UserPeriodSettings) HasCustomPeriod(taskType task.Type) bool {
 	_, ok := s.periods[taskType]
+
 	return ok
 }
 
@@ -102,6 +103,8 @@ func isValidTaskType(t task.Type) bool {
 	switch t {
 	case task.TypeShort, task.TypeNear, task.TypeRelaxed:
 		return true
+	case task.TypeScheduled:
+		return false
 	default:
 		return false
 	}
