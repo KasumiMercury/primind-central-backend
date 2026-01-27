@@ -72,6 +72,7 @@ func NewHTTPHandler(
 	return NewHTTPHandlerWithRepositories(ctx, Repositories{
 		Tasks:               taskRepo,
 		TaskArchive:         taskArchiveRepo,
+		PeriodSettings:      nil,
 		AuthClient:          authclient.NewAuthClient(cfg.AuthServiceURL),
 		DeviceClient:        deviceclient.NewDeviceClient(cfg.DeviceServiceURL),
 		RemindRegisterQueue: remindQueue,
