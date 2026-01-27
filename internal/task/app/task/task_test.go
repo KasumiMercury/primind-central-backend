@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/KasumiMercury/primind-central-backend/internal/task/domain/period"
 	domaintask "github.com/KasumiMercury/primind-central-backend/internal/task/domain/task"
 	domainuser "github.com/KasumiMercury/primind-central-backend/internal/task/domain/user"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/authclient"
@@ -17,6 +18,18 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/mock/gomock"
 )
+
+// MockPeriodSettingRepository implements periodsetting.PeriodSettingRepository for testing
+type MockPeriodSettingRepository struct{}
+
+func (m *MockPeriodSettingRepository) GetByUserID(_ context.Context, _ domainuser.ID) (*period.UserPeriodSettings, error) {
+	// Return empty settings (use defaults)
+	return period.NewUserPeriodSettings(domainuser.ID{}, nil)
+}
+
+func (m *MockPeriodSettingRepository) Save(_ context.Context, _ *period.UserPeriodSettings) error {
+	return nil
+}
 
 func TestCreateTaskSuccess(t *testing.T) {
 	repo := setupTaskRepository(t)
@@ -159,7 +172,7 @@ func TestCreateTaskSuccess(t *testing.T) {
 				}).
 				Times(1)
 
-			handler := NewCreateTaskHandler(mockAuth, mockDevice, repo, mockQueue)
+			handler := NewCreateTaskHandler(mockAuth, mockDevice, repo, &MockPeriodSettingRepository{}, mockQueue)
 
 			resp, err := handler.CreateTask(ctx, &tt.req)
 			if err != nil {
@@ -348,6 +361,7 @@ func TestCreateTaskError(t *testing.T) {
 					"",
 					nil,
 					color,
+					nil,
 				)
 				_ = repo.SaveTask(context.Background(), existingTask)
 
@@ -382,6 +396,7 @@ func TestCreateTaskError(t *testing.T) {
 					"",
 					nil,
 					color,
+					nil,
 				)
 				_ = repo.SaveTask(context.Background(), existingTask)
 
@@ -445,7 +460,7 @@ func TestCreateTaskError(t *testing.T) {
 			mockAuth := tt.setupAuth(ctrl)
 			mockDevice := NewMockDeviceClient(ctrl)
 			mockQueue := remindregister.NewMockQueue(ctrl)
-			handler := NewCreateTaskHandler(mockAuth, mockDevice, repo, mockQueue)
+			handler := NewCreateTaskHandler(mockAuth, mockDevice, repo, &MockPeriodSettingRepository{}, mockQueue)
 
 			_, err := handler.CreateTask(ctx, tt.req)
 			if err == nil {
@@ -485,7 +500,7 @@ func TestCreateTaskReturnsFailureWhenDeviceFetchFailsAfterRetries(t *testing.T) 
 
 	mockQueue := remindregister.NewMockQueue(ctrl)
 
-	handler := NewCreateTaskHandler(mockAuth, mockDevice, repo, mockQueue)
+	handler := NewCreateTaskHandler(mockAuth, mockDevice, repo, &MockPeriodSettingRepository{}, mockQueue)
 
 	_, err = handler.CreateTask(ctx, &CreateTaskRequest{
 		TaskID:       taskID.String(),
@@ -558,7 +573,7 @@ func TestCreateTaskDoesNotPersistTaskWhenDeviceReturnsUnauthorizedOrInvalidArgum
 
 			mockQueue := remindregister.NewMockQueue(ctrl)
 
-			handler := NewCreateTaskHandler(mockAuth, mockDevice, repo, mockQueue)
+			handler := NewCreateTaskHandler(mockAuth, mockDevice, repo, &MockPeriodSettingRepository{}, mockQueue)
 
 			_, err = handler.CreateTask(ctx, &CreateTaskRequest{
 				TaskID:       taskID.String(),
@@ -644,7 +659,7 @@ func TestCreateTaskSkipsReminderWhenNoDevicesHaveFCMToken(t *testing.T) {
 
 			mockQueue := remindregister.NewMockQueue(ctrl)
 
-			handler := NewCreateTaskHandler(mockAuth, mockDevice, repo, mockQueue)
+			handler := NewCreateTaskHandler(mockAuth, mockDevice, repo, &MockPeriodSettingRepository{}, mockQueue)
 
 			resp, err := handler.CreateTask(ctx, &CreateTaskRequest{
 				SessionToken: "token",
@@ -726,7 +741,7 @@ func TestCreateTaskFiltersDevicesWithoutFCMToken(t *testing.T) {
 		}).
 		Times(1)
 
-	handler := NewCreateTaskHandler(mockAuth, mockDevice, repo, mockQueue)
+	handler := NewCreateTaskHandler(mockAuth, mockDevice, repo, &MockPeriodSettingRepository{}, mockQueue)
 
 	resp, err := handler.CreateTask(ctx, &CreateTaskRequest{
 		SessionToken: "token",

@@ -11,8 +11,10 @@ import (
 	"github.com/KasumiMercury/primind-central-backend/internal/gen/task/v1/taskv1connect"
 	"github.com/KasumiMercury/primind-central-backend/internal/observability/logging"
 	"github.com/KasumiMercury/primind-central-backend/internal/observability/middleware"
+	appperiodsetting "github.com/KasumiMercury/primind-central-backend/internal/task/app/period"
 	apptask "github.com/KasumiMercury/primind-central-backend/internal/task/app/task"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/config"
+	"github.com/KasumiMercury/primind-central-backend/internal/task/domain/period"
 	domaintask "github.com/KasumiMercury/primind-central-backend/internal/task/domain/task"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/authclient"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/deviceclient"
@@ -28,6 +30,7 @@ const moduleName logging.Module = "task"
 type Repositories struct {
 	Tasks               domaintask.TaskRepository
 	TaskArchive         domaintask.TaskArchiveRepository
+	PeriodSettings      period.PeriodSettingRepository
 	AuthClient          authclient.AuthClient
 	DeviceClient        deviceclient.DeviceClient
 	RemindRegisterQueue remindregister.Queue
@@ -108,7 +111,7 @@ func NewHTTPHandlerWithRepositories(ctx context.Context, repos Repositories) (st
 		return "", nil, fmt.Errorf("task archive repository is not configured")
 	}
 
-	createTaskUseCase := apptask.NewCreateTaskHandler(repos.AuthClient, repos.DeviceClient, repos.Tasks, repos.RemindRegisterQueue)
+	createTaskUseCase := apptask.NewCreateTaskHandler(repos.AuthClient, repos.DeviceClient, repos.Tasks, repos.PeriodSettings, repos.RemindRegisterQueue)
 	getTaskUseCase := apptask.NewGetTaskHandler(repos.AuthClient, repos.Tasks)
 	listActiveTasksUseCase := apptask.NewListActiveTasksHandler(repos.AuthClient, repos.Tasks)
 	updateTaskUseCase := apptask.NewUpdateTaskHandler(repos.AuthClient, repos.Tasks, repos.TaskArchive, repos.RemindCancelQueue)
@@ -124,16 +127,31 @@ func NewHTTPHandlerWithRepositories(ctx context.Context, repos Repositories) (st
 		return "", nil, fmt.Errorf("failed to create otelconnect interceptor: %w", err)
 	}
 
-	// Register interceptors for tracing, logging, and session token extraction
-	taskPath, taskHandler := taskv1connect.NewTaskServiceHandler(
-		taskService,
-		connect.WithInterceptors(
-			otelInterceptor,
-			middleware.ConnectLoggingInterceptor(moduleName),
-			interceptor.AuthInterceptor(),
-		),
+	// Common interceptor options
+	interceptorOpts := connect.WithInterceptors(
+		otelInterceptor,
+		middleware.ConnectLoggingInterceptor(moduleName),
+		interceptor.AuthInterceptor(),
 	)
+
+	// Create HTTP mux for multiple services
+	mux := http.NewServeMux()
+
+	// Register TaskService
+	taskPath, taskHandler := taskv1connect.NewTaskServiceHandler(taskService, interceptorOpts)
+	mux.Handle(taskPath, taskHandler)
 	logger.Info("task service handler registered", slog.String("path", taskPath))
 
-	return taskPath, taskHandler, nil
+	// Register UserPeriodSettingsService if PeriodSettings repository is configured
+	if repos.PeriodSettings != nil {
+		getPeriodSettingsUseCase := appperiodsetting.NewGetPeriodSettingsHandler(repos.AuthClient, repos.PeriodSettings)
+		updatePeriodSettingsUseCase := appperiodsetting.NewUpdatePeriodSettingsHandler(repos.AuthClient, repos.PeriodSettings)
+		periodSettingService := tasksvc.NewPeriodSettingService(getPeriodSettingsUseCase, updatePeriodSettingsUseCase)
+
+		periodSettingPath, periodSettingHandler := taskv1connect.NewUserPeriodSettingsServiceHandler(periodSettingService, interceptorOpts)
+		mux.Handle(periodSettingPath, periodSettingHandler)
+		logger.Info("period setting service handler registered", slog.String("path", periodSettingPath))
+	}
+
+	return "/task.v1.", mux, nil
 }
