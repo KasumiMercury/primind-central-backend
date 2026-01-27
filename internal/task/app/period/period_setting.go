@@ -64,7 +64,7 @@ func NewGetPeriodSettingsHandler(
 	return &getPeriodSettingsHandler{
 		authClient: authClient,
 		periodRepo: periodRepo,
-		logger:     slog.Default().With(slog.String("module", "task")).WithGroup("task").WithGroup("getperiod."),
+		logger:     slog.Default().With(slog.String("module", "task")).WithGroup("task").WithGroup("getperiod"),
 	}
 }
 
