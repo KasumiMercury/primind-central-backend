@@ -195,6 +195,7 @@ func run() error {
 	taskRepos := taskmodule.Repositories{
 		Tasks:               taskrepository.NewTaskRepository(db),
 		TaskArchive:         taskrepository.NewTaskArchiveRepository(db),
+		PeriodSettings:      taskrepository.NewPeriodSettingRepository(db),
 		AuthClient:          authclient.NewAuthClient(taskCfg.AuthServiceURL),
 		DeviceClient:        deviceclient.NewDeviceClient(taskCfg.DeviceServiceURL),
 		RemindRegisterQueue: remindQueue,
