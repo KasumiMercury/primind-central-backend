@@ -27,12 +27,12 @@ func setupTaskRepo(t *testing.T) domaintask.TaskRepository {
 	return repository.NewTaskRepository(db)
 }
 
-func TestNewHTTPHandlerWithRepositoriesSuccess(t *testing.T) {
+func TestNewTaskServiceHandlerSuccess(t *testing.T) {
 	repo := setupTaskRepo(t)
 	ctrl := gomock.NewController(t)
 	t.Cleanup(ctrl.Finish)
 
-	path, handler, err := NewHTTPHandlerWithRepositories(context.Background(), Repositories{
+	path, handler, err := NewTaskServiceHandler(context.Background(), Repositories{
 		Tasks:               repo,
 		TaskArchive:         domaintask.NewMockTaskArchiveRepository(ctrl),
 		AuthClient:          apptask.NewMockAuthClient(ctrl),
@@ -53,7 +53,7 @@ func TestNewHTTPHandlerWithRepositoriesSuccess(t *testing.T) {
 	}
 }
 
-func TestNewHTTPHandlerWithRepositoriesError(t *testing.T) {
+func TestNewTaskServiceHandlerError(t *testing.T) {
 	tests := []struct {
 		name        string
 		repos       func(t *testing.T) Repositories
@@ -196,7 +196,7 @@ func TestNewHTTPHandlerWithRepositoriesError(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			_, _, err := NewHTTPHandlerWithRepositories(tt.ctx, tt.repos(t))
+			_, _, err := NewTaskServiceHandler(tt.ctx, tt.repos(t))
 			if tt.expectError && err == nil {
 				t.Fatalf("expected error but got nil")
 			}
