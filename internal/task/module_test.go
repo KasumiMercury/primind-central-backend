@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	apptask "github.com/KasumiMercury/primind-central-backend/internal/task/app/task"
+	"github.com/KasumiMercury/primind-central-backend/internal/task/domain/period"
 	domaintask "github.com/KasumiMercury/primind-central-backend/internal/task/domain/task"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/remindcancel"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/remindregister"
@@ -35,6 +36,7 @@ func TestNewTaskServiceHandlerSuccess(t *testing.T) {
 	path, handler, err := NewTaskServiceHandler(context.Background(), Repositories{
 		Tasks:               repo,
 		TaskArchive:         domaintask.NewMockTaskArchiveRepository(ctrl),
+		PeriodSettings:      period.NewMockPeriodSettingRepository(ctrl),
 		AuthClient:          apptask.NewMockAuthClient(ctrl),
 		DeviceClient:        apptask.NewMockDeviceClient(ctrl),
 		RemindRegisterQueue: remindregister.NewMockQueue(ctrl),
@@ -69,6 +71,7 @@ func TestNewTaskServiceHandlerError(t *testing.T) {
 				return Repositories{
 					Tasks:               nil,
 					TaskArchive:         domaintask.NewMockTaskArchiveRepository(ctrl),
+					PeriodSettings:      period.NewMockPeriodSettingRepository(ctrl),
 					AuthClient:          apptask.NewMockAuthClient(ctrl),
 					DeviceClient:        apptask.NewMockDeviceClient(ctrl),
 					RemindRegisterQueue: remindregister.NewMockQueue(ctrl),
@@ -87,6 +90,26 @@ func TestNewTaskServiceHandlerError(t *testing.T) {
 				return Repositories{
 					Tasks:               setupTaskRepo(t),
 					TaskArchive:         nil,
+					PeriodSettings:      period.NewMockPeriodSettingRepository(ctrl),
+					AuthClient:          apptask.NewMockAuthClient(ctrl),
+					DeviceClient:        apptask.NewMockDeviceClient(ctrl),
+					RemindRegisterQueue: remindregister.NewMockQueue(ctrl),
+					RemindCancelQueue:   remindcancel.NewMockQueue(ctrl),
+				}
+			},
+			ctx:         context.Background(),
+			expectError: true,
+		},
+		{
+			name: "missing period settings repository",
+			repos: func(t *testing.T) Repositories {
+				ctrl := gomock.NewController(t)
+				t.Cleanup(ctrl.Finish)
+
+				return Repositories{
+					Tasks:               setupTaskRepo(t),
+					TaskArchive:         domaintask.NewMockTaskArchiveRepository(ctrl),
+					PeriodSettings:      nil,
 					AuthClient:          apptask.NewMockAuthClient(ctrl),
 					DeviceClient:        apptask.NewMockDeviceClient(ctrl),
 					RemindRegisterQueue: remindregister.NewMockQueue(ctrl),
@@ -105,6 +128,7 @@ func TestNewTaskServiceHandlerError(t *testing.T) {
 				return Repositories{
 					Tasks:               setupTaskRepo(t),
 					TaskArchive:         domaintask.NewMockTaskArchiveRepository(ctrl),
+					PeriodSettings:      period.NewMockPeriodSettingRepository(ctrl),
 					AuthClient:          nil,
 					DeviceClient:        apptask.NewMockDeviceClient(ctrl),
 					RemindRegisterQueue: remindregister.NewMockQueue(ctrl),
@@ -123,6 +147,7 @@ func TestNewTaskServiceHandlerError(t *testing.T) {
 				return Repositories{
 					Tasks:               setupTaskRepo(t),
 					TaskArchive:         domaintask.NewMockTaskArchiveRepository(ctrl),
+					PeriodSettings:      period.NewMockPeriodSettingRepository(ctrl),
 					AuthClient:          apptask.NewMockAuthClient(ctrl),
 					DeviceClient:        nil,
 					RemindRegisterQueue: remindregister.NewMockQueue(ctrl),
@@ -141,6 +166,7 @@ func TestNewTaskServiceHandlerError(t *testing.T) {
 				return Repositories{
 					Tasks:               setupTaskRepo(t),
 					TaskArchive:         domaintask.NewMockTaskArchiveRepository(ctrl),
+					PeriodSettings:      period.NewMockPeriodSettingRepository(ctrl),
 					AuthClient:          apptask.NewMockAuthClient(ctrl),
 					DeviceClient:        apptask.NewMockDeviceClient(ctrl),
 					RemindRegisterQueue: nil,
@@ -159,6 +185,7 @@ func TestNewTaskServiceHandlerError(t *testing.T) {
 				return Repositories{
 					Tasks:               setupTaskRepo(t),
 					TaskArchive:         domaintask.NewMockTaskArchiveRepository(ctrl),
+					PeriodSettings:      period.NewMockPeriodSettingRepository(ctrl),
 					AuthClient:          apptask.NewMockAuthClient(ctrl),
 					DeviceClient:        apptask.NewMockDeviceClient(ctrl),
 					RemindRegisterQueue: remindregister.NewMockQueue(ctrl),
@@ -177,6 +204,7 @@ func TestNewTaskServiceHandlerError(t *testing.T) {
 				return Repositories{
 					Tasks:               setupTaskRepo(t),
 					TaskArchive:         domaintask.NewMockTaskArchiveRepository(ctrl),
+					PeriodSettings:      period.NewMockPeriodSettingRepository(ctrl),
 					AuthClient:          apptask.NewMockAuthClient(ctrl),
 					DeviceClient:        apptask.NewMockDeviceClient(ctrl),
 					RemindRegisterQueue: remindregister.NewMockQueue(ctrl),

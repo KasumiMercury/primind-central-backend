@@ -1,5 +1,7 @@
 package period
 
+//go:generate mockgen -source=period_setting_repository.go -destination=mock_period_setting_repository.go -package=period
+
 import (
 	"context"
 
