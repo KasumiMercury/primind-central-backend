@@ -802,6 +802,235 @@ func (*DeleteTaskResponse) Descriptor() ([]byte, []int) {
 	return file_task_v1_task_proto_rawDescGZIP(), []int{10}
 }
 
+// Period setting for a specific task type
+type PeriodSetting struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TaskType      TaskType               `protobuf:"varint,1,opt,name=task_type,json=taskType,proto3,enum=task.v1.TaskType" json:"task_type,omitempty"` // SHORT, NEAR, RELAXED only (not SCHEDULED)
+	PeriodMinutes int64                  `protobuf:"varint,2,opt,name=period_minutes,json=periodMinutes,proto3" json:"period_minutes,omitempty"`        // 1 minute to 7 days
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PeriodSetting) Reset() {
+	*x = PeriodSetting{}
+	mi := &file_task_v1_task_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PeriodSetting) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PeriodSetting) ProtoMessage() {}
+
+func (x *PeriodSetting) ProtoReflect() protoreflect.Message {
+	mi := &file_task_v1_task_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PeriodSetting.ProtoReflect.Descriptor instead.
+func (*PeriodSetting) Descriptor() ([]byte, []int) {
+	return file_task_v1_task_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *PeriodSetting) GetTaskType() TaskType {
+	if x != nil {
+		return x.TaskType
+	}
+	return TaskType_TASK_TYPE_UNSPECIFIED
+}
+
+func (x *PeriodSetting) GetPeriodMinutes() int64 {
+	if x != nil {
+		return x.PeriodMinutes
+	}
+	return 0
+}
+
+type GetUserPeriodSettingsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetUserPeriodSettingsRequest) Reset() {
+	*x = GetUserPeriodSettingsRequest{}
+	mi := &file_task_v1_task_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetUserPeriodSettingsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetUserPeriodSettingsRequest) ProtoMessage() {}
+
+func (x *GetUserPeriodSettingsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_task_v1_task_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetUserPeriodSettingsRequest.ProtoReflect.Descriptor instead.
+func (*GetUserPeriodSettingsRequest) Descriptor() ([]byte, []int) {
+	return file_task_v1_task_proto_rawDescGZIP(), []int{12}
+}
+
+type GetUserPeriodSettingsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Settings      []*PeriodSetting       `protobuf:"bytes,1,rep,name=settings,proto3" json:"settings,omitempty"` // User's custom settings
+	Defaults      []*PeriodSetting       `protobuf:"bytes,2,rep,name=defaults,proto3" json:"defaults,omitempty"` // Default values for reference
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetUserPeriodSettingsResponse) Reset() {
+	*x = GetUserPeriodSettingsResponse{}
+	mi := &file_task_v1_task_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetUserPeriodSettingsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetUserPeriodSettingsResponse) ProtoMessage() {}
+
+func (x *GetUserPeriodSettingsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_task_v1_task_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetUserPeriodSettingsResponse.ProtoReflect.Descriptor instead.
+func (*GetUserPeriodSettingsResponse) Descriptor() ([]byte, []int) {
+	return file_task_v1_task_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *GetUserPeriodSettingsResponse) GetSettings() []*PeriodSetting {
+	if x != nil {
+		return x.Settings
+	}
+	return nil
+}
+
+func (x *GetUserPeriodSettingsResponse) GetDefaults() []*PeriodSetting {
+	if x != nil {
+		return x.Defaults
+	}
+	return nil
+}
+
+type UpdateUserPeriodSettingsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Settings      []*PeriodSetting       `protobuf:"bytes,1,rep,name=settings,proto3" json:"settings,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateUserPeriodSettingsRequest) Reset() {
+	*x = UpdateUserPeriodSettingsRequest{}
+	mi := &file_task_v1_task_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateUserPeriodSettingsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateUserPeriodSettingsRequest) ProtoMessage() {}
+
+func (x *UpdateUserPeriodSettingsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_task_v1_task_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateUserPeriodSettingsRequest.ProtoReflect.Descriptor instead.
+func (*UpdateUserPeriodSettingsRequest) Descriptor() ([]byte, []int) {
+	return file_task_v1_task_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *UpdateUserPeriodSettingsRequest) GetSettings() []*PeriodSetting {
+	if x != nil {
+		return x.Settings
+	}
+	return nil
+}
+
+type UpdateUserPeriodSettingsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Settings      []*PeriodSetting       `protobuf:"bytes,1,rep,name=settings,proto3" json:"settings,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateUserPeriodSettingsResponse) Reset() {
+	*x = UpdateUserPeriodSettingsResponse{}
+	mi := &file_task_v1_task_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateUserPeriodSettingsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateUserPeriodSettingsResponse) ProtoMessage() {}
+
+func (x *UpdateUserPeriodSettingsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_task_v1_task_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateUserPeriodSettingsResponse.ProtoReflect.Descriptor instead.
+func (*UpdateUserPeriodSettingsResponse) Descriptor() ([]byte, []int) {
+	return file_task_v1_task_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *UpdateUserPeriodSettingsResponse) GetSettings() []*PeriodSetting {
+	if x != nil {
+		return x.Settings
+	}
+	return nil
+}
+
 var File_task_v1_task_proto protoreflect.FileDescriptor
 
 const file_task_v1_task_proto_rawDesc = "" +
@@ -856,7 +1085,19 @@ const file_task_v1_task_proto_rawDesc = "" +
 	"\x04task\x18\x01 \x01(\v2\r.task.v1.TaskR\x04task\"6\n" +
 	"\x11DeleteTaskRequest\x12!\n" +
 	"\atask_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x06taskId\"\x14\n" +
-	"\x12DeleteTaskResponse*~\n" +
+	"\x12DeleteTaskResponse\"\x80\x01\n" +
+	"\rPeriodSetting\x12<\n" +
+	"\ttask_type\x18\x01 \x01(\x0e2\x11.task.v1.TaskTypeB\f\xbaH\t\x82\x01\x06\x18\x01\x18\x02\x18\x03R\btaskType\x121\n" +
+	"\x0eperiod_minutes\x18\x02 \x01(\x03B\n" +
+	"\xbaH\a\"\x05\x18\xe0N(\x01R\rperiodMinutes\"\x1e\n" +
+	"\x1cGetUserPeriodSettingsRequest\"\x87\x01\n" +
+	"\x1dGetUserPeriodSettingsResponse\x122\n" +
+	"\bsettings\x18\x01 \x03(\v2\x16.task.v1.PeriodSettingR\bsettings\x122\n" +
+	"\bdefaults\x18\x02 \x03(\v2\x16.task.v1.PeriodSettingR\bdefaults\"U\n" +
+	"\x1fUpdateUserPeriodSettingsRequest\x122\n" +
+	"\bsettings\x18\x01 \x03(\v2\x16.task.v1.PeriodSettingR\bsettings\"V\n" +
+	" UpdateUserPeriodSettingsResponse\x122\n" +
+	"\bsettings\x18\x01 \x03(\v2\x16.task.v1.PeriodSettingR\bsettings*~\n" +
 	"\bTaskType\x12\x19\n" +
 	"\x15TASK_TYPE_UNSPECIFIED\x10\x00\x12\x13\n" +
 	"\x0fTASK_TYPE_SHORT\x10\x01\x12\x12\n" +
@@ -879,7 +1120,10 @@ const file_task_v1_task_proto_rawDesc = "" +
 	"\n" +
 	"UpdateTask\x12\x1a.task.v1.UpdateTaskRequest\x1a\x1b.task.v1.UpdateTaskResponse\x12E\n" +
 	"\n" +
-	"DeleteTask\x12\x1a.task.v1.DeleteTaskRequest\x1a\x1b.task.v1.DeleteTaskResponseB\xa3\x01\n" +
+	"DeleteTask\x12\x1a.task.v1.DeleteTaskRequest\x1a\x1b.task.v1.DeleteTaskResponse2\xf4\x01\n" +
+	"\x19UserPeriodSettingsService\x12f\n" +
+	"\x15GetUserPeriodSettings\x12%.task.v1.GetUserPeriodSettingsRequest\x1a&.task.v1.GetUserPeriodSettingsResponse\x12o\n" +
+	"\x18UpdateUserPeriodSettings\x12(.task.v1.UpdateUserPeriodSettingsRequest\x1a).task.v1.UpdateUserPeriodSettingsResponseB\xa3\x01\n" +
 	"\vcom.task.v1B\tTaskProtoP\x01ZLgithub.com/KasumiMercury/primind-central-backend/internal/gen/task/v1;taskv1\xa2\x02\x03TXX\xaa\x02\aTask.V1\xca\x02\aTask\\V1\xe2\x02\x13Task\\V1\\GPBMetadata\xea\x02\bTask::V1b\x06proto3"
 
 var (
@@ -895,56 +1139,70 @@ func file_task_v1_task_proto_rawDescGZIP() []byte {
 }
 
 var file_task_v1_task_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_task_v1_task_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_task_v1_task_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
 var file_task_v1_task_proto_goTypes = []any{
-	(TaskType)(0),                   // 0: task.v1.TaskType
-	(TaskStatus)(0),                 // 1: task.v1.TaskStatus
-	(TaskSortType)(0),               // 2: task.v1.TaskSortType
-	(*Task)(nil),                    // 3: task.v1.Task
-	(*CreateTaskRequest)(nil),       // 4: task.v1.CreateTaskRequest
-	(*CreateTaskResponse)(nil),      // 5: task.v1.CreateTaskResponse
-	(*GetTaskRequest)(nil),          // 6: task.v1.GetTaskRequest
-	(*GetTaskResponse)(nil),         // 7: task.v1.GetTaskResponse
-	(*ListActiveTasksRequest)(nil),  // 8: task.v1.ListActiveTasksRequest
-	(*ListActiveTasksResponse)(nil), // 9: task.v1.ListActiveTasksResponse
-	(*UpdateTaskRequest)(nil),       // 10: task.v1.UpdateTaskRequest
-	(*UpdateTaskResponse)(nil),      // 11: task.v1.UpdateTaskResponse
-	(*DeleteTaskRequest)(nil),       // 12: task.v1.DeleteTaskRequest
-	(*DeleteTaskResponse)(nil),      // 13: task.v1.DeleteTaskResponse
-	(*timestamppb.Timestamp)(nil),   // 14: google.protobuf.Timestamp
-	(*fieldmaskpb.FieldMask)(nil),   // 15: google.protobuf.FieldMask
+	(TaskType)(0),                            // 0: task.v1.TaskType
+	(TaskStatus)(0),                          // 1: task.v1.TaskStatus
+	(TaskSortType)(0),                        // 2: task.v1.TaskSortType
+	(*Task)(nil),                             // 3: task.v1.Task
+	(*CreateTaskRequest)(nil),                // 4: task.v1.CreateTaskRequest
+	(*CreateTaskResponse)(nil),               // 5: task.v1.CreateTaskResponse
+	(*GetTaskRequest)(nil),                   // 6: task.v1.GetTaskRequest
+	(*GetTaskResponse)(nil),                  // 7: task.v1.GetTaskResponse
+	(*ListActiveTasksRequest)(nil),           // 8: task.v1.ListActiveTasksRequest
+	(*ListActiveTasksResponse)(nil),          // 9: task.v1.ListActiveTasksResponse
+	(*UpdateTaskRequest)(nil),                // 10: task.v1.UpdateTaskRequest
+	(*UpdateTaskResponse)(nil),               // 11: task.v1.UpdateTaskResponse
+	(*DeleteTaskRequest)(nil),                // 12: task.v1.DeleteTaskRequest
+	(*DeleteTaskResponse)(nil),               // 13: task.v1.DeleteTaskResponse
+	(*PeriodSetting)(nil),                    // 14: task.v1.PeriodSetting
+	(*GetUserPeriodSettingsRequest)(nil),     // 15: task.v1.GetUserPeriodSettingsRequest
+	(*GetUserPeriodSettingsResponse)(nil),    // 16: task.v1.GetUserPeriodSettingsResponse
+	(*UpdateUserPeriodSettingsRequest)(nil),  // 17: task.v1.UpdateUserPeriodSettingsRequest
+	(*UpdateUserPeriodSettingsResponse)(nil), // 18: task.v1.UpdateUserPeriodSettingsResponse
+	(*timestamppb.Timestamp)(nil),            // 19: google.protobuf.Timestamp
+	(*fieldmaskpb.FieldMask)(nil),            // 20: google.protobuf.FieldMask
 }
 var file_task_v1_task_proto_depIdxs = []int32{
 	0,  // 0: task.v1.Task.task_type:type_name -> task.v1.TaskType
 	1,  // 1: task.v1.Task.task_status:type_name -> task.v1.TaskStatus
-	14, // 2: task.v1.Task.scheduled_at:type_name -> google.protobuf.Timestamp
-	14, // 3: task.v1.Task.created_at:type_name -> google.protobuf.Timestamp
-	14, // 4: task.v1.Task.target_at:type_name -> google.protobuf.Timestamp
+	19, // 2: task.v1.Task.scheduled_at:type_name -> google.protobuf.Timestamp
+	19, // 3: task.v1.Task.created_at:type_name -> google.protobuf.Timestamp
+	19, // 4: task.v1.Task.target_at:type_name -> google.protobuf.Timestamp
 	0,  // 5: task.v1.CreateTaskRequest.task_type:type_name -> task.v1.TaskType
-	14, // 6: task.v1.CreateTaskRequest.scheduled_at:type_name -> google.protobuf.Timestamp
+	19, // 6: task.v1.CreateTaskRequest.scheduled_at:type_name -> google.protobuf.Timestamp
 	3,  // 7: task.v1.CreateTaskResponse.task:type_name -> task.v1.Task
 	3,  // 8: task.v1.GetTaskResponse.task:type_name -> task.v1.Task
 	2,  // 9: task.v1.ListActiveTasksRequest.sort_type:type_name -> task.v1.TaskSortType
 	3,  // 10: task.v1.ListActiveTasksResponse.tasks:type_name -> task.v1.Task
 	1,  // 11: task.v1.UpdateTaskRequest.task_status:type_name -> task.v1.TaskStatus
-	14, // 12: task.v1.UpdateTaskRequest.scheduled_at:type_name -> google.protobuf.Timestamp
-	15, // 13: task.v1.UpdateTaskRequest.update_mask:type_name -> google.protobuf.FieldMask
+	19, // 12: task.v1.UpdateTaskRequest.scheduled_at:type_name -> google.protobuf.Timestamp
+	20, // 13: task.v1.UpdateTaskRequest.update_mask:type_name -> google.protobuf.FieldMask
 	3,  // 14: task.v1.UpdateTaskResponse.task:type_name -> task.v1.Task
-	4,  // 15: task.v1.TaskService.CreateTask:input_type -> task.v1.CreateTaskRequest
-	6,  // 16: task.v1.TaskService.GetTask:input_type -> task.v1.GetTaskRequest
-	8,  // 17: task.v1.TaskService.ListActiveTasks:input_type -> task.v1.ListActiveTasksRequest
-	10, // 18: task.v1.TaskService.UpdateTask:input_type -> task.v1.UpdateTaskRequest
-	12, // 19: task.v1.TaskService.DeleteTask:input_type -> task.v1.DeleteTaskRequest
-	5,  // 20: task.v1.TaskService.CreateTask:output_type -> task.v1.CreateTaskResponse
-	7,  // 21: task.v1.TaskService.GetTask:output_type -> task.v1.GetTaskResponse
-	9,  // 22: task.v1.TaskService.ListActiveTasks:output_type -> task.v1.ListActiveTasksResponse
-	11, // 23: task.v1.TaskService.UpdateTask:output_type -> task.v1.UpdateTaskResponse
-	13, // 24: task.v1.TaskService.DeleteTask:output_type -> task.v1.DeleteTaskResponse
-	20, // [20:25] is the sub-list for method output_type
-	15, // [15:20] is the sub-list for method input_type
-	15, // [15:15] is the sub-list for extension type_name
-	15, // [15:15] is the sub-list for extension extendee
-	0,  // [0:15] is the sub-list for field type_name
+	0,  // 15: task.v1.PeriodSetting.task_type:type_name -> task.v1.TaskType
+	14, // 16: task.v1.GetUserPeriodSettingsResponse.settings:type_name -> task.v1.PeriodSetting
+	14, // 17: task.v1.GetUserPeriodSettingsResponse.defaults:type_name -> task.v1.PeriodSetting
+	14, // 18: task.v1.UpdateUserPeriodSettingsRequest.settings:type_name -> task.v1.PeriodSetting
+	14, // 19: task.v1.UpdateUserPeriodSettingsResponse.settings:type_name -> task.v1.PeriodSetting
+	4,  // 20: task.v1.TaskService.CreateTask:input_type -> task.v1.CreateTaskRequest
+	6,  // 21: task.v1.TaskService.GetTask:input_type -> task.v1.GetTaskRequest
+	8,  // 22: task.v1.TaskService.ListActiveTasks:input_type -> task.v1.ListActiveTasksRequest
+	10, // 23: task.v1.TaskService.UpdateTask:input_type -> task.v1.UpdateTaskRequest
+	12, // 24: task.v1.TaskService.DeleteTask:input_type -> task.v1.DeleteTaskRequest
+	15, // 25: task.v1.UserPeriodSettingsService.GetUserPeriodSettings:input_type -> task.v1.GetUserPeriodSettingsRequest
+	17, // 26: task.v1.UserPeriodSettingsService.UpdateUserPeriodSettings:input_type -> task.v1.UpdateUserPeriodSettingsRequest
+	5,  // 27: task.v1.TaskService.CreateTask:output_type -> task.v1.CreateTaskResponse
+	7,  // 28: task.v1.TaskService.GetTask:output_type -> task.v1.GetTaskResponse
+	9,  // 29: task.v1.TaskService.ListActiveTasks:output_type -> task.v1.ListActiveTasksResponse
+	11, // 30: task.v1.TaskService.UpdateTask:output_type -> task.v1.UpdateTaskResponse
+	13, // 31: task.v1.TaskService.DeleteTask:output_type -> task.v1.DeleteTaskResponse
+	16, // 32: task.v1.UserPeriodSettingsService.GetUserPeriodSettings:output_type -> task.v1.GetUserPeriodSettingsResponse
+	18, // 33: task.v1.UserPeriodSettingsService.UpdateUserPeriodSettings:output_type -> task.v1.UpdateUserPeriodSettingsResponse
+	27, // [27:34] is the sub-list for method output_type
+	20, // [20:27] is the sub-list for method input_type
+	20, // [20:20] is the sub-list for extension type_name
+	20, // [20:20] is the sub-list for extension extendee
+	0,  // [0:20] is the sub-list for field type_name
 }
 
 func init() { file_task_v1_task_proto_init() }
@@ -961,9 +1219,9 @@ func file_task_v1_task_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_task_v1_task_proto_rawDesc), len(file_task_v1_task_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   11,
+			NumMessages:   16,
 			NumExtensions: 0,
-			NumServices:   1,
+			NumServices:   2,
 		},
 		GoTypes:           file_task_v1_task_proto_goTypes,
 		DependencyIndexes: file_task_v1_task_proto_depIdxs,

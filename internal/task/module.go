@@ -11,8 +11,9 @@ import (
 	"github.com/KasumiMercury/primind-central-backend/internal/gen/task/v1/taskv1connect"
 	"github.com/KasumiMercury/primind-central-backend/internal/observability/logging"
 	"github.com/KasumiMercury/primind-central-backend/internal/observability/middleware"
+	appperiodsetting "github.com/KasumiMercury/primind-central-backend/internal/task/app/period"
 	apptask "github.com/KasumiMercury/primind-central-backend/internal/task/app/task"
-	"github.com/KasumiMercury/primind-central-backend/internal/task/config"
+	"github.com/KasumiMercury/primind-central-backend/internal/task/domain/period"
 	domaintask "github.com/KasumiMercury/primind-central-backend/internal/task/domain/task"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/authclient"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/deviceclient"
@@ -28,6 +29,7 @@ const moduleName logging.Module = "task"
 type Repositories struct {
 	Tasks               domaintask.TaskRepository
 	TaskArchive         domaintask.TaskArchiveRepository
+	PeriodSettings      period.PeriodSettingRepository
 	AuthClient          authclient.AuthClient
 	DeviceClient        deviceclient.DeviceClient
 	RemindRegisterQueue remindregister.Queue
@@ -43,46 +45,28 @@ func (r *Repositories) Close() error {
 	return r.TaskQueueClient.Close()
 }
 
-func NewHTTPHandler(
-	ctx context.Context,
-	taskRepo domaintask.TaskRepository,
-	taskArchiveRepo domaintask.TaskArchiveRepository,
-	cfg *config.Config,
-) (path string, handler http.Handler, err error) {
-	logger := slog.Default().With(
-		slog.String("module", string(moduleName)),
-	).WithGroup("task")
-
-	remindQueue, cancelRemindQueue, client, err := NewRemindQueues(ctx, &cfg.TaskQueue)
+// newInterceptorOptions creates common Connect interceptor options for task module services.
+func newInterceptorOptions() (connect.HandlerOption, error) {
+	otelInterceptor, err := otelconnect.NewInterceptor()
 	if err != nil {
-		return "", nil, fmt.Errorf("failed to create remind queues: %w", err)
+		return nil, fmt.Errorf("failed to create otelconnect interceptor: %w", err)
 	}
 
-	defer func() {
-		if err != nil {
-			if closeErr := client.Close(); closeErr != nil {
-				logger.Warn("failed to close task queue client during cleanup", slog.String("error", closeErr.Error()))
-			}
-		}
-	}()
-
-	return NewHTTPHandlerWithRepositories(ctx, Repositories{
-		Tasks:               taskRepo,
-		TaskArchive:         taskArchiveRepo,
-		AuthClient:          authclient.NewAuthClient(cfg.AuthServiceURL),
-		DeviceClient:        deviceclient.NewDeviceClient(cfg.DeviceServiceURL),
-		RemindRegisterQueue: remindQueue,
-		RemindCancelQueue:   cancelRemindQueue,
-		TaskQueueClient:     client,
-	})
+	return connect.WithInterceptors(
+		otelInterceptor,
+		middleware.ConnectLoggingInterceptor(moduleName),
+		interceptor.AuthInterceptor(),
+	), nil
 }
 
-func NewHTTPHandlerWithRepositories(ctx context.Context, repos Repositories) (string, http.Handler, error) {
+// NewTaskServiceHandler creates and returns the TaskService HTTP handler.
+// It returns the service path, handler, and any initialization error.
+func NewTaskServiceHandler(ctx context.Context, repos Repositories) (string, http.Handler, error) {
 	logger := slog.Default().With(
 		slog.String("module", string(moduleName)),
 	).WithGroup("task")
 
-	logger.Debug("initializing task module")
+	logger.Debug("initializing task service")
 
 	if repos.Tasks == nil {
 		return "", nil, fmt.Errorf("task repository is not configured")
@@ -108,7 +92,11 @@ func NewHTTPHandlerWithRepositories(ctx context.Context, repos Repositories) (st
 		return "", nil, fmt.Errorf("task archive repository is not configured")
 	}
 
-	createTaskUseCase := apptask.NewCreateTaskHandler(repos.AuthClient, repos.DeviceClient, repos.Tasks, repos.RemindRegisterQueue)
+	if repos.PeriodSettings == nil {
+		return "", nil, fmt.Errorf("period settings repository is not configured")
+	}
+
+	createTaskUseCase := apptask.NewCreateTaskHandler(repos.AuthClient, repos.DeviceClient, repos.Tasks, repos.PeriodSettings, repos.RemindRegisterQueue)
 	getTaskUseCase := apptask.NewGetTaskHandler(repos.AuthClient, repos.Tasks)
 	listActiveTasksUseCase := apptask.NewListActiveTasksHandler(repos.AuthClient, repos.Tasks)
 	updateTaskUseCase := apptask.NewUpdateTaskHandler(repos.AuthClient, repos.Tasks, repos.TaskArchive, repos.RemindCancelQueue)
@@ -116,24 +104,49 @@ func NewHTTPHandlerWithRepositories(ctx context.Context, repos Repositories) (st
 
 	taskService := tasksvc.NewService(createTaskUseCase, getTaskUseCase, listActiveTasksUseCase, updateTaskUseCase, deleteTaskUseCase)
 
-	// Create OpenTelemetry interceptor for tracing
-	otelInterceptor, err := otelconnect.NewInterceptor()
+	interceptorOpts, err := newInterceptorOptions()
 	if err != nil {
-		logger.Error("failed to create otelconnect interceptor", slog.String("error", err.Error()))
+		logger.Error("failed to create interceptor options", slog.String("error", err.Error()))
 
-		return "", nil, fmt.Errorf("failed to create otelconnect interceptor: %w", err)
+		return "", nil, err
 	}
 
-	// Register interceptors for tracing, logging, and session token extraction
-	taskPath, taskHandler := taskv1connect.NewTaskServiceHandler(
-		taskService,
-		connect.WithInterceptors(
-			otelInterceptor,
-			middleware.ConnectLoggingInterceptor(moduleName),
-			interceptor.AuthInterceptor(),
-		),
-	)
+	taskPath, taskHandler := taskv1connect.NewTaskServiceHandler(taskService, interceptorOpts)
 	logger.Info("task service handler registered", slog.String("path", taskPath))
 
 	return taskPath, taskHandler, nil
+}
+
+// NewPeriodSettingsServiceHandler creates and returns the UserPeriodSettingsService HTTP handler.
+// It returns the service path, handler, and any initialization error.
+func NewPeriodSettingsServiceHandler(ctx context.Context, repos Repositories) (string, http.Handler, error) {
+	logger := slog.Default().With(
+		slog.String("module", string(moduleName)),
+	).WithGroup("period_setting")
+
+	logger.Debug("initializing period settings service")
+
+	if repos.AuthClient == nil {
+		return "", nil, fmt.Errorf("auth client is not configured")
+	}
+
+	if repos.PeriodSettings == nil {
+		return "", nil, fmt.Errorf("period settings repository is not configured")
+	}
+
+	getPeriodSettingsUseCase := appperiodsetting.NewGetPeriodSettingsHandler(repos.AuthClient, repos.PeriodSettings)
+	updatePeriodSettingsUseCase := appperiodsetting.NewUpdatePeriodSettingsHandler(repos.AuthClient, repos.PeriodSettings)
+	periodSettingService := tasksvc.NewPeriodSettingService(getPeriodSettingsUseCase, updatePeriodSettingsUseCase)
+
+	interceptorOpts, err := newInterceptorOptions()
+	if err != nil {
+		logger.Error("failed to create interceptor options", slog.String("error", err.Error()))
+
+		return "", nil, err
+	}
+
+	periodSettingPath, periodSettingHandler := taskv1connect.NewUserPeriodSettingsServiceHandler(periodSettingService, interceptorOpts)
+	logger.Info("period setting service handler registered", slog.String("path", periodSettingPath))
+
+	return periodSettingPath, periodSettingHandler, nil
 }
