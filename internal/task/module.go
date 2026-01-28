@@ -103,6 +103,7 @@ func NewTaskServiceHandler(ctx context.Context, repos Repositories) (string, htt
 	interceptorOpts, err := newInterceptorOptions()
 	if err != nil {
 		logger.Error("failed to create interceptor options", slog.String("error", err.Error()))
+
 		return "", nil, err
 	}
 
@@ -136,6 +137,7 @@ func NewPeriodSettingsServiceHandler(ctx context.Context, repos Repositories) (s
 	interceptorOpts, err := newInterceptorOptions()
 	if err != nil {
 		logger.Error("failed to create interceptor options", slog.String("error", err.Error()))
+
 		return "", nil, err
 	}
 
