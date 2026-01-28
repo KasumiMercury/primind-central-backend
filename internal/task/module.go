@@ -92,6 +92,10 @@ func NewTaskServiceHandler(ctx context.Context, repos Repositories) (string, htt
 		return "", nil, fmt.Errorf("task archive repository is not configured")
 	}
 
+	if repos.PeriodSettings == nil {
+		return "", nil, fmt.Errorf("period settings repository is not configured")
+	}
+
 	createTaskUseCase := apptask.NewCreateTaskHandler(repos.AuthClient, repos.DeviceClient, repos.Tasks, repos.PeriodSettings, repos.RemindRegisterQueue)
 	getTaskUseCase := apptask.NewGetTaskHandler(repos.AuthClient, repos.Tasks)
 	listActiveTasksUseCase := apptask.NewListActiveTasksHandler(repos.AuthClient, repos.Tasks)
