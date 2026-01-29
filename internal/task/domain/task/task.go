@@ -150,6 +150,7 @@ func CreateTask(
 	description string,
 	scheduledAt *time.Time,
 	color Color,
+	customPeriod *time.Duration,
 ) (*Task, error) {
 	var id ID
 
@@ -173,8 +174,14 @@ func CreateTask(
 			targetAt = *scheduledAt
 		}
 	} else {
-		activePeriod := GetActivePeriodForType(taskType)
-		targetAt = createdAt.Add(time.Duration(activePeriod))
+		var period time.Duration
+		if customPeriod != nil {
+			period = *customPeriod
+		} else {
+			period = time.Duration(GetActivePeriodForType(taskType))
+		}
+
+		targetAt = createdAt.Add(period)
 	}
 
 	return NewTask(

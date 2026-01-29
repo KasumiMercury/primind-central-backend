@@ -477,6 +477,7 @@ func TestCalculateReminderTimesWithCreateTask(t *testing.T) {
 			"",
 			nil,
 			validColor,
+			nil,
 		)
 		if err != nil {
 			t.Fatalf("CreateTask() unexpected error: %v", err)
@@ -526,6 +527,7 @@ func TestCalculateReminderTimesWithCreateTask(t *testing.T) {
 			"",
 			&scheduledAt,
 			validColor,
+			nil,
 		)
 		if err != nil {
 			t.Fatalf("CreateTask() unexpected error: %v", err)

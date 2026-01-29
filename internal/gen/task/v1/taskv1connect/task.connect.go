@@ -23,6 +23,9 @@ const _ = connect.IsAtLeastVersion1_13_0
 const (
 	// TaskServiceName is the fully-qualified name of the TaskService service.
 	TaskServiceName = "task.v1.TaskService"
+	// UserPeriodSettingsServiceName is the fully-qualified name of the UserPeriodSettingsService
+	// service.
+	UserPeriodSettingsServiceName = "task.v1.UserPeriodSettingsService"
 )
 
 // These constants are the fully-qualified names of the RPCs defined in this package. They're
@@ -44,6 +47,12 @@ const (
 	TaskServiceUpdateTaskProcedure = "/task.v1.TaskService/UpdateTask"
 	// TaskServiceDeleteTaskProcedure is the fully-qualified name of the TaskService's DeleteTask RPC.
 	TaskServiceDeleteTaskProcedure = "/task.v1.TaskService/DeleteTask"
+	// UserPeriodSettingsServiceGetUserPeriodSettingsProcedure is the fully-qualified name of the
+	// UserPeriodSettingsService's GetUserPeriodSettings RPC.
+	UserPeriodSettingsServiceGetUserPeriodSettingsProcedure = "/task.v1.UserPeriodSettingsService/GetUserPeriodSettings"
+	// UserPeriodSettingsServiceUpdateUserPeriodSettingsProcedure is the fully-qualified name of the
+	// UserPeriodSettingsService's UpdateUserPeriodSettings RPC.
+	UserPeriodSettingsServiceUpdateUserPeriodSettingsProcedure = "/task.v1.UserPeriodSettingsService/UpdateUserPeriodSettings"
 )
 
 // TaskServiceClient is a client for the task.v1.TaskService service.
@@ -238,4 +247,109 @@ func (UnimplementedTaskServiceHandler) UpdateTask(context.Context, *v1.UpdateTas
 
 func (UnimplementedTaskServiceHandler) DeleteTask(context.Context, *v1.DeleteTaskRequest) (*v1.DeleteTaskResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("task.v1.TaskService.DeleteTask is not implemented"))
+}
+
+// UserPeriodSettingsServiceClient is a client for the task.v1.UserPeriodSettingsService service.
+type UserPeriodSettingsServiceClient interface {
+	GetUserPeriodSettings(context.Context, *v1.GetUserPeriodSettingsRequest) (*v1.GetUserPeriodSettingsResponse, error)
+	UpdateUserPeriodSettings(context.Context, *v1.UpdateUserPeriodSettingsRequest) (*v1.UpdateUserPeriodSettingsResponse, error)
+}
+
+// NewUserPeriodSettingsServiceClient constructs a client for the task.v1.UserPeriodSettingsService
+// service. By default, it uses the Connect protocol with the binary Protobuf Codec, asks for
+// gzipped responses, and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply
+// the connect.WithGRPC() or connect.WithGRPCWeb() options.
+//
+// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
+// http://api.acme.com or https://acme.com/grpc).
+func NewUserPeriodSettingsServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) UserPeriodSettingsServiceClient {
+	baseURL = strings.TrimRight(baseURL, "/")
+	userPeriodSettingsServiceMethods := v1.File_task_v1_task_proto.Services().ByName("UserPeriodSettingsService").Methods()
+	return &userPeriodSettingsServiceClient{
+		getUserPeriodSettings: connect.NewClient[v1.GetUserPeriodSettingsRequest, v1.GetUserPeriodSettingsResponse](
+			httpClient,
+			baseURL+UserPeriodSettingsServiceGetUserPeriodSettingsProcedure,
+			connect.WithSchema(userPeriodSettingsServiceMethods.ByName("GetUserPeriodSettings")),
+			connect.WithClientOptions(opts...),
+		),
+		updateUserPeriodSettings: connect.NewClient[v1.UpdateUserPeriodSettingsRequest, v1.UpdateUserPeriodSettingsResponse](
+			httpClient,
+			baseURL+UserPeriodSettingsServiceUpdateUserPeriodSettingsProcedure,
+			connect.WithSchema(userPeriodSettingsServiceMethods.ByName("UpdateUserPeriodSettings")),
+			connect.WithClientOptions(opts...),
+		),
+	}
+}
+
+// userPeriodSettingsServiceClient implements UserPeriodSettingsServiceClient.
+type userPeriodSettingsServiceClient struct {
+	getUserPeriodSettings    *connect.Client[v1.GetUserPeriodSettingsRequest, v1.GetUserPeriodSettingsResponse]
+	updateUserPeriodSettings *connect.Client[v1.UpdateUserPeriodSettingsRequest, v1.UpdateUserPeriodSettingsResponse]
+}
+
+// GetUserPeriodSettings calls task.v1.UserPeriodSettingsService.GetUserPeriodSettings.
+func (c *userPeriodSettingsServiceClient) GetUserPeriodSettings(ctx context.Context, req *v1.GetUserPeriodSettingsRequest) (*v1.GetUserPeriodSettingsResponse, error) {
+	response, err := c.getUserPeriodSettings.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// UpdateUserPeriodSettings calls task.v1.UserPeriodSettingsService.UpdateUserPeriodSettings.
+func (c *userPeriodSettingsServiceClient) UpdateUserPeriodSettings(ctx context.Context, req *v1.UpdateUserPeriodSettingsRequest) (*v1.UpdateUserPeriodSettingsResponse, error) {
+	response, err := c.updateUserPeriodSettings.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// UserPeriodSettingsServiceHandler is an implementation of the task.v1.UserPeriodSettingsService
+// service.
+type UserPeriodSettingsServiceHandler interface {
+	GetUserPeriodSettings(context.Context, *v1.GetUserPeriodSettingsRequest) (*v1.GetUserPeriodSettingsResponse, error)
+	UpdateUserPeriodSettings(context.Context, *v1.UpdateUserPeriodSettingsRequest) (*v1.UpdateUserPeriodSettingsResponse, error)
+}
+
+// NewUserPeriodSettingsServiceHandler builds an HTTP handler from the service implementation. It
+// returns the path on which to mount the handler and the handler itself.
+//
+// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
+// and JSON codecs. They also support gzip compression.
+func NewUserPeriodSettingsServiceHandler(svc UserPeriodSettingsServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	userPeriodSettingsServiceMethods := v1.File_task_v1_task_proto.Services().ByName("UserPeriodSettingsService").Methods()
+	userPeriodSettingsServiceGetUserPeriodSettingsHandler := connect.NewUnaryHandlerSimple(
+		UserPeriodSettingsServiceGetUserPeriodSettingsProcedure,
+		svc.GetUserPeriodSettings,
+		connect.WithSchema(userPeriodSettingsServiceMethods.ByName("GetUserPeriodSettings")),
+		connect.WithHandlerOptions(opts...),
+	)
+	userPeriodSettingsServiceUpdateUserPeriodSettingsHandler := connect.NewUnaryHandlerSimple(
+		UserPeriodSettingsServiceUpdateUserPeriodSettingsProcedure,
+		svc.UpdateUserPeriodSettings,
+		connect.WithSchema(userPeriodSettingsServiceMethods.ByName("UpdateUserPeriodSettings")),
+		connect.WithHandlerOptions(opts...),
+	)
+	return "/task.v1.UserPeriodSettingsService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case UserPeriodSettingsServiceGetUserPeriodSettingsProcedure:
+			userPeriodSettingsServiceGetUserPeriodSettingsHandler.ServeHTTP(w, r)
+		case UserPeriodSettingsServiceUpdateUserPeriodSettingsProcedure:
+			userPeriodSettingsServiceUpdateUserPeriodSettingsHandler.ServeHTTP(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	})
+}
+
+// UnimplementedUserPeriodSettingsServiceHandler returns CodeUnimplemented from all methods.
+type UnimplementedUserPeriodSettingsServiceHandler struct{}
+
+func (UnimplementedUserPeriodSettingsServiceHandler) GetUserPeriodSettings(context.Context, *v1.GetUserPeriodSettingsRequest) (*v1.GetUserPeriodSettingsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("task.v1.UserPeriodSettingsService.GetUserPeriodSettings is not implemented"))
+}
+
+func (UnimplementedUserPeriodSettingsServiceHandler) UpdateUserPeriodSettings(context.Context, *v1.UpdateUserPeriodSettingsRequest) (*v1.UpdateUserPeriodSettingsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("task.v1.UserPeriodSettingsService.UpdateUserPeriodSettings is not implemented"))
 }

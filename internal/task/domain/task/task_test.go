@@ -926,6 +926,7 @@ func TestCreateTaskWithPreGeneratedID(t *testing.T) {
 				tt.description,
 				tt.scheduledAt,
 				tt.color,
+				nil,
 			)
 			if err != nil {
 				t.Fatalf("CreateTask() unexpected error: %v", err)
@@ -1048,6 +1049,7 @@ func TestCreateTaskTargetAtCalculation(t *testing.T) {
 				"Test description",
 				tt.scheduledAt,
 				validColor,
+				nil,
 			)
 			if err != nil {
 				t.Fatalf("CreateTask() unexpected error: %v", err)

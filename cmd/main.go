@@ -195,6 +195,7 @@ func run() error {
 	taskRepos := taskmodule.Repositories{
 		Tasks:               taskrepository.NewTaskRepository(db),
 		TaskArchive:         taskrepository.NewTaskArchiveRepository(db),
+		PeriodSettings:      taskrepository.NewPeriodSettingRepository(db),
 		AuthClient:          authclient.NewAuthClient(taskCfg.AuthServiceURL),
 		DeviceClient:        deviceclient.NewDeviceClient(taskCfg.DeviceServiceURL),
 		RemindRegisterQueue: remindQueue,
@@ -214,7 +215,7 @@ func run() error {
 
 	defer closeTaskRepos()
 
-	taskPath, taskHandler, err := taskmodule.NewHTTPHandlerWithRepositories(ctx, taskRepos)
+	taskPath, taskHandler, err := taskmodule.NewTaskServiceHandler(ctx, taskRepos)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to initialize task service",
 			slog.String("event", "task.init.fail"),
@@ -225,6 +226,18 @@ func run() error {
 	}
 
 	mux.Handle(taskPath, taskHandler)
+
+	periodPath, periodHandler, err := taskmodule.NewPeriodSettingsServiceHandler(ctx, taskRepos)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to initialize period settings service",
+			slog.String("event", "period_settings.init.fail"),
+			slog.String("error", err.Error()),
+		)
+
+		return err
+	}
+
+	mux.Handle(periodPath, periodHandler)
 
 	deviceCfg, err := deviceconfig.Load()
 	if err != nil {

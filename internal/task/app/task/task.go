@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/KasumiMercury/primind-central-backend/internal/task/domain/period"
 	domaintask "github.com/KasumiMercury/primind-central-backend/internal/task/domain/task"
 	domainuser "github.com/KasumiMercury/primind-central-backend/internal/task/domain/user"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/authclient"
@@ -42,25 +43,28 @@ type CreateTaskUseCase interface {
 }
 
 type createTaskHandler struct {
-	authClient   authclient.AuthClient
-	deviceClient deviceclient.DeviceClient
-	taskRepo     domaintask.TaskRepository
-	remindQueue  remindregister.Queue
-	logger       *slog.Logger
+	authClient        authclient.AuthClient
+	deviceClient      deviceclient.DeviceClient
+	taskRepo          domaintask.TaskRepository
+	periodSettingRepo period.PeriodSettingRepository
+	remindQueue       remindregister.Queue
+	logger            *slog.Logger
 }
 
 func NewCreateTaskHandler(
 	authClient authclient.AuthClient,
 	deviceClient deviceclient.DeviceClient,
 	taskRepo domaintask.TaskRepository,
+	periodSettingRepo period.PeriodSettingRepository,
 	remindQueue remindregister.Queue,
 ) CreateTaskUseCase {
 	return &createTaskHandler{
-		authClient:   authClient,
-		deviceClient: deviceClient,
-		taskRepo:     taskRepo,
-		remindQueue:  remindQueue,
-		logger:       slog.Default().With(slog.String("module", "task")).WithGroup("task").WithGroup("createtask"),
+		authClient:        authClient,
+		deviceClient:      deviceClient,
+		taskRepo:          taskRepo,
+		periodSettingRepo: periodSettingRepo,
+		remindQueue:       remindQueue,
+		logger:            slog.Default().With(slog.String("module", "task")).WithGroup("task").WithGroup("createtask"),
 	}
 }
 
@@ -124,6 +128,22 @@ func (h *createTaskHandler) CreateTask(ctx context.Context, req *CreateTaskReque
 		return nil, err
 	}
 
+	// Fetch user period settings for custom period
+	var customPeriod *time.Duration
+
+	if req.TaskType != domaintask.TypeScheduled && h.periodSettingRepo != nil {
+		periodSettings, err := h.periodSettingRepo.GetByUserID(ctx, userID)
+		if err != nil {
+			h.logger.Warn("failed to get period settings, using defaults", slog.String("error", err.Error()))
+			// Continue with default period on error
+		} else if period, ok := periodSettings.GetPeriod(req.TaskType); ok {
+			customPeriod = &period
+			h.logger.Debug("using custom period for task type",
+				slog.String("task_type", string(req.TaskType)),
+				slog.Duration("period", period))
+		}
+	}
+
 	task, err := domaintask.CreateTask(
 		taskID,
 		userID,
@@ -132,6 +152,7 @@ func (h *createTaskHandler) CreateTask(ctx context.Context, req *CreateTaskReque
 		req.Description,
 		req.ScheduledAt,
 		color,
+		customPeriod,
 	)
 	if err != nil {
 		h.logger.Warn("failed to create task entity", slog.String("error", err.Error()))
