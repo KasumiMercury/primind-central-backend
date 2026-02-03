@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -113,11 +114,15 @@ func run() error {
 		}
 	}()
 
-	redisClient := redis.NewClient(&redis.Options{
+	redisOpts := &redis.Options{
 		Addr:     appCfg.Persistence.RedisAddr,
 		Password: appCfg.Persistence.RedisPassword,
 		DB:       appCfg.Persistence.RedisDB,
-	})
+	}
+	if appCfg.Persistence.RedisTLS {
+		redisOpts.TLSConfig = &tls.Config{MinVersion: tls.VersionTLS12}
+	}
+	redisClient := redis.NewClient(redisOpts)
 
 	// OpenTelemetry tracing for Redis
 	if err := redisotel.InstrumentTracing(redisClient); err != nil {

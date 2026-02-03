@@ -11,6 +11,7 @@ const (
 	redisAddrEnv     = "REDIS_ADDR"
 	redisPasswordEnv = "REDIS_PASSWORD"
 	redisDBEnv       = "REDIS_DB"
+	redisTLSEnv      = "REDIS_TLS"
 
 	defaultRedisAddr = "localhost:6379"
 	defaultRedisDB   = 0
@@ -21,6 +22,7 @@ type Config struct {
 	RedisAddr     string
 	RedisPassword string
 	RedisDB       int
+	RedisTLS      bool
 }
 
 func Load() (*Config, error) {
@@ -47,11 +49,14 @@ func Load() (*Config, error) {
 		redisDB = parsed
 	}
 
+	redisTLS := os.Getenv(redisTLSEnv) == "true"
+
 	cfg := &Config{
 		PostgresDSN:   pgDSN,
 		RedisAddr:     redisAddr,
 		RedisPassword: redisPassword,
 		RedisDB:       redisDB,
+		RedisTLS:      redisTLS,
 	}
 
 	return cfg, cfg.Validate()
