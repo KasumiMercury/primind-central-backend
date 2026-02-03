@@ -24,6 +24,7 @@ linters:
                 - fmt.Println
         exhaustruct:
             exclude:
+                - 'crypto/tls\.Config'
                 - 'log/slog\.HandlerOptions'
                 - 'github\.com/go-jose/go-jose/v4/jwt\.Claims'
                 - 'github\.com/go-jose/go-jose/v4/jwt\.Expected'
