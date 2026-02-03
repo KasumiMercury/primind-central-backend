@@ -122,6 +122,7 @@ func run() error {
 	if appCfg.Persistence.RedisTLS {
 		redisOpts.TLSConfig = &tls.Config{MinVersion: tls.VersionTLS12}
 	}
+
 	redisClient := redis.NewClient(redisOpts)
 
 	// OpenTelemetry tracing for Redis
