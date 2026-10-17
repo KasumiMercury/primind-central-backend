@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"time"
 
-	"connectrpc.com/grpchealth"
+	"connectrpc.com/grpchealth/v2"
 	"github.com/redis/go-redis/v9"
 )
 

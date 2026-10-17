@@ -5,7 +5,7 @@ import (
 	"errors"
 	"log/slog"
 
-	connect "connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	taskv1 "github.com/KasumiMercury/primind-central-backend/internal/gen/task/v1"
 	"github.com/KasumiMercury/primind-central-backend/internal/gen/task/v1/taskv1connect"
 	appperiod "github.com/KasumiMercury/primind-central-backend/internal/task/app/period"
@@ -43,7 +43,7 @@ func (s *PeriodSettingService) GetUserPeriodSettings(
 	if token == "" {
 		s.logger.Warn("get period settings called without session token")
 
-		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("session token required"))
+		return nil, connect.NewError(connect.CodeUnauthenticated, "session token required")
 	}
 
 	result, err := s.getPeriodSettings.GetPeriodSettings(ctx, &appperiod.GetPeriodSettingsRequest{
@@ -54,15 +54,15 @@ func (s *PeriodSettingService) GetUserPeriodSettings(
 		case errors.Is(err, appperiod.ErrUnauthorized):
 			s.logger.Info("unauthorized get period settings attempt")
 
-			return nil, connect.NewError(connect.CodeUnauthenticated, err)
+			return nil, connect.NewError(connect.CodeUnauthenticated, err.Error()).WithCause(err)
 		case errors.Is(err, appperiod.ErrAuthServiceUnavailable):
 			s.logger.Error("auth service unavailable during get period settings", slog.String("error", err.Error()))
 
-			return nil, connect.NewError(connect.CodeUnavailable, err)
+			return nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 		default:
 			s.logger.Error("unexpected get period settings error", slog.String("error", err.Error()))
 
-			return nil, connect.NewError(connect.CodeInternal, err)
+			return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 		}
 	}
 
@@ -83,7 +83,7 @@ func (s *PeriodSettingService) UpdateUserPeriodSettings(
 	if token == "" {
 		s.logger.Warn("update period settings called without session token")
 
-		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("session token required"))
+		return nil, connect.NewError(connect.CodeUnauthenticated, "session token required")
 	}
 
 	// Convert proto settings to app layer settings
@@ -93,7 +93,7 @@ func (s *PeriodSettingService) UpdateUserPeriodSettings(
 		if err != nil {
 			s.logger.Warn("invalid task type in period settings", slog.String("error", err.Error()))
 
-			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+			return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 		}
 
 		settings = append(settings, appperiod.PeriodSettingItem{
@@ -111,21 +111,21 @@ func (s *PeriodSettingService) UpdateUserPeriodSettings(
 		case errors.Is(err, appperiod.ErrUnauthorized):
 			s.logger.Info("unauthorized update period settings attempt")
 
-			return nil, connect.NewError(connect.CodeUnauthenticated, err)
+			return nil, connect.NewError(connect.CodeUnauthenticated, err.Error()).WithCause(err)
 		case errors.Is(err, appperiod.ErrAuthServiceUnavailable):
 			s.logger.Error("auth service unavailable during update period settings", slog.String("error", err.Error()))
 
-			return nil, connect.NewError(connect.CodeUnavailable, err)
+			return nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 		case errors.Is(err, appperiod.ErrScheduledTypeNotAllowed),
 			errors.Is(err, appperiod.ErrInvalidPeriodMinutes),
 			errors.Is(err, appperiod.ErrInvalidTaskType):
 			s.logger.Warn("invalid update period settings request", slog.String("error", err.Error()))
 
-			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+			return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 		default:
 			s.logger.Error("unexpected update period settings error", slog.String("error", err.Error()))
 
-			return nil, connect.NewError(connect.CodeInternal, err)
+			return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 		}
 	}
 

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	connect "connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	applogout "github.com/KasumiMercury/primind-central-backend/internal/auth/app/logout"
 	appoidc "github.com/KasumiMercury/primind-central-backend/internal/auth/app/oidc"
 	appsession "github.com/KasumiMercury/primind-central-backend/internal/auth/app/session"
@@ -44,14 +44,14 @@ func (s *Service) OIDCParams(ctx context.Context, req *authv1.OIDCParamsRequest)
 	if s.oidcParams == nil {
 		s.logger.Warn("oidc params requested but generator is not configured")
 
-		return nil, connect.NewError(connect.CodeFailedPrecondition, appoidc.ErrOIDCNotConfigured)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, appoidc.ErrOIDCNotConfigured.Error()).WithCause(appoidc.ErrOIDCNotConfigured)
 	}
 
 	providerID, err := mapProvider(req.GetProvider())
 	if err != nil {
 		s.logger.Warn("invalid provider in params request", slog.String("error", err.Error()))
 
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
 	s.logger.Debug("handling oidc params request", slog.String("provider", string(providerID)))
@@ -62,15 +62,15 @@ func (s *Service) OIDCParams(ctx context.Context, req *authv1.OIDCParamsRequest)
 		case errors.Is(err, appoidc.ErrOIDCNotConfigured):
 			s.logger.Warn("oidc not configured during params request")
 
-			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+			return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 		case errors.Is(err, appoidc.ErrOIDCProviderUnsupported):
 			s.logger.Warn("oidc params requested for unsupported provider", slog.String("provider", string(providerID)))
 
-			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+			return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 		default:
 			s.logger.Error("failed to generate oidc params", slog.String("error", err.Error()), slog.String("provider", string(providerID)))
 
-			return nil, connect.NewError(connect.CodeInternal, err)
+			return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 		}
 	}
 
@@ -86,14 +86,14 @@ func (s *Service) OIDCLogin(ctx context.Context, req *authv1.OIDCLoginRequest) (
 	if s.oidcLogin == nil {
 		s.logger.Warn("oidc login requested but handler is not configured")
 
-		return nil, connect.NewError(connect.CodeFailedPrecondition, appoidc.ErrOIDCNotConfigured)
+		return nil, connect.NewError(connect.CodeFailedPrecondition, appoidc.ErrOIDCNotConfigured.Error()).WithCause(appoidc.ErrOIDCNotConfigured)
 	}
 
 	providerID, err := mapProvider(req.GetProvider())
 	if err != nil {
 		s.logger.Warn("invalid provider in login request", slog.String("error", err.Error()))
 
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
 	s.logger.Debug("handling oidc login request", slog.String("provider", string(providerID)))
@@ -110,31 +110,31 @@ func (s *Service) OIDCLogin(ctx context.Context, req *authv1.OIDCLoginRequest) (
 		case errors.Is(err, appoidc.ErrOIDCNotConfigured):
 			s.logger.Warn("oidc not configured during login")
 
-			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+			return nil, connect.NewError(connect.CodeFailedPrecondition, err.Error()).WithCause(err)
 		case errors.Is(err, appoidc.ErrOIDCProviderUnsupported):
 			s.logger.Warn("oidc login requested for unsupported provider", slog.String("provider", string(providerID)))
 
-			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+			return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 		case errors.Is(err, appoidc.ErrCodeInvalid):
 			s.logger.Warn("login failed due to invalid authorization code", slog.String("provider", string(providerID)))
 
-			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+			return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 		case errors.Is(err, appoidc.ErrStateInvalid):
 			s.logger.Warn("login failed due to invalid state", slog.String("provider", string(providerID)))
 
-			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+			return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 		case errors.Is(err, domainoidc.ErrParamsExpired):
 			s.logger.Warn("login failed due to expired params", slog.String("provider", string(providerID)))
 
-			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+			return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 		case errors.Is(err, appoidc.ErrNonceInvalid):
 			s.logger.Warn("login failed due to nonce mismatch", slog.String("provider", string(providerID)))
 
-			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+			return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 		default:
 			s.logger.Error("unexpected login failure", slog.String("error", err.Error()), slog.String("provider", string(providerID)))
 
-			return nil, connect.NewError(connect.CodeInternal, err)
+			return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 		}
 	}
 
@@ -149,7 +149,7 @@ func (s *Service) Logout(ctx context.Context, req *authv1.LogoutRequest) (*authv
 	if s.logout == nil {
 		s.logger.Warn("logout requested but handler is not configured")
 
-		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("logout not configured"))
+		return nil, connect.NewError(connect.CodeFailedPrecondition, "logout not configured")
 	}
 
 	sessionToken := req.GetSessionToken()
@@ -163,11 +163,11 @@ func (s *Service) Logout(ctx context.Context, req *authv1.LogoutRequest) (*authv
 			errors.Is(err, applogout.ErrSessionTokenInvalid):
 			s.logger.Info("logout failed", slog.String("error", err.Error()))
 
-			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+			return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 		default:
 			s.logger.Error("unexpected logout error", slog.String("error", err.Error()))
 
-			return nil, connect.NewError(connect.CodeInternal, err)
+			return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 		}
 	}
 
@@ -180,7 +180,7 @@ func (s *Service) ValidateSession(ctx context.Context, req *authv1.ValidateSessi
 	if s.validateSession == nil {
 		s.logger.Warn("validate session requested but handler is not configured")
 
-		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("session validation not configured"))
+		return nil, connect.NewError(connect.CodeFailedPrecondition, "session validation not configured")
 	}
 
 	result, err := s.validateSession.Validate(ctx, &appsession.ValidateSessionRequest{
@@ -194,11 +194,11 @@ func (s *Service) ValidateSession(ctx context.Context, req *authv1.ValidateSessi
 			errors.Is(err, appsession.ErrSessionExpired):
 			s.logger.Info("session validation failed", slog.String("error", err.Error()))
 
-			return nil, connect.NewError(connect.CodeUnauthenticated, err)
+			return nil, connect.NewError(connect.CodeUnauthenticated, err.Error()).WithCause(err)
 		default:
 			s.logger.Error("unexpected session validation error", slog.String("error", err.Error()))
 
-			return nil, connect.NewError(connect.CodeInternal, err)
+			return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 		}
 	}
 

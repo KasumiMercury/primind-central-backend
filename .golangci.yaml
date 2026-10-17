@@ -7,7 +7,7 @@ linters:
         - contextcheck
         - fatcontext
         - containedctx
-        - exhaustruct
+        - exhaustruct_v5
         - exhaustive
         - gosec
         - nilnil
@@ -22,8 +22,8 @@ linters:
                 - fmt.Print
                 - fmt.Printf
                 - fmt.Println
-        exhaustruct:
-            exclude:
+        exhaustruct_v5:
+            ignore-patterns:
                 - 'crypto/tls\.Config'
                 - 'log/slog\.HandlerOptions'
                 - 'github\.com/go-jose/go-jose/v4/jwt\.Claims'
@@ -53,7 +53,7 @@ linters:
             - path: _test\.go
               linters:
                   - errcheck
-                  - exhaustruct
+                  - exhaustruct_v5
                   - gosec
                   - staticcheck
                   - fatcontext

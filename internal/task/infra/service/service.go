@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"time"
 
-	connect "connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	taskv1 "github.com/KasumiMercury/primind-central-backend/internal/gen/task/v1"
 	taskv1connect "github.com/KasumiMercury/primind-central-backend/internal/gen/task/v1/taskv1connect"
 	apptask "github.com/KasumiMercury/primind-central-backend/internal/task/app/task"
@@ -51,14 +51,14 @@ func (s *Service) CreateTask(
 	if token == "" {
 		s.logger.Warn("create task called without session token")
 
-		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("session token required"))
+		return nil, connect.NewError(connect.CodeUnauthenticated, "session token required")
 	}
 
 	taskType, err := protoTaskTypeToString(req.GetTaskType())
 	if err != nil {
 		s.logger.Warn("invalid task type", slog.String("error", err.Error()))
 
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
 	var scheduledAt *time.Time
@@ -82,23 +82,23 @@ func (s *Service) CreateTask(
 		case errors.Is(err, apptask.ErrUnauthorized):
 			s.logger.Info("unauthorized create task attempt")
 
-			return nil, connect.NewError(connect.CodeUnauthenticated, err)
+			return nil, connect.NewError(connect.CodeUnauthenticated, err.Error()).WithCause(err)
 		case errors.Is(err, apptask.ErrAuthServiceUnavailable):
 			s.logger.Error("auth service unavailable during create task", slog.String("error", err.Error()))
 
-			return nil, connect.NewError(connect.CodeUnavailable, err)
+			return nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 		case errors.Is(err, apptask.ErrDeviceServiceUnavailable):
 			s.logger.Error("device service unavailable during create task", slog.String("error", err.Error()))
 
-			return nil, connect.NewError(connect.CodeUnavailable, err)
+			return nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 		case errors.Is(err, apptask.ErrDeviceInvalidArgument):
 			s.logger.Error("device service invalid argument during create task", slog.String("error", err.Error()))
 
-			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+			return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 		case errors.Is(err, apptask.ErrRemindQueueRegistrationFailed):
 			s.logger.Error("remind queue registration failed during create task", slog.String("error", err.Error()))
 
-			return nil, connect.NewError(connect.CodeUnavailable, err)
+			return nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 		case errors.Is(err, apptask.ErrTitleRequired),
 			errors.Is(err, domaintask.ErrTitleTooLong),
 			errors.Is(err, domaintask.ErrScheduledAtRequired),
@@ -110,15 +110,15 @@ func (s *Service) CreateTask(
 			errors.Is(err, domaintask.ErrColorInvalidFormat):
 			s.logger.Warn("invalid create task request", slog.String("error", err.Error()))
 
-			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+			return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 		case errors.Is(err, apptask.ErrTaskIDAlreadyExists):
 			s.logger.Warn("task ID already exists", slog.String("error", err.Error()))
 
-			return nil, connect.NewError(connect.CodeAlreadyExists, err)
+			return nil, connect.NewError(connect.CodeAlreadyExists, err.Error()).WithCause(err)
 		default:
 			s.logger.Error("unexpected create task error", slog.String("error", err.Error()))
 
-			return nil, connect.NewError(connect.CodeInternal, err)
+			return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 		}
 	}
 
@@ -153,7 +153,7 @@ func (s *Service) GetTask(
 	if token == "" {
 		s.logger.Warn("get task called without session token")
 
-		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("session token required"))
+		return nil, connect.NewError(connect.CodeUnauthenticated, "session token required")
 	}
 
 	result, err := s.getTask.GetTask(ctx, &apptask.GetTaskRequest{
@@ -165,25 +165,25 @@ func (s *Service) GetTask(
 		case errors.Is(err, apptask.ErrUnauthorized):
 			s.logger.Info("unauthorized get task attempt")
 
-			return nil, connect.NewError(connect.CodeUnauthenticated, err)
+			return nil, connect.NewError(connect.CodeUnauthenticated, err.Error()).WithCause(err)
 		case errors.Is(err, apptask.ErrAuthServiceUnavailable):
 			s.logger.Error("auth service unavailable during get task", slog.String("error", err.Error()))
 
-			return nil, connect.NewError(connect.CodeUnavailable, err)
+			return nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 		case errors.Is(err, apptask.ErrTaskNotFound):
 			s.logger.Info("task not found", slog.String("task_id", req.GetTaskId()))
 
-			return nil, connect.NewError(connect.CodeNotFound, err)
+			return nil, connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
 		case errors.Is(err, apptask.ErrTaskIDRequired),
 			errors.Is(err, domaintask.ErrIDInvalidFormat),
 			errors.Is(err, domaintask.ErrIDInvalidV7):
 			s.logger.Warn("invalid get task request", slog.String("error", err.Error()))
 
-			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+			return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 		default:
 			s.logger.Error("unexpected get task error", slog.String("error", err.Error()))
 
-			return nil, connect.NewError(connect.CodeInternal, err)
+			return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 		}
 	}
 
@@ -222,14 +222,14 @@ func (s *Service) ListActiveTasks(
 	if token == "" {
 		s.logger.Warn("list active tasks called without session token")
 
-		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("session token required"))
+		return nil, connect.NewError(connect.CodeUnauthenticated, "session token required")
 	}
 
 	sortType, err := protoSortTypeToString(req.GetSortType())
 	if err != nil {
 		s.logger.Warn("invalid sort type", slog.String("error", err.Error()))
 
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
 	result, err := s.listActiveTasks.ListActiveTasks(ctx, &apptask.ListActiveTasksRequest{
@@ -241,20 +241,20 @@ func (s *Service) ListActiveTasks(
 		case errors.Is(err, apptask.ErrUnauthorized):
 			s.logger.Info("unauthorized list active tasks attempt")
 
-			return nil, connect.NewError(connect.CodeUnauthenticated, err)
+			return nil, connect.NewError(connect.CodeUnauthenticated, err.Error()).WithCause(err)
 		case errors.Is(err, apptask.ErrAuthServiceUnavailable):
 			s.logger.Error("auth service unavailable during list active tasks", slog.String("error", err.Error()))
 
-			return nil, connect.NewError(connect.CodeUnavailable, err)
+			return nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 		case errors.Is(err, apptask.ErrListActiveTasksRequestRequired),
 			errors.Is(err, apptask.ErrInvalidSortType):
 			s.logger.Warn("invalid list active tasks request", slog.String("error", err.Error()))
 
-			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+			return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 		default:
 			s.logger.Error("unexpected list active tasks error", slog.String("error", err.Error()))
 
-			return nil, connect.NewError(connect.CodeInternal, err)
+			return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 		}
 	}
 
@@ -366,7 +366,7 @@ func (s *Service) UpdateTask(
 	if token == "" {
 		s.logger.Warn("update task called without session token")
 
-		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("session token required"))
+		return nil, connect.NewError(connect.CodeUnauthenticated, "session token required")
 	}
 
 	var updateMask []string
@@ -387,7 +387,7 @@ func (s *Service) UpdateTask(
 			if err != nil {
 				s.logger.Warn("invalid task status in update", slog.String("error", err.Error()))
 
-				return nil, connect.NewError(connect.CodeInvalidArgument, err)
+				return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 			}
 
 			useCaseReq.TaskStatus = &status
@@ -416,15 +416,15 @@ func (s *Service) UpdateTask(
 		case errors.Is(err, apptask.ErrUnauthorized):
 			s.logger.Info("unauthorized update task attempt")
 
-			return nil, connect.NewError(connect.CodeUnauthenticated, err)
+			return nil, connect.NewError(connect.CodeUnauthenticated, err.Error()).WithCause(err)
 		case errors.Is(err, apptask.ErrAuthServiceUnavailable):
 			s.logger.Error("auth service unavailable during update task", slog.String("error", err.Error()))
 
-			return nil, connect.NewError(connect.CodeUnavailable, err)
+			return nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 		case errors.Is(err, apptask.ErrTaskNotFound):
 			s.logger.Info("task not found", slog.String("task_id", req.GetTaskId()))
 
-			return nil, connect.NewError(connect.CodeNotFound, err)
+			return nil, connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
 		case errors.Is(err, apptask.ErrTaskIDRequired),
 			errors.Is(err, domaintask.ErrIDInvalidFormat),
 			errors.Is(err, domaintask.ErrIDInvalidV7),
@@ -439,11 +439,11 @@ func (s *Service) UpdateTask(
 			errors.Is(err, domaintask.ErrInvalidTaskStatus):
 			s.logger.Warn("invalid update task request", slog.String("error", err.Error()))
 
-			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+			return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 		default:
 			s.logger.Error("unexpected update task error", slog.String("error", err.Error()))
 
-			return nil, connect.NewError(connect.CodeInternal, err)
+			return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 		}
 	}
 
@@ -478,7 +478,7 @@ func (s *Service) DeleteTask(
 	if token == "" {
 		s.logger.Warn("delete task called without session token")
 
-		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("session token required"))
+		return nil, connect.NewError(connect.CodeUnauthenticated, "session token required")
 	}
 
 	err := s.deleteTask.DeleteTask(ctx, &apptask.DeleteTaskRequest{
@@ -490,29 +490,29 @@ func (s *Service) DeleteTask(
 		case errors.Is(err, apptask.ErrUnauthorized):
 			s.logger.Info("unauthorized delete task attempt")
 
-			return nil, connect.NewError(connect.CodeUnauthenticated, err)
+			return nil, connect.NewError(connect.CodeUnauthenticated, err.Error()).WithCause(err)
 		case errors.Is(err, apptask.ErrAuthServiceUnavailable):
 			s.logger.Error("auth service unavailable during delete task", slog.String("error", err.Error()))
 
-			return nil, connect.NewError(connect.CodeUnavailable, err)
+			return nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 		case errors.Is(err, apptask.ErrCancelRemindFailed):
 			s.logger.Error("failed to cancel remind during delete task", slog.String("error", err.Error()))
 
-			return nil, connect.NewError(connect.CodeUnavailable, err)
+			return nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 		case errors.Is(err, apptask.ErrTaskNotFound):
 			s.logger.Info("task not found", slog.String("task_id", req.GetTaskId()))
 
-			return nil, connect.NewError(connect.CodeNotFound, err)
+			return nil, connect.NewError(connect.CodeNotFound, err.Error()).WithCause(err)
 		case errors.Is(err, apptask.ErrTaskIDRequired),
 			errors.Is(err, domaintask.ErrIDInvalidFormat),
 			errors.Is(err, domaintask.ErrIDInvalidV7):
 			s.logger.Warn("invalid delete task request", slog.String("error", err.Error()))
 
-			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+			return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 		default:
 			s.logger.Error("unexpected delete task error", slog.String("error", err.Error()))
 
-			return nil, connect.NewError(connect.CodeInternal, err)
+			return nil, connect.NewError(connect.CodeInternal, err.Error()).WithCause(err)
 		}
 	}
 

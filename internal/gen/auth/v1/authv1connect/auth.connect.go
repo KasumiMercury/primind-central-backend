@@ -5,43 +5,65 @@
 package authv1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
 	v1 "github.com/KasumiMercury/primind-central-backend/internal/gen/auth/v1"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// AuthServiceName is the fully-qualified name of the AuthService service.
 	AuthServiceName = "auth.v1.AuthService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// AuthServiceOIDCParamsProcedure is the fully-qualified name of the AuthService's OIDCParams RPC.
+	// AuthServiceOIDCParamsProcedure is the procedure name of the AuthService's OIDCParams RPC.
 	AuthServiceOIDCParamsProcedure = "/auth.v1.AuthService/OIDCParams"
-	// AuthServiceOIDCLoginProcedure is the fully-qualified name of the AuthService's OIDCLogin RPC.
+	// AuthServiceOIDCLoginProcedure is the procedure name of the AuthService's OIDCLogin RPC.
 	AuthServiceOIDCLoginProcedure = "/auth.v1.AuthService/OIDCLogin"
-	// AuthServiceLogoutProcedure is the fully-qualified name of the AuthService's Logout RPC.
+	// AuthServiceLogoutProcedure is the procedure name of the AuthService's Logout RPC.
 	AuthServiceLogoutProcedure = "/auth.v1.AuthService/Logout"
-	// AuthServiceValidateSessionProcedure is the fully-qualified name of the AuthService's
-	// ValidateSession RPC.
+	// AuthServiceValidateSessionProcedure is the procedure name of the AuthService's ValidateSession
+	// RPC.
 	AuthServiceValidateSessionProcedure = "/auth.v1.AuthService/ValidateSession"
+)
+
+var (
+	authServiceOIDCParamsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_auth_v1_auth_proto.Services().ByName("AuthService").Methods().ByName("OIDCParams"),
+			Procedure:  AuthServiceOIDCParamsProcedure,
+		}
+	})
+	authServiceOIDCLoginSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_auth_v1_auth_proto.Services().ByName("AuthService").Methods().ByName("OIDCLogin"),
+			Procedure:  AuthServiceOIDCLoginProcedure,
+		}
+	})
+	authServiceLogoutSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_auth_v1_auth_proto.Services().ByName("AuthService").Methods().ByName("Logout"),
+			Procedure:  AuthServiceLogoutProcedure,
+		}
+	})
+	authServiceValidateSessionSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_auth_v1_auth_proto.Services().ByName("AuthService").Methods().ByName("ValidateSession"),
+			Procedure:  AuthServiceValidateSessionProcedure,
+		}
+	})
 )
 
 // AuthServiceClient is a client for the auth.v1.AuthService service.
@@ -52,86 +74,10 @@ type AuthServiceClient interface {
 	ValidateSession(context.Context, *v1.ValidateSessionRequest) (*v1.ValidateSessionResponse, error)
 }
 
-// NewAuthServiceClient constructs a client for the auth.v1.AuthService service. By default, it uses
-// the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and sends
-// uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or
-// connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewAuthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) AuthServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	authServiceMethods := v1.File_auth_v1_auth_proto.Services().ByName("AuthService").Methods()
-	return &authServiceClient{
-		oIDCParams: connect.NewClient[v1.OIDCParamsRequest, v1.OIDCParamsResponse](
-			httpClient,
-			baseURL+AuthServiceOIDCParamsProcedure,
-			connect.WithSchema(authServiceMethods.ByName("OIDCParams")),
-			connect.WithClientOptions(opts...),
-		),
-		oIDCLogin: connect.NewClient[v1.OIDCLoginRequest, v1.OIDCLoginResponse](
-			httpClient,
-			baseURL+AuthServiceOIDCLoginProcedure,
-			connect.WithSchema(authServiceMethods.ByName("OIDCLogin")),
-			connect.WithClientOptions(opts...),
-		),
-		logout: connect.NewClient[v1.LogoutRequest, v1.LogoutResponse](
-			httpClient,
-			baseURL+AuthServiceLogoutProcedure,
-			connect.WithSchema(authServiceMethods.ByName("Logout")),
-			connect.WithClientOptions(opts...),
-		),
-		validateSession: connect.NewClient[v1.ValidateSessionRequest, v1.ValidateSessionResponse](
-			httpClient,
-			baseURL+AuthServiceValidateSessionProcedure,
-			connect.WithSchema(authServiceMethods.ByName("ValidateSession")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// authServiceClient implements AuthServiceClient.
-type authServiceClient struct {
-	oIDCParams      *connect.Client[v1.OIDCParamsRequest, v1.OIDCParamsResponse]
-	oIDCLogin       *connect.Client[v1.OIDCLoginRequest, v1.OIDCLoginResponse]
-	logout          *connect.Client[v1.LogoutRequest, v1.LogoutResponse]
-	validateSession *connect.Client[v1.ValidateSessionRequest, v1.ValidateSessionResponse]
-}
-
-// OIDCParams calls auth.v1.AuthService.OIDCParams.
-func (c *authServiceClient) OIDCParams(ctx context.Context, req *v1.OIDCParamsRequest) (*v1.OIDCParamsResponse, error) {
-	response, err := c.oIDCParams.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
-// OIDCLogin calls auth.v1.AuthService.OIDCLogin.
-func (c *authServiceClient) OIDCLogin(ctx context.Context, req *v1.OIDCLoginRequest) (*v1.OIDCLoginResponse, error) {
-	response, err := c.oIDCLogin.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
-// Logout calls auth.v1.AuthService.Logout.
-func (c *authServiceClient) Logout(ctx context.Context, req *v1.LogoutRequest) (*v1.LogoutResponse, error) {
-	response, err := c.logout.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
-// ValidateSession calls auth.v1.AuthService.ValidateSession.
-func (c *authServiceClient) ValidateSession(ctx context.Context, req *v1.ValidateSessionRequest) (*v1.ValidateSessionResponse, error) {
-	response, err := c.validateSession.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
+// NewAuthServiceClient constructs a client for the auth.v1.AuthService service. Multiple service
+// clients may share a single connect.Client.
+func NewAuthServiceClient(client *connect.Client) AuthServiceClient {
+	return &authServiceClient{client: client}
 }
 
 // AuthServiceHandler is an implementation of the auth.v1.AuthService service.
@@ -142,68 +88,118 @@ type AuthServiceHandler interface {
 	ValidateSession(context.Context, *v1.ValidateSessionRequest) (*v1.ValidateSessionResponse, error)
 }
 
-// NewAuthServiceHandler builds an HTTP handler from the service implementation. It returns the path
-// on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	authServiceMethods := v1.File_auth_v1_auth_proto.Services().ByName("AuthService").Methods()
-	authServiceOIDCParamsHandler := connect.NewUnaryHandlerSimple(
-		AuthServiceOIDCParamsProcedure,
-		svc.OIDCParams,
-		connect.WithSchema(authServiceMethods.ByName("OIDCParams")),
-		connect.WithHandlerOptions(opts...),
+// RegisterAuthServiceHandler registers svc as the auth.v1.AuthService implementation on server.
+func RegisterAuthServiceHandler(server *connect.Server, svc AuthServiceHandler) {
+	adapter := authServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: authServiceOIDCParamsSpec(), Handler: adapter.oIDCParams},
+		connect.Method{Spec: authServiceOIDCLoginSpec(), Handler: adapter.oIDCLogin},
+		connect.Method{Spec: authServiceLogoutSpec(), Handler: adapter.logout},
+		connect.Method{Spec: authServiceValidateSessionSpec(), Handler: adapter.validateSession},
 	)
-	authServiceOIDCLoginHandler := connect.NewUnaryHandlerSimple(
-		AuthServiceOIDCLoginProcedure,
-		svc.OIDCLogin,
-		connect.WithSchema(authServiceMethods.ByName("OIDCLogin")),
-		connect.WithHandlerOptions(opts...),
-	)
-	authServiceLogoutHandler := connect.NewUnaryHandlerSimple(
-		AuthServiceLogoutProcedure,
-		svc.Logout,
-		connect.WithSchema(authServiceMethods.ByName("Logout")),
-		connect.WithHandlerOptions(opts...),
-	)
-	authServiceValidateSessionHandler := connect.NewUnaryHandlerSimple(
-		AuthServiceValidateSessionProcedure,
-		svc.ValidateSession,
-		connect.WithSchema(authServiceMethods.ByName("ValidateSession")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/auth.v1.AuthService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case AuthServiceOIDCParamsProcedure:
-			authServiceOIDCParamsHandler.ServeHTTP(w, r)
-		case AuthServiceOIDCLoginProcedure:
-			authServiceOIDCLoginHandler.ServeHTTP(w, r)
-		case AuthServiceLogoutProcedure:
-			authServiceLogoutHandler.ServeHTTP(w, r)
-		case AuthServiceValidateSessionProcedure:
-			authServiceValidateSessionHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedAuthServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedAuthServiceHandler struct{}
 
 func (UnimplementedAuthServiceHandler) OIDCParams(context.Context, *v1.OIDCParamsRequest) (*v1.OIDCParamsResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.v1.AuthService.OIDCParams is not implemented"))
+	return nil, connect.NewError(connect.CodeUnimplemented, "auth.v1.AuthService.OIDCParams is not implemented")
 }
 
 func (UnimplementedAuthServiceHandler) OIDCLogin(context.Context, *v1.OIDCLoginRequest) (*v1.OIDCLoginResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.v1.AuthService.OIDCLogin is not implemented"))
+	return nil, connect.NewError(connect.CodeUnimplemented, "auth.v1.AuthService.OIDCLogin is not implemented")
 }
 
 func (UnimplementedAuthServiceHandler) Logout(context.Context, *v1.LogoutRequest) (*v1.LogoutResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.v1.AuthService.Logout is not implemented"))
+	return nil, connect.NewError(connect.CodeUnimplemented, "auth.v1.AuthService.Logout is not implemented")
 }
 
 func (UnimplementedAuthServiceHandler) ValidateSession(context.Context, *v1.ValidateSessionRequest) (*v1.ValidateSessionResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.v1.AuthService.ValidateSession is not implemented"))
+	return nil, connect.NewError(connect.CodeUnimplemented, "auth.v1.AuthService.ValidateSession is not implemented")
+}
+
+type authServiceClient struct {
+	client *connect.Client
+}
+
+func (c *authServiceClient) OIDCParams(ctx context.Context, req *v1.OIDCParamsRequest) (*v1.OIDCParamsResponse, error) {
+	var res v1.OIDCParamsResponse
+	if err := c.client.CallUnary(ctx, authServiceOIDCParamsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *authServiceClient) OIDCLogin(ctx context.Context, req *v1.OIDCLoginRequest) (*v1.OIDCLoginResponse, error) {
+	var res v1.OIDCLoginResponse
+	if err := c.client.CallUnary(ctx, authServiceOIDCLoginSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *authServiceClient) Logout(ctx context.Context, req *v1.LogoutRequest) (*v1.LogoutResponse, error) {
+	var res v1.LogoutResponse
+	if err := c.client.CallUnary(ctx, authServiceLogoutSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *authServiceClient) ValidateSession(ctx context.Context, req *v1.ValidateSessionRequest) (*v1.ValidateSessionResponse, error) {
+	var res v1.ValidateSessionResponse
+	if err := c.client.CallUnary(ctx, authServiceValidateSessionSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type authServiceHandler struct{ svc AuthServiceHandler }
+
+func (h authServiceHandler) oIDCParams(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.OIDCParamsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.OIDCParams(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h authServiceHandler) oIDCLogin(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.OIDCLoginRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.OIDCLogin(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h authServiceHandler) logout(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.LogoutRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.Logout(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h authServiceHandler) validateSession(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ValidateSessionRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ValidateSession(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

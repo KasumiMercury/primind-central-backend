@@ -5,40 +5,48 @@
 package devicev1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
 	v1 "github.com/KasumiMercury/primind-central-backend/internal/gen/device/v1"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// DeviceServiceName is the fully-qualified name of the DeviceService service.
 	DeviceServiceName = "device.v1.DeviceService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// DeviceServiceRegisterDeviceProcedure is the fully-qualified name of the DeviceService's
-	// RegisterDevice RPC.
+	// DeviceServiceRegisterDeviceProcedure is the procedure name of the DeviceService's RegisterDevice
+	// RPC.
 	DeviceServiceRegisterDeviceProcedure = "/device.v1.DeviceService/RegisterDevice"
-	// DeviceServiceGetUserDevicesProcedure is the fully-qualified name of the DeviceService's
-	// GetUserDevices RPC.
+	// DeviceServiceGetUserDevicesProcedure is the procedure name of the DeviceService's GetUserDevices
+	// RPC.
 	DeviceServiceGetUserDevicesProcedure = "/device.v1.DeviceService/GetUserDevices"
+)
+
+var (
+	deviceServiceRegisterDeviceSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_device_v1_device_proto.Services().ByName("DeviceService").Methods().ByName("RegisterDevice"),
+			Procedure:  DeviceServiceRegisterDeviceProcedure,
+		}
+	})
+	deviceServiceGetUserDevicesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_device_v1_device_proto.Services().ByName("DeviceService").Methods().ByName("GetUserDevices"),
+			Procedure:  DeviceServiceGetUserDevicesProcedure,
+		}
+	})
 )
 
 // DeviceServiceClient is a client for the device.v1.DeviceService service.
@@ -47,54 +55,10 @@ type DeviceServiceClient interface {
 	GetUserDevices(context.Context, *v1.GetUserDevicesRequest) (*v1.GetUserDevicesResponse, error)
 }
 
-// NewDeviceServiceClient constructs a client for the device.v1.DeviceService service. By default,
-// it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and
-// sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC()
-// or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewDeviceServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) DeviceServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	deviceServiceMethods := v1.File_device_v1_device_proto.Services().ByName("DeviceService").Methods()
-	return &deviceServiceClient{
-		registerDevice: connect.NewClient[v1.RegisterDeviceRequest, v1.RegisterDeviceResponse](
-			httpClient,
-			baseURL+DeviceServiceRegisterDeviceProcedure,
-			connect.WithSchema(deviceServiceMethods.ByName("RegisterDevice")),
-			connect.WithClientOptions(opts...),
-		),
-		getUserDevices: connect.NewClient[v1.GetUserDevicesRequest, v1.GetUserDevicesResponse](
-			httpClient,
-			baseURL+DeviceServiceGetUserDevicesProcedure,
-			connect.WithSchema(deviceServiceMethods.ByName("GetUserDevices")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// deviceServiceClient implements DeviceServiceClient.
-type deviceServiceClient struct {
-	registerDevice *connect.Client[v1.RegisterDeviceRequest, v1.RegisterDeviceResponse]
-	getUserDevices *connect.Client[v1.GetUserDevicesRequest, v1.GetUserDevicesResponse]
-}
-
-// RegisterDevice calls device.v1.DeviceService.RegisterDevice.
-func (c *deviceServiceClient) RegisterDevice(ctx context.Context, req *v1.RegisterDeviceRequest) (*v1.RegisterDeviceResponse, error) {
-	response, err := c.registerDevice.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
-// GetUserDevices calls device.v1.DeviceService.GetUserDevices.
-func (c *deviceServiceClient) GetUserDevices(ctx context.Context, req *v1.GetUserDevicesRequest) (*v1.GetUserDevicesResponse, error) {
-	response, err := c.getUserDevices.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
+// NewDeviceServiceClient constructs a client for the device.v1.DeviceService service. Multiple
+// service clients may share a single connect.Client.
+func NewDeviceServiceClient(client *connect.Client) DeviceServiceClient {
+	return &deviceServiceClient{client: client}
 }
 
 // DeviceServiceHandler is an implementation of the device.v1.DeviceService service.
@@ -103,44 +67,69 @@ type DeviceServiceHandler interface {
 	GetUserDevices(context.Context, *v1.GetUserDevicesRequest) (*v1.GetUserDevicesResponse, error)
 }
 
-// NewDeviceServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewDeviceServiceHandler(svc DeviceServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	deviceServiceMethods := v1.File_device_v1_device_proto.Services().ByName("DeviceService").Methods()
-	deviceServiceRegisterDeviceHandler := connect.NewUnaryHandlerSimple(
-		DeviceServiceRegisterDeviceProcedure,
-		svc.RegisterDevice,
-		connect.WithSchema(deviceServiceMethods.ByName("RegisterDevice")),
-		connect.WithHandlerOptions(opts...),
+// RegisterDeviceServiceHandler registers svc as the device.v1.DeviceService implementation on
+// server.
+func RegisterDeviceServiceHandler(server *connect.Server, svc DeviceServiceHandler) {
+	adapter := deviceServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: deviceServiceRegisterDeviceSpec(), Handler: adapter.registerDevice},
+		connect.Method{Spec: deviceServiceGetUserDevicesSpec(), Handler: adapter.getUserDevices},
 	)
-	deviceServiceGetUserDevicesHandler := connect.NewUnaryHandlerSimple(
-		DeviceServiceGetUserDevicesProcedure,
-		svc.GetUserDevices,
-		connect.WithSchema(deviceServiceMethods.ByName("GetUserDevices")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/device.v1.DeviceService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case DeviceServiceRegisterDeviceProcedure:
-			deviceServiceRegisterDeviceHandler.ServeHTTP(w, r)
-		case DeviceServiceGetUserDevicesProcedure:
-			deviceServiceGetUserDevicesHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedDeviceServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedDeviceServiceHandler struct{}
 
 func (UnimplementedDeviceServiceHandler) RegisterDevice(context.Context, *v1.RegisterDeviceRequest) (*v1.RegisterDeviceResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("device.v1.DeviceService.RegisterDevice is not implemented"))
+	return nil, connect.NewError(connect.CodeUnimplemented, "device.v1.DeviceService.RegisterDevice is not implemented")
 }
 
 func (UnimplementedDeviceServiceHandler) GetUserDevices(context.Context, *v1.GetUserDevicesRequest) (*v1.GetUserDevicesResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("device.v1.DeviceService.GetUserDevices is not implemented"))
+	return nil, connect.NewError(connect.CodeUnimplemented, "device.v1.DeviceService.GetUserDevices is not implemented")
+}
+
+type deviceServiceClient struct {
+	client *connect.Client
+}
+
+func (c *deviceServiceClient) RegisterDevice(ctx context.Context, req *v1.RegisterDeviceRequest) (*v1.RegisterDeviceResponse, error) {
+	var res v1.RegisterDeviceResponse
+	if err := c.client.CallUnary(ctx, deviceServiceRegisterDeviceSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *deviceServiceClient) GetUserDevices(ctx context.Context, req *v1.GetUserDevicesRequest) (*v1.GetUserDevicesResponse, error) {
+	var res v1.GetUserDevicesResponse
+	if err := c.client.CallUnary(ctx, deviceServiceGetUserDevicesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type deviceServiceHandler struct{ svc DeviceServiceHandler }
+
+func (h deviceServiceHandler) registerDevice(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.RegisterDeviceRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RegisterDevice(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h deviceServiceHandler) getUserDevices(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetUserDevicesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetUserDevices(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

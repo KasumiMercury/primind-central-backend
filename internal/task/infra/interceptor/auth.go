@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	connect "connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 )
 
 type contextKey string
@@ -15,16 +15,14 @@ const (
 )
 const sessionTokenKey contextKey = "session_token"
 
-func AuthInterceptor() connect.UnaryInterceptorFunc {
-	return func(next connect.UnaryFunc) connect.UnaryFunc {
-		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
-			if req.Spec().IsClient {
-				return next(ctx, req)
-			}
+func AuthInterceptor() connect.ServerInterceptor {
+	return func(next connect.ServerFunc) connect.ServerFunc {
+		return func(ctx context.Context, spec connect.Spec, stream connect.ServerStream) error {
+			info, _ := connect.CallInfoForServerContext(ctx)
 
-			rawToken := strings.TrimSpace(req.Header().Get(tokenHeader))
+			rawToken := strings.TrimSpace(info.RequestHeader().Get(tokenHeader))
 			if rawToken == "" {
-				return nil, connect.NewError(connect.CodeUnauthenticated, ErrTokenHeaderNotFound)
+				return connect.NewError(connect.CodeUnauthenticated, ErrTokenHeaderNotFound.Error()).WithCause(ErrTokenHeaderNotFound)
 			}
 
 			token := rawToken
@@ -34,7 +32,7 @@ func AuthInterceptor() connect.UnaryInterceptorFunc {
 
 			ctx = context.WithValue(ctx, sessionTokenKey, token)
 
-			return next(ctx, req)
+			return next(ctx, spec, stream)
 		}
 	}
 }
