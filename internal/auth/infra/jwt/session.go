@@ -1,12 +1,12 @@
 package jwt
 
 import (
+	"crypto/sha3"
 	"fmt"
 	"time"
 
 	"github.com/go-jose/go-jose/v4"
 	"github.com/go-jose/go-jose/v4/jwt"
-	"golang.org/x/crypto/sha3"
 
 	sessionCfg "github.com/KasumiMercury/primind-central-backend/internal/auth/config/session"
 	domain "github.com/KasumiMercury/primind-central-backend/internal/auth/domain/session"
