@@ -8,7 +8,7 @@ require (
 	cloud.google.com/go/cloudtasks v1.20.0
 	connectrpc.com/connect v1.21.1
 	connectrpc.com/grpchealth v1.5.0
-	connectrpc.com/otelconnect v0.9.0
+	connectrpc.com/otelconnect v0.12.0
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.62.0
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace v1.38.0
 	github.com/coreos/go-oidc/v3 v3.21.0
@@ -49,6 +49,7 @@ require (
 	cloud.google.com/go/monitoring v1.30.0 // indirect
 	cloud.google.com/go/spanner v1.96.1 // indirect
 	cloud.google.com/go/trace v1.16.0 // indirect
+	connectrpc.com/connect/v2 v2.0.0 // indirect
 	dario.cat/mergo v1.0.2 // indirect
 	filippo.io/edwards25519 v1.1.1 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20261013165250-51075c6ea6bc // indirect
