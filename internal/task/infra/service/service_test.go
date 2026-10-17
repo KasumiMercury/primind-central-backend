@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	connect "connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	taskv1 "github.com/KasumiMercury/primind-central-backend/internal/gen/task/v1"
 	apptask "github.com/KasumiMercury/primind-central-backend/internal/task/app/task"
 	domaintask "github.com/KasumiMercury/primind-central-backend/internal/task/domain/task"
@@ -964,16 +964,19 @@ func TestDeleteTaskError(t *testing.T) {
 func ctxWithSessionToken(t *testing.T, token string) context.Context {
 	t.Helper()
 
-	req := connect.NewRequest(&taskv1.CreateTaskRequest{})
-	req.Header().Set("Authorization", "Bearer "+token)
+	info := &connect.CallInfo{}
+	info.RequestHeader().Set("Authorization", "Bearer "+token)
 
 	var capturedCtx context.Context
 
-	_, err := interceptor.AuthInterceptor()(func(ctx context.Context, _ connect.AnyRequest) (connect.AnyResponse, error) {
+	server := connect.NewServer(interceptor.AuthInterceptor())
+	server.SetUnknownHandler(func(ctx context.Context, _ connect.Spec, _ connect.ServerStream) error {
 		capturedCtx = ctx
 
-		return connect.NewResponse(&taskv1.CreateTaskResponse{}), nil
-	})(context.Background(), req)
+		return nil
+	})
+
+	err := server.Call(context.Background(), "/test.v1.TestService/Test", info, nil)
 	if err != nil {
 		t.Fatalf("failed to prepare context with token: %v", err)
 	}

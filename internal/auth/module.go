@@ -6,7 +6,8 @@ import (
 	"log/slog"
 	"net/http"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"connectrpc.com/otelconnect"
 	applogout "github.com/KasumiMercury/primind-central-backend/internal/auth/app/logout"
 	appoidc "github.com/KasumiMercury/primind-central-backend/internal/auth/app/oidc"
@@ -127,20 +128,23 @@ func NewHTTPHandler(ctx context.Context, repos Repositories) (string, http.Handl
 	authService := authsvc.NewService(paramsGenerator, loginHandler, sessionValidateCase, logoutHandler)
 
 	// Create OpenTelemetry interceptor for tracing
-	otelInterceptor, err := otelconnect.NewInterceptor()
+	otelInterceptor, err := otelconnect.NewServerInterceptor()
 	if err != nil {
 		logger.Error("failed to create otelconnect interceptor", slog.String("error", err.Error()))
 
 		return "", nil, fmt.Errorf("failed to create otelconnect interceptor: %w", err)
 	}
 
-	authPath, authHandler := authv1connect.NewAuthServiceHandler(
-		authService,
-		connect.WithInterceptors(
-			otelInterceptor,
-			middleware.ConnectLoggingInterceptor(moduleName),
-		),
+	server := connect.NewServer(
+		otelInterceptor,
+		middleware.ConnectLoggingInterceptor(moduleName),
 	)
+	authv1connect.RegisterAuthServiceHandler(server, authService)
+
+	authHandler := http.NewServeMux()
+	connecthttp.Mount(authHandler, server)
+
+	authPath := "/" + authv1connect.AuthServiceName + "/"
 	logger.Info("auth service handler registered", slog.String("path", authPath))
 
 	return authPath, authHandler, nil

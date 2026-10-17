@@ -5,7 +5,7 @@ import (
 	"errors"
 	"log/slog"
 
-	connect "connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	appdevice "github.com/KasumiMercury/primind-central-backend/internal/device/app/device"
 	domaindevice "github.com/KasumiMercury/primind-central-backend/internal/device/domain/device"
 	"github.com/KasumiMercury/primind-central-backend/internal/device/infra/interceptor"
@@ -37,21 +37,21 @@ func (s *Service) RegisterDevice(
 	req *devicev1.RegisterDeviceRequest,
 ) (*devicev1.RegisterDeviceResponse, error) {
 	if req == nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("request is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, "request is required")
 	}
 
 	token := extractSessionTokenFromContext(ctx)
 	if token == "" {
 		s.logger.Warn("register device called without session token")
 
-		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("session token required"))
+		return nil, connect.NewError(connect.CodeUnauthenticated, "session token required")
 	}
 
 	platform, err := protoPlatformToDomain(req.GetPlatform())
 	if err != nil {
 		s.logger.Warn("invalid platform", slog.String("error", err.Error()))
 
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	}
 
 	var deviceID *string
@@ -94,15 +94,15 @@ func (s *Service) handleRegisterDeviceError(err error) (*devicev1.RegisterDevice
 	case errors.Is(err, appdevice.ErrUnauthorized):
 		s.logger.Info("unauthorized register device attempt")
 
-		return nil, connect.NewError(connect.CodeUnauthenticated, err)
+		return nil, connect.NewError(connect.CodeUnauthenticated, err.Error()).WithCause(err)
 	case errors.Is(err, appdevice.ErrAuthServiceUnavailable):
 		s.logger.Error("auth service unavailable during register device", slog.String("error", err.Error()))
 
-		return nil, connect.NewError(connect.CodeUnavailable, err)
+		return nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 	case errors.Is(err, appdevice.ErrDeviceAlreadyOwned):
 		s.logger.Warn("device already owned by another user", slog.String("error", err.Error()))
 
-		return nil, connect.NewError(connect.CodePermissionDenied, err)
+		return nil, connect.NewError(connect.CodePermissionDenied, err.Error()).WithCause(err)
 	case errors.Is(err, domaindevice.ErrIDInvalidFormat),
 		errors.Is(err, domaindevice.ErrIDInvalidV7),
 		errors.Is(err, domaindevice.ErrTimezoneRequired),
@@ -111,11 +111,11 @@ func (s *Service) handleRegisterDeviceError(err error) (*devicev1.RegisterDevice
 		errors.Is(err, domaindevice.ErrInvalidPlatform):
 		s.logger.Warn("invalid register device request", slog.String("error", err.Error()))
 
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	default:
 		s.logger.Error("unexpected register device error", slog.String("error", err.Error()))
 
-		return nil, connect.NewError(connect.CodeInternal, errors.New("internal server error"))
+		return nil, connect.NewError(connect.CodeInternal, "internal server error")
 	}
 }
 
@@ -143,14 +143,14 @@ func (s *Service) GetUserDevices(
 	req *devicev1.GetUserDevicesRequest,
 ) (*devicev1.GetUserDevicesResponse, error) {
 	if req == nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("request is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, "request is required")
 	}
 
 	token := extractSessionTokenFromContext(ctx)
 	if token == "" {
 		s.logger.Warn("get user devices called without session token")
 
-		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("session token required"))
+		return nil, connect.NewError(connect.CodeUnauthenticated, "session token required")
 	}
 
 	result, err := s.getUserDevices.GetUserDevices(ctx, &appdevice.GetUserDevicesRequest{
@@ -185,18 +185,18 @@ func (s *Service) handleGetUserDevicesError(err error) (*devicev1.GetUserDevices
 	case errors.Is(err, appdevice.ErrUnauthorized):
 		s.logger.Info("unauthorized get user devices attempt")
 
-		return nil, connect.NewError(connect.CodeUnauthenticated, err)
+		return nil, connect.NewError(connect.CodeUnauthenticated, err.Error()).WithCause(err)
 	case errors.Is(err, appdevice.ErrAuthServiceUnavailable):
 		s.logger.Error("auth service unavailable during get user devices", slog.String("error", err.Error()))
 
-		return nil, connect.NewError(connect.CodeUnavailable, err)
+		return nil, connect.NewError(connect.CodeUnavailable, err.Error()).WithCause(err)
 	case errors.Is(err, appdevice.ErrGetUserDevicesRequestRequired):
 		s.logger.Warn("get user devices request required", slog.String("error", err.Error()))
 
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		return nil, connect.NewError(connect.CodeInvalidArgument, err.Error()).WithCause(err)
 	default:
 		s.logger.Error("unexpected get user devices error", slog.String("error", err.Error()))
 
-		return nil, connect.NewError(connect.CodeInternal, errors.New("internal server error"))
+		return nil, connect.NewError(connect.CodeInternal, "internal server error")
 	}
 }

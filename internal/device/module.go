@@ -6,7 +6,8 @@ import (
 	"log/slog"
 	"net/http"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"connectrpc.com/otelconnect"
 	appdevice "github.com/KasumiMercury/primind-central-backend/internal/device/app/device"
 	domaindevice "github.com/KasumiMercury/primind-central-backend/internal/device/domain/device"
@@ -57,21 +58,24 @@ func NewHTTPHandlerWithRepositories(ctx context.Context, repos Repositories) (st
 	deviceService := devicesvc.NewService(registerDeviceUseCase, getUserDevicesUseCase)
 
 	// Create OpenTelemetry interceptor for tracing
-	otelInterceptor, err := otelconnect.NewInterceptor()
+	otelInterceptor, err := otelconnect.NewServerInterceptor()
 	if err != nil {
 		logger.Error("failed to create otelconnect interceptor", slog.String("error", err.Error()))
 
 		return "", nil, fmt.Errorf("failed to create otelconnect interceptor: %w", err)
 	}
 
-	devicePath, deviceHandler := devicev1connect.NewDeviceServiceHandler(
-		deviceService,
-		connect.WithInterceptors(
-			otelInterceptor,
-			middleware.ConnectLoggingInterceptor(moduleName),
-			interceptor.AuthInterceptor(),
-		),
+	server := connect.NewServer(
+		otelInterceptor,
+		middleware.ConnectLoggingInterceptor(moduleName),
+		interceptor.AuthInterceptor(),
 	)
+	devicev1connect.RegisterDeviceServiceHandler(server, deviceService)
+
+	deviceHandler := http.NewServeMux()
+	connecthttp.Mount(deviceHandler, server)
+
+	devicePath := "/" + devicev1connect.DeviceServiceName + "/"
 	logger.Info("device service handler registered", slog.String("path", devicePath))
 
 	return devicePath, deviceHandler, nil

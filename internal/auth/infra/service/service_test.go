@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	connect "connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	applogout "github.com/KasumiMercury/primind-central-backend/internal/auth/app/logout"
 	appoidc "github.com/KasumiMercury/primind-central-backend/internal/auth/app/oidc"
 	appsession "github.com/KasumiMercury/primind-central-backend/internal/auth/app/session"

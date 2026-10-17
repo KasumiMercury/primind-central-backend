@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	connect "connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 )
 
 func TestAuthInterceptorSuccess(t *testing.T) {
@@ -38,26 +38,26 @@ func TestAuthInterceptorSuccess(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			req := connect.NewRequest(&struct{}{})
+			info := &connect.CallInfo{}
 			if tt.headerValue != "" {
-				req.Header().Set(tokenHeader, tt.headerValue)
+				info.RequestHeader().Set(tokenHeader, tt.headerValue)
 			}
 
-			interceptor := AuthInterceptor()
+			server := connect.NewServer(AuthInterceptor())
 
 			var called bool
 
-			next := func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+			server.SetUnknownHandler(func(ctx context.Context, _ connect.Spec, _ connect.ServerStream) error {
 				called = true
 
 				if got := ExtractSessionToken(ctx); got != tt.expectedToken {
 					t.Fatalf("ExtractSessionToken() = %q, want %q", got, tt.expectedToken)
 				}
 
-				return connect.NewResponse(&struct{}{}), nil
-			}
+				return nil
+			})
 
-			if _, err := interceptor(next)(context.Background(), req); err != nil {
+			if err := server.Call(context.Background(), "/test.v1.TestService/Test", info, nil); err != nil {
 				t.Fatalf("AuthInterceptor returned error: %v", err)
 			}
 
@@ -98,27 +98,27 @@ func TestAuthInterceptorError(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			req := connect.NewRequest(&struct{}{})
+			info := &connect.CallInfo{}
 			if tt.headerValue != "" {
-				req.Header().Set(tokenHeader, tt.headerValue)
+				info.RequestHeader().Set(tokenHeader, tt.headerValue)
 			}
 
-			interceptor := AuthInterceptor()
+			server := connect.NewServer(AuthInterceptor())
 
 			var called bool
 
-			next := func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+			server.SetUnknownHandler(func(ctx context.Context, _ connect.Spec, _ connect.ServerStream) error {
 				called = true
 
 				if got := ExtractSessionToken(ctx); got != tt.expectedToken {
 					t.Fatalf("ExtractSessionToken() = %q, want %q", got, tt.expectedToken)
 				}
 
-				return nil, errNext
-			}
+				return errNext
+			})
 
 			if tt.callNext {
-				if _, err := interceptor(next)(context.Background(), req); !errors.Is(err, errNext) {
+				if err := server.Call(context.Background(), "/test.v1.TestService/Test", info, nil); !errors.Is(err, errNext) {
 					t.Fatalf("expected error %v, got %v", errNext, err)
 				}
 
@@ -126,7 +126,7 @@ func TestAuthInterceptorError(t *testing.T) {
 					t.Fatalf("next handler was not called")
 				}
 			} else {
-				if _, err := interceptor(next)(context.Background(), req); !errors.Is(err, ErrTokenHeaderNotFound) {
+				if err := server.Call(context.Background(), "/test.v1.TestService/Test", info, nil); !errors.Is(err, ErrTokenHeaderNotFound) {
 					t.Fatalf("expected error %v, got %v", ErrTokenHeaderNotFound, err)
 				}
 			}

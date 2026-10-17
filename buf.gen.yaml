@@ -7,7 +7,6 @@ plugins:
       out: internal/gen
       opt:
           - paths=source_relative
-          - simple
 managed:
     enabled: true
     override:

@@ -5,20 +5,11 @@
 package taskv1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
 	v1 "github.com/KasumiMercury/primind-central-backend/internal/gen/task/v1"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// TaskServiceName is the fully-qualified name of the TaskService service.
@@ -28,31 +19,69 @@ const (
 	UserPeriodSettingsServiceName = "task.v1.UserPeriodSettingsService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// TaskServiceCreateTaskProcedure is the fully-qualified name of the TaskService's CreateTask RPC.
+	// TaskServiceCreateTaskProcedure is the procedure name of the TaskService's CreateTask RPC.
 	TaskServiceCreateTaskProcedure = "/task.v1.TaskService/CreateTask"
-	// TaskServiceGetTaskProcedure is the fully-qualified name of the TaskService's GetTask RPC.
+	// TaskServiceGetTaskProcedure is the procedure name of the TaskService's GetTask RPC.
 	TaskServiceGetTaskProcedure = "/task.v1.TaskService/GetTask"
-	// TaskServiceListActiveTasksProcedure is the fully-qualified name of the TaskService's
-	// ListActiveTasks RPC.
+	// TaskServiceListActiveTasksProcedure is the procedure name of the TaskService's ListActiveTasks
+	// RPC.
 	TaskServiceListActiveTasksProcedure = "/task.v1.TaskService/ListActiveTasks"
-	// TaskServiceUpdateTaskProcedure is the fully-qualified name of the TaskService's UpdateTask RPC.
+	// TaskServiceUpdateTaskProcedure is the procedure name of the TaskService's UpdateTask RPC.
 	TaskServiceUpdateTaskProcedure = "/task.v1.TaskService/UpdateTask"
-	// TaskServiceDeleteTaskProcedure is the fully-qualified name of the TaskService's DeleteTask RPC.
+	// TaskServiceDeleteTaskProcedure is the procedure name of the TaskService's DeleteTask RPC.
 	TaskServiceDeleteTaskProcedure = "/task.v1.TaskService/DeleteTask"
-	// UserPeriodSettingsServiceGetUserPeriodSettingsProcedure is the fully-qualified name of the
+	// UserPeriodSettingsServiceGetUserPeriodSettingsProcedure is the procedure name of the
 	// UserPeriodSettingsService's GetUserPeriodSettings RPC.
 	UserPeriodSettingsServiceGetUserPeriodSettingsProcedure = "/task.v1.UserPeriodSettingsService/GetUserPeriodSettings"
-	// UserPeriodSettingsServiceUpdateUserPeriodSettingsProcedure is the fully-qualified name of the
+	// UserPeriodSettingsServiceUpdateUserPeriodSettingsProcedure is the procedure name of the
 	// UserPeriodSettingsService's UpdateUserPeriodSettings RPC.
 	UserPeriodSettingsServiceUpdateUserPeriodSettingsProcedure = "/task.v1.UserPeriodSettingsService/UpdateUserPeriodSettings"
+)
+
+var (
+	taskServiceCreateTaskSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_task_v1_task_proto.Services().ByName("TaskService").Methods().ByName("CreateTask"),
+			Procedure:  TaskServiceCreateTaskProcedure,
+		}
+	})
+	taskServiceGetTaskSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_task_v1_task_proto.Services().ByName("TaskService").Methods().ByName("GetTask"),
+			Procedure:  TaskServiceGetTaskProcedure,
+		}
+	})
+	taskServiceListActiveTasksSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_task_v1_task_proto.Services().ByName("TaskService").Methods().ByName("ListActiveTasks"),
+			Procedure:  TaskServiceListActiveTasksProcedure,
+		}
+	})
+	taskServiceUpdateTaskSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_task_v1_task_proto.Services().ByName("TaskService").Methods().ByName("UpdateTask"),
+			Procedure:  TaskServiceUpdateTaskProcedure,
+		}
+	})
+	taskServiceDeleteTaskSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_task_v1_task_proto.Services().ByName("TaskService").Methods().ByName("DeleteTask"),
+			Procedure:  TaskServiceDeleteTaskProcedure,
+		}
+	})
 )
 
 // TaskServiceClient is a client for the task.v1.TaskService service.
@@ -64,102 +93,10 @@ type TaskServiceClient interface {
 	DeleteTask(context.Context, *v1.DeleteTaskRequest) (*v1.DeleteTaskResponse, error)
 }
 
-// NewTaskServiceClient constructs a client for the task.v1.TaskService service. By default, it uses
-// the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and sends
-// uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or
-// connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewTaskServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) TaskServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	taskServiceMethods := v1.File_task_v1_task_proto.Services().ByName("TaskService").Methods()
-	return &taskServiceClient{
-		createTask: connect.NewClient[v1.CreateTaskRequest, v1.CreateTaskResponse](
-			httpClient,
-			baseURL+TaskServiceCreateTaskProcedure,
-			connect.WithSchema(taskServiceMethods.ByName("CreateTask")),
-			connect.WithClientOptions(opts...),
-		),
-		getTask: connect.NewClient[v1.GetTaskRequest, v1.GetTaskResponse](
-			httpClient,
-			baseURL+TaskServiceGetTaskProcedure,
-			connect.WithSchema(taskServiceMethods.ByName("GetTask")),
-			connect.WithClientOptions(opts...),
-		),
-		listActiveTasks: connect.NewClient[v1.ListActiveTasksRequest, v1.ListActiveTasksResponse](
-			httpClient,
-			baseURL+TaskServiceListActiveTasksProcedure,
-			connect.WithSchema(taskServiceMethods.ByName("ListActiveTasks")),
-			connect.WithClientOptions(opts...),
-		),
-		updateTask: connect.NewClient[v1.UpdateTaskRequest, v1.UpdateTaskResponse](
-			httpClient,
-			baseURL+TaskServiceUpdateTaskProcedure,
-			connect.WithSchema(taskServiceMethods.ByName("UpdateTask")),
-			connect.WithClientOptions(opts...),
-		),
-		deleteTask: connect.NewClient[v1.DeleteTaskRequest, v1.DeleteTaskResponse](
-			httpClient,
-			baseURL+TaskServiceDeleteTaskProcedure,
-			connect.WithSchema(taskServiceMethods.ByName("DeleteTask")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// taskServiceClient implements TaskServiceClient.
-type taskServiceClient struct {
-	createTask      *connect.Client[v1.CreateTaskRequest, v1.CreateTaskResponse]
-	getTask         *connect.Client[v1.GetTaskRequest, v1.GetTaskResponse]
-	listActiveTasks *connect.Client[v1.ListActiveTasksRequest, v1.ListActiveTasksResponse]
-	updateTask      *connect.Client[v1.UpdateTaskRequest, v1.UpdateTaskResponse]
-	deleteTask      *connect.Client[v1.DeleteTaskRequest, v1.DeleteTaskResponse]
-}
-
-// CreateTask calls task.v1.TaskService.CreateTask.
-func (c *taskServiceClient) CreateTask(ctx context.Context, req *v1.CreateTaskRequest) (*v1.CreateTaskResponse, error) {
-	response, err := c.createTask.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
-// GetTask calls task.v1.TaskService.GetTask.
-func (c *taskServiceClient) GetTask(ctx context.Context, req *v1.GetTaskRequest) (*v1.GetTaskResponse, error) {
-	response, err := c.getTask.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
-// ListActiveTasks calls task.v1.TaskService.ListActiveTasks.
-func (c *taskServiceClient) ListActiveTasks(ctx context.Context, req *v1.ListActiveTasksRequest) (*v1.ListActiveTasksResponse, error) {
-	response, err := c.listActiveTasks.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
-// UpdateTask calls task.v1.TaskService.UpdateTask.
-func (c *taskServiceClient) UpdateTask(ctx context.Context, req *v1.UpdateTaskRequest) (*v1.UpdateTaskResponse, error) {
-	response, err := c.updateTask.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
-// DeleteTask calls task.v1.TaskService.DeleteTask.
-func (c *taskServiceClient) DeleteTask(ctx context.Context, req *v1.DeleteTaskRequest) (*v1.DeleteTaskResponse, error) {
-	response, err := c.deleteTask.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
+// NewTaskServiceClient constructs a client for the task.v1.TaskService service. Multiple service
+// clients may share a single connect.Client.
+func NewTaskServiceClient(client *connect.Client) TaskServiceClient {
+	return &taskServiceClient{client: client}
 }
 
 // TaskServiceHandler is an implementation of the task.v1.TaskService service.
@@ -171,83 +108,163 @@ type TaskServiceHandler interface {
 	DeleteTask(context.Context, *v1.DeleteTaskRequest) (*v1.DeleteTaskResponse, error)
 }
 
-// NewTaskServiceHandler builds an HTTP handler from the service implementation. It returns the path
-// on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewTaskServiceHandler(svc TaskServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	taskServiceMethods := v1.File_task_v1_task_proto.Services().ByName("TaskService").Methods()
-	taskServiceCreateTaskHandler := connect.NewUnaryHandlerSimple(
-		TaskServiceCreateTaskProcedure,
-		svc.CreateTask,
-		connect.WithSchema(taskServiceMethods.ByName("CreateTask")),
-		connect.WithHandlerOptions(opts...),
+// RegisterTaskServiceHandler registers svc as the task.v1.TaskService implementation on server.
+func RegisterTaskServiceHandler(server *connect.Server, svc TaskServiceHandler) {
+	adapter := taskServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: taskServiceCreateTaskSpec(), Handler: adapter.createTask},
+		connect.Method{Spec: taskServiceGetTaskSpec(), Handler: adapter.getTask},
+		connect.Method{Spec: taskServiceListActiveTasksSpec(), Handler: adapter.listActiveTasks},
+		connect.Method{Spec: taskServiceUpdateTaskSpec(), Handler: adapter.updateTask},
+		connect.Method{Spec: taskServiceDeleteTaskSpec(), Handler: adapter.deleteTask},
 	)
-	taskServiceGetTaskHandler := connect.NewUnaryHandlerSimple(
-		TaskServiceGetTaskProcedure,
-		svc.GetTask,
-		connect.WithSchema(taskServiceMethods.ByName("GetTask")),
-		connect.WithHandlerOptions(opts...),
-	)
-	taskServiceListActiveTasksHandler := connect.NewUnaryHandlerSimple(
-		TaskServiceListActiveTasksProcedure,
-		svc.ListActiveTasks,
-		connect.WithSchema(taskServiceMethods.ByName("ListActiveTasks")),
-		connect.WithHandlerOptions(opts...),
-	)
-	taskServiceUpdateTaskHandler := connect.NewUnaryHandlerSimple(
-		TaskServiceUpdateTaskProcedure,
-		svc.UpdateTask,
-		connect.WithSchema(taskServiceMethods.ByName("UpdateTask")),
-		connect.WithHandlerOptions(opts...),
-	)
-	taskServiceDeleteTaskHandler := connect.NewUnaryHandlerSimple(
-		TaskServiceDeleteTaskProcedure,
-		svc.DeleteTask,
-		connect.WithSchema(taskServiceMethods.ByName("DeleteTask")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/task.v1.TaskService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case TaskServiceCreateTaskProcedure:
-			taskServiceCreateTaskHandler.ServeHTTP(w, r)
-		case TaskServiceGetTaskProcedure:
-			taskServiceGetTaskHandler.ServeHTTP(w, r)
-		case TaskServiceListActiveTasksProcedure:
-			taskServiceListActiveTasksHandler.ServeHTTP(w, r)
-		case TaskServiceUpdateTaskProcedure:
-			taskServiceUpdateTaskHandler.ServeHTTP(w, r)
-		case TaskServiceDeleteTaskProcedure:
-			taskServiceDeleteTaskHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedTaskServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedTaskServiceHandler struct{}
 
 func (UnimplementedTaskServiceHandler) CreateTask(context.Context, *v1.CreateTaskRequest) (*v1.CreateTaskResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("task.v1.TaskService.CreateTask is not implemented"))
+	return nil, connect.NewError(connect.CodeUnimplemented, "task.v1.TaskService.CreateTask is not implemented")
 }
 
 func (UnimplementedTaskServiceHandler) GetTask(context.Context, *v1.GetTaskRequest) (*v1.GetTaskResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("task.v1.TaskService.GetTask is not implemented"))
+	return nil, connect.NewError(connect.CodeUnimplemented, "task.v1.TaskService.GetTask is not implemented")
 }
 
 func (UnimplementedTaskServiceHandler) ListActiveTasks(context.Context, *v1.ListActiveTasksRequest) (*v1.ListActiveTasksResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("task.v1.TaskService.ListActiveTasks is not implemented"))
+	return nil, connect.NewError(connect.CodeUnimplemented, "task.v1.TaskService.ListActiveTasks is not implemented")
 }
 
 func (UnimplementedTaskServiceHandler) UpdateTask(context.Context, *v1.UpdateTaskRequest) (*v1.UpdateTaskResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("task.v1.TaskService.UpdateTask is not implemented"))
+	return nil, connect.NewError(connect.CodeUnimplemented, "task.v1.TaskService.UpdateTask is not implemented")
 }
 
 func (UnimplementedTaskServiceHandler) DeleteTask(context.Context, *v1.DeleteTaskRequest) (*v1.DeleteTaskResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("task.v1.TaskService.DeleteTask is not implemented"))
+	return nil, connect.NewError(connect.CodeUnimplemented, "task.v1.TaskService.DeleteTask is not implemented")
 }
+
+type taskServiceClient struct {
+	client *connect.Client
+}
+
+func (c *taskServiceClient) CreateTask(ctx context.Context, req *v1.CreateTaskRequest) (*v1.CreateTaskResponse, error) {
+	var res v1.CreateTaskResponse
+	if err := c.client.CallUnary(ctx, taskServiceCreateTaskSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *taskServiceClient) GetTask(ctx context.Context, req *v1.GetTaskRequest) (*v1.GetTaskResponse, error) {
+	var res v1.GetTaskResponse
+	if err := c.client.CallUnary(ctx, taskServiceGetTaskSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *taskServiceClient) ListActiveTasks(ctx context.Context, req *v1.ListActiveTasksRequest) (*v1.ListActiveTasksResponse, error) {
+	var res v1.ListActiveTasksResponse
+	if err := c.client.CallUnary(ctx, taskServiceListActiveTasksSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *taskServiceClient) UpdateTask(ctx context.Context, req *v1.UpdateTaskRequest) (*v1.UpdateTaskResponse, error) {
+	var res v1.UpdateTaskResponse
+	if err := c.client.CallUnary(ctx, taskServiceUpdateTaskSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *taskServiceClient) DeleteTask(ctx context.Context, req *v1.DeleteTaskRequest) (*v1.DeleteTaskResponse, error) {
+	var res v1.DeleteTaskResponse
+	if err := c.client.CallUnary(ctx, taskServiceDeleteTaskSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type taskServiceHandler struct{ svc TaskServiceHandler }
+
+func (h taskServiceHandler) createTask(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CreateTaskRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CreateTask(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h taskServiceHandler) getTask(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetTaskRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetTask(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h taskServiceHandler) listActiveTasks(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListActiveTasksRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListActiveTasks(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h taskServiceHandler) updateTask(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.UpdateTaskRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.UpdateTask(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h taskServiceHandler) deleteTask(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.DeleteTaskRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DeleteTask(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+var (
+	userPeriodSettingsServiceGetUserPeriodSettingsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_task_v1_task_proto.Services().ByName("UserPeriodSettingsService").Methods().ByName("GetUserPeriodSettings"),
+			Procedure:  UserPeriodSettingsServiceGetUserPeriodSettingsProcedure,
+		}
+	})
+	userPeriodSettingsServiceUpdateUserPeriodSettingsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_task_v1_task_proto.Services().ByName("UserPeriodSettingsService").Methods().ByName("UpdateUserPeriodSettings"),
+			Procedure:  UserPeriodSettingsServiceUpdateUserPeriodSettingsProcedure,
+		}
+	})
+)
 
 // UserPeriodSettingsServiceClient is a client for the task.v1.UserPeriodSettingsService service.
 type UserPeriodSettingsServiceClient interface {
@@ -256,53 +273,9 @@ type UserPeriodSettingsServiceClient interface {
 }
 
 // NewUserPeriodSettingsServiceClient constructs a client for the task.v1.UserPeriodSettingsService
-// service. By default, it uses the Connect protocol with the binary Protobuf Codec, asks for
-// gzipped responses, and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply
-// the connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewUserPeriodSettingsServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) UserPeriodSettingsServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	userPeriodSettingsServiceMethods := v1.File_task_v1_task_proto.Services().ByName("UserPeriodSettingsService").Methods()
-	return &userPeriodSettingsServiceClient{
-		getUserPeriodSettings: connect.NewClient[v1.GetUserPeriodSettingsRequest, v1.GetUserPeriodSettingsResponse](
-			httpClient,
-			baseURL+UserPeriodSettingsServiceGetUserPeriodSettingsProcedure,
-			connect.WithSchema(userPeriodSettingsServiceMethods.ByName("GetUserPeriodSettings")),
-			connect.WithClientOptions(opts...),
-		),
-		updateUserPeriodSettings: connect.NewClient[v1.UpdateUserPeriodSettingsRequest, v1.UpdateUserPeriodSettingsResponse](
-			httpClient,
-			baseURL+UserPeriodSettingsServiceUpdateUserPeriodSettingsProcedure,
-			connect.WithSchema(userPeriodSettingsServiceMethods.ByName("UpdateUserPeriodSettings")),
-			connect.WithClientOptions(opts...),
-		),
-	}
-}
-
-// userPeriodSettingsServiceClient implements UserPeriodSettingsServiceClient.
-type userPeriodSettingsServiceClient struct {
-	getUserPeriodSettings    *connect.Client[v1.GetUserPeriodSettingsRequest, v1.GetUserPeriodSettingsResponse]
-	updateUserPeriodSettings *connect.Client[v1.UpdateUserPeriodSettingsRequest, v1.UpdateUserPeriodSettingsResponse]
-}
-
-// GetUserPeriodSettings calls task.v1.UserPeriodSettingsService.GetUserPeriodSettings.
-func (c *userPeriodSettingsServiceClient) GetUserPeriodSettings(ctx context.Context, req *v1.GetUserPeriodSettingsRequest) (*v1.GetUserPeriodSettingsResponse, error) {
-	response, err := c.getUserPeriodSettings.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
-// UpdateUserPeriodSettings calls task.v1.UserPeriodSettingsService.UpdateUserPeriodSettings.
-func (c *userPeriodSettingsServiceClient) UpdateUserPeriodSettings(ctx context.Context, req *v1.UpdateUserPeriodSettingsRequest) (*v1.UpdateUserPeriodSettingsResponse, error) {
-	response, err := c.updateUserPeriodSettings.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
+// service. Multiple service clients may share a single connect.Client.
+func NewUserPeriodSettingsServiceClient(client *connect.Client) UserPeriodSettingsServiceClient {
+	return &userPeriodSettingsServiceClient{client: client}
 }
 
 // UserPeriodSettingsServiceHandler is an implementation of the task.v1.UserPeriodSettingsService
@@ -312,44 +285,71 @@ type UserPeriodSettingsServiceHandler interface {
 	UpdateUserPeriodSettings(context.Context, *v1.UpdateUserPeriodSettingsRequest) (*v1.UpdateUserPeriodSettingsResponse, error)
 }
 
-// NewUserPeriodSettingsServiceHandler builds an HTTP handler from the service implementation. It
-// returns the path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewUserPeriodSettingsServiceHandler(svc UserPeriodSettingsServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	userPeriodSettingsServiceMethods := v1.File_task_v1_task_proto.Services().ByName("UserPeriodSettingsService").Methods()
-	userPeriodSettingsServiceGetUserPeriodSettingsHandler := connect.NewUnaryHandlerSimple(
-		UserPeriodSettingsServiceGetUserPeriodSettingsProcedure,
-		svc.GetUserPeriodSettings,
-		connect.WithSchema(userPeriodSettingsServiceMethods.ByName("GetUserPeriodSettings")),
-		connect.WithHandlerOptions(opts...),
+// RegisterUserPeriodSettingsServiceHandler registers svc as the task.v1.UserPeriodSettingsService
+// implementation on server.
+func RegisterUserPeriodSettingsServiceHandler(server *connect.Server, svc UserPeriodSettingsServiceHandler) {
+	adapter := userPeriodSettingsServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: userPeriodSettingsServiceGetUserPeriodSettingsSpec(), Handler: adapter.getUserPeriodSettings},
+		connect.Method{Spec: userPeriodSettingsServiceUpdateUserPeriodSettingsSpec(), Handler: adapter.updateUserPeriodSettings},
 	)
-	userPeriodSettingsServiceUpdateUserPeriodSettingsHandler := connect.NewUnaryHandlerSimple(
-		UserPeriodSettingsServiceUpdateUserPeriodSettingsProcedure,
-		svc.UpdateUserPeriodSettings,
-		connect.WithSchema(userPeriodSettingsServiceMethods.ByName("UpdateUserPeriodSettings")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/task.v1.UserPeriodSettingsService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case UserPeriodSettingsServiceGetUserPeriodSettingsProcedure:
-			userPeriodSettingsServiceGetUserPeriodSettingsHandler.ServeHTTP(w, r)
-		case UserPeriodSettingsServiceUpdateUserPeriodSettingsProcedure:
-			userPeriodSettingsServiceUpdateUserPeriodSettingsHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
 }
 
 // UnimplementedUserPeriodSettingsServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedUserPeriodSettingsServiceHandler struct{}
 
 func (UnimplementedUserPeriodSettingsServiceHandler) GetUserPeriodSettings(context.Context, *v1.GetUserPeriodSettingsRequest) (*v1.GetUserPeriodSettingsResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("task.v1.UserPeriodSettingsService.GetUserPeriodSettings is not implemented"))
+	return nil, connect.NewError(connect.CodeUnimplemented, "task.v1.UserPeriodSettingsService.GetUserPeriodSettings is not implemented")
 }
 
 func (UnimplementedUserPeriodSettingsServiceHandler) UpdateUserPeriodSettings(context.Context, *v1.UpdateUserPeriodSettingsRequest) (*v1.UpdateUserPeriodSettingsResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("task.v1.UserPeriodSettingsService.UpdateUserPeriodSettings is not implemented"))
+	return nil, connect.NewError(connect.CodeUnimplemented, "task.v1.UserPeriodSettingsService.UpdateUserPeriodSettings is not implemented")
+}
+
+type userPeriodSettingsServiceClient struct {
+	client *connect.Client
+}
+
+func (c *userPeriodSettingsServiceClient) GetUserPeriodSettings(ctx context.Context, req *v1.GetUserPeriodSettingsRequest) (*v1.GetUserPeriodSettingsResponse, error) {
+	var res v1.GetUserPeriodSettingsResponse
+	if err := c.client.CallUnary(ctx, userPeriodSettingsServiceGetUserPeriodSettingsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *userPeriodSettingsServiceClient) UpdateUserPeriodSettings(ctx context.Context, req *v1.UpdateUserPeriodSettingsRequest) (*v1.UpdateUserPeriodSettingsResponse, error) {
+	var res v1.UpdateUserPeriodSettingsResponse
+	if err := c.client.CallUnary(ctx, userPeriodSettingsServiceUpdateUserPeriodSettingsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+type userPeriodSettingsServiceHandler struct {
+	svc UserPeriodSettingsServiceHandler
+}
+
+func (h userPeriodSettingsServiceHandler) getUserPeriodSettings(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetUserPeriodSettingsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetUserPeriodSettings(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h userPeriodSettingsServiceHandler) updateUserPeriodSettings(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.UpdateUserPeriodSettingsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.UpdateUserPeriodSettings(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
 }

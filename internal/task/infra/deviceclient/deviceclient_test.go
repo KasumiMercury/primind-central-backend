@@ -8,7 +8,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	connect "connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	devicev1 "github.com/KasumiMercury/primind-central-backend/internal/gen/device/v1"
 	devicev1connect "github.com/KasumiMercury/primind-central-backend/internal/gen/device/v1/devicev1connect"
 )
@@ -40,7 +41,7 @@ func (s *testDeviceService) RegisterDevice(context.Context, *devicev1.RegisterDe
 }
 
 func (s *testDeviceService) GetUserDevices(ctx context.Context, _ *devicev1.GetUserDevicesRequest) (*devicev1.GetUserDevicesResponse, error) {
-	if callInfo, ok := connect.CallInfoForHandlerContext(ctx); ok && s.authHeaderCh != nil {
+	if callInfo, ok := connect.CallInfoForServerContext(ctx); ok && s.authHeaderCh != nil {
 		s.authHeaderCh <- callInfo.RequestHeader().Get("Authorization")
 	}
 
@@ -64,9 +65,11 @@ func TestDeviceClientGetUserDevices_SendsAuthorizationHeader(t *testing.T) {
 			},
 		},
 	}
-	path, handler := devicev1connect.NewDeviceServiceHandler(svc)
+	server := connect.NewServer()
+	devicev1connect.RegisterDeviceServiceHandler(server, svc)
+
 	mux := http.NewServeMux()
-	mux.Handle(path, handler)
+	connecthttp.Mount(mux, server)
 
 	httpClient := &inMemoryHTTPClient{handler: mux}
 	client := NewDeviceClientWithHTTPClient("http://example", httpClient)
@@ -95,11 +98,13 @@ func TestDeviceClientGetUserDevices_MapsUnauthenticatedToErrUnauthorized(t *test
 
 	svc := &testDeviceService{
 		authHeaderCh: authHeaderCh,
-		getErr:       connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated")),
+		getErr:       connect.NewError(connect.CodeUnauthenticated, "unauthenticated"),
 	}
-	path, handler := devicev1connect.NewDeviceServiceHandler(svc)
+	server := connect.NewServer()
+	devicev1connect.RegisterDeviceServiceHandler(server, svc)
+
 	mux := http.NewServeMux()
-	mux.Handle(path, handler)
+	connecthttp.Mount(mux, server)
 
 	httpClient := &inMemoryHTTPClient{handler: mux}
 	client := NewDeviceClientWithHTTPClient("http://example", httpClient)

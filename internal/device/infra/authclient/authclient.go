@@ -6,7 +6,8 @@ import (
 	"log/slog"
 	"net/http"
 
-	connect "connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	authv1 "github.com/KasumiMercury/primind-central-backend/internal/gen/auth/v1"
 	authv1connect "github.com/KasumiMercury/primind-central-backend/internal/gen/auth/v1/authv1connect"
 	"github.com/KasumiMercury/primind-central-backend/internal/observability/middleware"
@@ -22,11 +23,10 @@ type authClient struct {
 }
 
 func NewAuthClient(baseURL string) AuthClient {
-	client := authv1connect.NewAuthServiceClient(
-		newH2CClient(),
-		baseURL,
-		connect.WithInterceptors(middleware.ConnectClientInterceptor()),
-	)
+	client := authv1connect.NewAuthServiceClient(connect.NewClient(
+		connecthttp.NewTransport(newH2CClient(), baseURL),
+		middleware.ConnectClientInterceptor(),
+	))
 
 	return &authClient{
 		client: client,

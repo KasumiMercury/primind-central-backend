@@ -4,31 +4,29 @@ import (
 	"context"
 	"log/slog"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"github.com/KasumiMercury/primind-central-backend/internal/observability/logging"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
 )
 
-func ConnectLoggingInterceptor(module logging.Module) connect.UnaryInterceptorFunc {
-	return func(next connect.UnaryFunc) connect.UnaryFunc {
-		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
-			if req.Spec().IsClient {
-				return next(ctx, req)
-			}
+func ConnectLoggingInterceptor(module logging.Module) connect.ServerInterceptor {
+	return func(next connect.ServerFunc) connect.ServerFunc {
+		return func(ctx context.Context, spec connect.Spec, stream connect.ServerStream) error {
+			info, _ := connect.CallInfoForServerContext(ctx)
 
-			requestID := logging.ValidateAndExtractRequestID(req.Header().Get("x-request-id"))
+			requestID := logging.ValidateAndExtractRequestID(info.RequestHeader().Get("x-request-id"))
 
 			ctx = logging.WithRequestID(ctx, requestID)
 			if module != "" {
 				ctx = logging.WithModule(ctx, module)
 			}
 
-			req.Header().Set("x-request-id", requestID)
+			info.RequestHeader().Set("x-request-id", requestID)
 
-			procedure := req.Spec().Procedure
+			procedure := spec.Procedure
 
-			resp, err := next(ctx, req)
+			err := next(ctx, spec, stream)
 			if err != nil {
 				code := connect.CodeOf(err).String()
 
@@ -45,24 +43,28 @@ func ConnectLoggingInterceptor(module logging.Module) connect.UnaryInterceptorFu
 				)
 			}
 
-			return resp, err
+			return err
 		}
 	}
 }
 
-func ConnectClientInterceptor() connect.UnaryInterceptorFunc {
-	return func(next connect.UnaryFunc) connect.UnaryFunc {
-		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
-			if !req.Spec().IsClient {
-				return next(ctx, req)
-			}
+func ConnectClientInterceptor() connect.ClientInterceptor {
+	return func(next connect.ClientFunc) connect.ClientFunc {
+		return func(ctx context.Context, spec connect.Spec) (connect.ClientStream, error) {
+			info, _ := connect.CallInfoForClientContext(ctx)
 
 			requestID := logging.ValidateAndExtractRequestID(logging.RequestIDFromContext(ctx))
 			ctx = logging.WithRequestID(ctx, requestID)
-			req.Header().Set("x-request-id", requestID)
-			otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header()))
+			info.RequestHeader().Set("x-request-id", requestID)
 
-			return next(ctx, req)
+			carrier := propagation.MapCarrier{}
+			otel.GetTextMapPropagator().Inject(ctx, carrier)
+
+			for key, value := range carrier {
+				info.RequestHeader().Set(key, value)
+			}
+
+			return next(ctx, spec)
 		}
 	}
 }

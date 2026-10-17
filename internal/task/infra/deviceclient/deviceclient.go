@@ -7,7 +7,8 @@ import (
 	"net/http"
 	"time"
 
-	connect "connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	devicev1 "github.com/KasumiMercury/primind-central-backend/internal/gen/device/v1"
 	devicev1connect "github.com/KasumiMercury/primind-central-backend/internal/gen/device/v1/devicev1connect"
 	"github.com/KasumiMercury/primind-central-backend/internal/observability/middleware"
@@ -46,25 +47,23 @@ func newH2CClient(timeout time.Duration) *http.Client {
 	}
 }
 
-func NewDeviceClientWithHTTPClient(baseURL string, httpClient connect.HTTPClient) DeviceClient {
-	authInterceptor := connect.UnaryInterceptorFunc(func(next connect.UnaryFunc) connect.UnaryFunc {
-		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+func NewDeviceClientWithHTTPClient(baseURL string, httpClient connecthttp.HTTPClient) DeviceClient {
+	authInterceptor := func(next connect.ClientFunc) connect.ClientFunc {
+		return func(ctx context.Context, spec connect.Spec) (connect.ClientStream, error) {
 			if token := sessionTokenFromContext(ctx); token != "" {
-				req.Header().Set("Authorization", "Bearer "+token)
+				info, _ := connect.CallInfoForClientContext(ctx)
+				info.RequestHeader().Set("Authorization", "Bearer "+token)
 			}
 
-			return next(ctx, req)
+			return next(ctx, spec)
 		}
-	})
+	}
 
-	client := devicev1connect.NewDeviceServiceClient(
-		httpClient,
-		baseURL,
-		connect.WithInterceptors(
-			authInterceptor,
-			middleware.ConnectClientInterceptor(),
-		),
-	)
+	client := devicev1connect.NewDeviceServiceClient(connect.NewClient(
+		connecthttp.NewTransport(httpClient, baseURL),
+		authInterceptor,
+		middleware.ConnectClientInterceptor(),
+	))
 
 	return &deviceClient{
 		client: client,

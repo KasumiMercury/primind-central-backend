@@ -6,7 +6,8 @@ import (
 	"log/slog"
 	"net/http"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"connectrpc.com/otelconnect"
 	"github.com/KasumiMercury/primind-central-backend/internal/gen/task/v1/taskv1connect"
 	"github.com/KasumiMercury/primind-central-backend/internal/observability/logging"
@@ -45,14 +46,14 @@ func (r *Repositories) Close() error {
 	return r.TaskQueueClient.Close()
 }
 
-// newInterceptorOptions creates common Connect interceptor options for task module services.
-func newInterceptorOptions() (connect.HandlerOption, error) {
-	otelInterceptor, err := otelconnect.NewInterceptor()
+// newServer creates a Connect server with the common interceptors for task module services.
+func newServer() (*connect.Server, error) {
+	otelInterceptor, err := otelconnect.NewServerInterceptor()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create otelconnect interceptor: %w", err)
 	}
 
-	return connect.WithInterceptors(
+	return connect.NewServer(
 		otelInterceptor,
 		middleware.ConnectLoggingInterceptor(moduleName),
 		interceptor.AuthInterceptor(),
@@ -104,14 +105,19 @@ func NewTaskServiceHandler(ctx context.Context, repos Repositories) (string, htt
 
 	taskService := tasksvc.NewService(createTaskUseCase, getTaskUseCase, listActiveTasksUseCase, updateTaskUseCase, deleteTaskUseCase)
 
-	interceptorOpts, err := newInterceptorOptions()
+	server, err := newServer()
 	if err != nil {
-		logger.Error("failed to create interceptor options", slog.String("error", err.Error()))
+		logger.Error("failed to create connect server", slog.String("error", err.Error()))
 
 		return "", nil, err
 	}
 
-	taskPath, taskHandler := taskv1connect.NewTaskServiceHandler(taskService, interceptorOpts)
+	taskv1connect.RegisterTaskServiceHandler(server, taskService)
+
+	taskHandler := http.NewServeMux()
+	connecthttp.Mount(taskHandler, server)
+
+	taskPath := "/" + taskv1connect.TaskServiceName + "/"
 	logger.Info("task service handler registered", slog.String("path", taskPath))
 
 	return taskPath, taskHandler, nil
@@ -138,14 +144,19 @@ func NewPeriodSettingsServiceHandler(ctx context.Context, repos Repositories) (s
 	updatePeriodSettingsUseCase := appperiodsetting.NewUpdatePeriodSettingsHandler(repos.AuthClient, repos.PeriodSettings)
 	periodSettingService := tasksvc.NewPeriodSettingService(getPeriodSettingsUseCase, updatePeriodSettingsUseCase)
 
-	interceptorOpts, err := newInterceptorOptions()
+	server, err := newServer()
 	if err != nil {
-		logger.Error("failed to create interceptor options", slog.String("error", err.Error()))
+		logger.Error("failed to create connect server", slog.String("error", err.Error()))
 
 		return "", nil, err
 	}
 
-	periodSettingPath, periodSettingHandler := taskv1connect.NewUserPeriodSettingsServiceHandler(periodSettingService, interceptorOpts)
+	taskv1connect.RegisterUserPeriodSettingsServiceHandler(server, periodSettingService)
+
+	periodSettingHandler := http.NewServeMux()
+	connecthttp.Mount(periodSettingHandler, server)
+
+	periodSettingPath := "/" + taskv1connect.UserPeriodSettingsServiceName + "/"
 	logger.Info("period setting service handler registered", slog.String("path", periodSettingPath))
 
 	return periodSettingPath, periodSettingHandler, nil

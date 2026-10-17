@@ -12,13 +12,16 @@ import (
 	"syscall"
 	"time"
 
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
+	"connectrpc.com/grpchealth/v2"
 	authmodule "github.com/KasumiMercury/primind-central-backend/internal/auth"
 	authrepository "github.com/KasumiMercury/primind-central-backend/internal/auth/infra/repository"
 	"github.com/KasumiMercury/primind-central-backend/internal/config"
 	devicemodule "github.com/KasumiMercury/primind-central-backend/internal/device"
-	"github.com/KasumiMercury/primind-central-backend/internal/health"
 	deviceconfig "github.com/KasumiMercury/primind-central-backend/internal/device/config"
 	devicerepository "github.com/KasumiMercury/primind-central-backend/internal/device/infra/repository"
+	"github.com/KasumiMercury/primind-central-backend/internal/health"
 	"github.com/KasumiMercury/primind-central-backend/internal/observability/logging"
 	"github.com/KasumiMercury/primind-central-backend/internal/observability/middleware"
 	taskmodule "github.com/KasumiMercury/primind-central-backend/internal/task"
@@ -26,7 +29,6 @@ import (
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/authclient"
 	"github.com/KasumiMercury/primind-central-backend/internal/task/infra/deviceclient"
 	taskrepository "github.com/KasumiMercury/primind-central-backend/internal/task/infra/repository"
-	"connectrpc.com/grpchealth"
 	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/postgres"
@@ -276,8 +278,9 @@ func run() error {
 
 	// gRPC Health Checking Protocol (grpc.health.v1.Health/Check)
 	grpcHealthChecker := health.NewGRPCChecker(healthChecker)
-	grpcHealthPath, grpcHealthHandler := grpchealth.NewHandler(grpcHealthChecker)
-	mux.Handle(grpcHealthPath, grpcHealthHandler)
+	grpcHealthServer := connect.NewServer()
+	grpchealth.Register(grpcHealthServer, grpcHealthChecker)
+	connecthttp.Mount(mux, grpcHealthServer)
 
 	// HTTP Health endpoints
 	mux.HandleFunc("GET /health/live", healthChecker.LiveHandler)
